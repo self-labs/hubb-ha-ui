@@ -100,9 +100,11 @@ export class HubbHomeScreen extends HubbScreen {
         ${house.rooms.length === 0
           ? this.#empty(hass)
           : html`<p class="headline">${summary.headline} ${summary.detail ? html`<span>${summary.detail}</span>` : nothing}</p>
-              ${summary.lightsOn > 0
-                ? html`<div class="chips"><button class="chip on" @click=${() => this.#openSheet(house, hass)}>${onCount(summary.lightsOn)}</button></div>`
-                : nothing}
+              <div class="chips">
+                ${summary.lightsOn > 0
+                  ? html`<button class="chip on" @click=${() => this.#openSheet(house, hass)}>${onCount(summary.lightsOn)}</button>`
+                  : nothing}
+              </div>
               ${house.scenes.length
                 ? html`<h2>${S.scenes}</h2>
                     <div class="scenes">${house.scenes.slice(0, 4).map((s) => html`<hubb-scene-button variant="tile" .scene=${s}></hubb-scene-button>`)}</div>`
@@ -144,7 +146,9 @@ export class HubbHomeScreen extends HubbScreen {
         font-size: 12px;
         font-weight: 700;
       }
+      /* Reserved height, so the cards below stay put when the sentence grows or the chip shows. */
       .headline {
+        min-height: calc(2 * 1.22em);
         margin: 18px 2px 12px;
         font-size: 20px;
         font-weight: 800;
@@ -157,6 +161,7 @@ export class HubbHomeScreen extends HubbScreen {
       .chips {
         display: flex;
         gap: 6px;
+        min-height: 36px;
       }
       .chip {
         all: unset;

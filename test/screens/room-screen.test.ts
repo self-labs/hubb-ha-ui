@@ -68,10 +68,12 @@ describe('hubb-room-screen', () => {
     expect(h.calls[1]).toEqual({ domain: 'light', service: 'turn_on', target: { entity_id: 'light.sofa' } });
   });
 
-  it('hides the turn-off button when everything is off', async () => {
+  it('keeps the turn-off button disabled and out of sight when everything is off', async () => {
     const h = makeHass({ areas: [area('sala', 'Sala')], entities: [{ entity_id: 'light.a', area_id: 'sala', state: 'off' }] });
     const el = await mount(h);
-    expect($(el, '.actions .primary')).toBeNull();
+    const button = $(el, '.actions .primary') as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.classList.contains('idle')).toBe(true);
     expect($(el, 'header p')!.textContent).toBe('Tudo apagado');
   });
 

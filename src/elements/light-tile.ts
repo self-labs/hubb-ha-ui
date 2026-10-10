@@ -176,6 +176,7 @@ export class HubbLightTile extends LitElement {
       padding: 12px;
       border-radius: var(--hubb-radius, 16px);
       background: var(--hubb-surface);
+      box-shadow: var(--hubb-card-shadow);
       color: var(--hubb-text);
       font-family: var(--hubb-font);
       cursor: pointer;

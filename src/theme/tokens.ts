@@ -22,6 +22,7 @@ export const tokens = css`
     --hubb-primary-bg: #e3e0d9;
     --hubb-primary-ink: #1b1f22;
     --hubb-backdrop: rgba(8, 10, 12, 0.6);
+    --hubb-card-shadow: none;
     --hubb-radius: 16px;
     --hubb-radius-sheet: 24px;
     --hubb-motion: 200ms;
@@ -43,6 +44,8 @@ export const tokens = css`
     --hubb-primary-bg: #293a44;
     --hubb-primary-ink: #e3e0d9;
     --hubb-backdrop: rgba(41, 58, 68, 0.35);
+    /* Areia: a light surface on a light background needs a soft edge, not a dark gradient. */
+    --hubb-card-shadow: 0 1px 3px rgba(41, 58, 68, 0.1);
   }
   @media (prefers-reduced-motion: reduce) {
     :host {

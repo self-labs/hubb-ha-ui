@@ -32,7 +32,9 @@ export abstract class HubbScreen extends LitElement {
       box-sizing: border-box;
       max-width: 560px;
       margin: 0 auto;
-      padding: calc(16px + env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom));
+      /* The top is Home Assistant's: its layout already sits below the status bar. Only the
+         bottom needs the safe area, because the nav bar is fixed to the viewport. */
+      padding: 12px 16px calc(96px + env(safe-area-inset-bottom));
     }
     h2 {
       margin: 22px 2px 10px;

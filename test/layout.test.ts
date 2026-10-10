@@ -1,0 +1,96 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import '../src/elements/room-card';
+import { HubbRoomCard } from '../src/elements/room-card';
+import '../src/screens/home-screen';
+import '../src/screens/room-screen';
+import { HubbHomeScreen } from '../src/screens/home-screen';
+import { HubbRoomScreen } from '../src/screens/room-screen';
+import { HubbScreen } from '../src/screens/base';
+import { allLightIds, buildHouse } from '../src/model/build-house';
+import type { Room } from '../src/model/types';
+import { area, makeHass, withState, type FakeHass } from './helpers/fake-hass';
+
+const cssOf = (styles: unknown): string =>
+  ([] as unknown[]).concat(styles).map((s) => (s as { cssText: string }).cssText).join('\n');
+
+function sala(): FakeHass {
+  return makeHass({
+    areas: [area('sala', 'Sala'), area('quarto', 'Quarto')],
+    entities: [
+      { entity_id: 'light.sofa', area_id: 'sala', name: 'Sofá', state: 'off' },
+      { entity_id: 'light.cama', area_id: 'quarto', name: 'Cama', state: 'off' },
+    ],
+  });
+}
+
+describe('nothing jumps when a light turns on', () => {
+  afterEach(() => { document.body.replaceChildren(); });
+
+  it('the room keeps its "Apagar tudo" slot while everything is off, disabled and invisible', async () => {
+    const h = sala();
+    const house = buildHouse(h);
+    const el = document.createElement('hubb-room-screen') as HubbRoomScreen;
+    el.setConfig({ type: 'custom:hubb-room-screen', room: house.rooms.find((r) => r.areaId === 'sala')!, lightIds: allLightIds(house) });
+    el.hass = h;
+    document.body.appendChild(el);
+    await el.updateComplete;
+    const off = el.shadowRoot!.querySelector('.actions .primary') as HTMLButtonElement;
+    expect(off).not.toBeNull();
+    expect(off.disabled).toBe(true);
+    expect(off.classList.contains('idle')).toBe(true);
+    el.hass = withState(h, 'light.sofa', 'on');
+    await el.updateComplete;
+    const on = el.shadowRoot!.querySelector('.actions .primary') as HTMLButtonElement;
+    expect(on.disabled).toBe(false);
+    expect(on.classList.contains('idle')).toBe(false);
+    expect(cssOf(HubbRoomScreen.styles)).toMatch(/\.primary\.idle\s*\{[^}]*visibility: hidden/);
+  });
+
+  it('the home keeps the chip row and two lines of headline even when everything is off', async () => {
+    const h = sala();
+    const el = document.createElement('hubb-home-screen') as HubbHomeScreen;
+    el.setConfig({ type: 'custom:hubb-home-screen', house: buildHouse(h) });
+    el.hass = h;
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.shadowRoot!.querySelector('.chips')).not.toBeNull();
+    const css = cssOf(HubbHomeScreen.styles);
+    expect(css).toMatch(/\.chips\s*\{[^}]*min-height: 36px/);
+    expect(css).toMatch(/\.headline\s*\{[^}]*min-height: calc\(2 \* 1\.22em\)/);
+  });
+});
+
+describe('top spacing', () => {
+  it('leaves the status bar to Home Assistant instead of adding the safe area a second time', () => {
+    expect(cssOf(HubbScreen.baseStyles)).not.toContain('safe-area-inset-top');
+    expect(cssOf(HubbRoomScreen.styles)).not.toContain('safe-area-inset-top');
+  });
+});
+
+describe('room card shading', () => {
+  afterEach(() => { document.body.replaceChildren(); });
+
+  const room = (photo: string | null): Room => ({
+    areaId: 'sala',
+    path: 'sala',
+    name: 'Sala',
+    photo,
+    icon: null,
+    lights: [{ entityId: 'light.sofa', name: 'Sofá', dimmable: false }],
+    scenes: [],
+  });
+
+  it('darkens the bottom only over a photo, so dark text on the plain Areia card stays readable', async () => {
+    for (const [photo, expected] of [['/local/sala.jpg', true], [null, false]] as const) {
+      const el = document.createElement('hubb-room-card') as HubbRoomCard;
+      el.hass = sala();
+      el.room = room(photo);
+      document.body.appendChild(el);
+      await el.updateComplete;
+      expect(el.shadowRoot!.querySelector('button.room')!.classList.contains('photo')).toBe(expected);
+    }
+    const css = cssOf(HubbRoomCard.styles);
+    expect(css).toMatch(/\.room\s*\{[^}]*background: var\(--hubb-surface\)/);
+    expect(css).toMatch(/\.room\.photo\s*\{[^}]*rgba\(0, 0, 0/);
+  });
+});

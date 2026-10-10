@@ -31,7 +31,11 @@ export class HubbRoomCard extends LitElement {
     const { hass, room } = this;
     if (!hass || !room) return nothing;
     const on = room.lights.filter((l) => hass.states[l.entityId]?.state === 'on').length;
-    return html`<button class="room ${on ? 'on' : ''}" style=${room.photo ? `--photo:url("${room.photo}")` : ''} @click=${this.#open}>
+    return html`<button
+      class="room ${on ? 'on' : ''} ${room.photo ? 'photo' : ''}"
+      style=${room.photo ? `--photo:url("${room.photo}")` : ''}
+      @click=${this.#open}
+    >
       <span class="name">${room.name}</span><span class="status">${on ? onCount(on) : S.roomOff}</span>
     </button>`;
   }
@@ -50,19 +54,25 @@ export class HubbRoomCard extends LitElement {
       height: 96px;
       padding: 10px 12px;
       border-radius: var(--hubb-radius, 16px);
-      background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.55)), var(--photo, none) center / cover,
-        var(--hubb-surface);
+      background: var(--hubb-surface);
+      box-shadow: var(--hubb-card-shadow);
       color: var(--hubb-text);
       font-family: var(--hubb-font);
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
-    .room[style*='--photo'] {
+    .room.on {
+      background: radial-gradient(120% 90% at 20% 0%, var(--hubb-amber-tint), transparent 60%), var(--hubb-on-bg);
+    }
+    /* The dark scrim only makes sense over a photo, with white text on top of it. */
+    .room.photo {
+      background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.55)), var(--photo) center / cover,
+        var(--hubb-surface);
       color: #fff;
     }
-    .room.on {
-      background: radial-gradient(120% 90% at 20% 0%, var(--hubb-amber-tint), transparent 60%),
-        linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.45)), var(--photo, none) center / cover, var(--hubb-on-bg);
+    .room.photo.on {
+      background: radial-gradient(120% 90% at 20% 0%, rgba(242, 201, 138, 0.35), transparent 60%),
+        linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.45)), var(--photo) center / cover, var(--hubb-on-bg);
     }
     .name {
       font-weight: 700;
@@ -76,6 +86,9 @@ export class HubbRoomCard extends LitElement {
     .room.on .status {
       color: var(--hubb-amber-text);
       opacity: 1;
+    }
+    .room.photo.on .status {
+      color: #f2c98a;
     }
   `;
 }
