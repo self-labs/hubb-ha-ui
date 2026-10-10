@@ -1,0 +1,83 @@
+import { LitElement, css, html, nothing } from 'lit';
+import { haptic } from '../actions/haptic';
+import { basePath, navigate } from '../actions/navigate';
+import type { HomeAssistant } from '../ha/types';
+import type { Room } from '../model/types';
+import { onCount, S } from '../strings';
+import { define } from './define';
+
+export class HubbRoomCard extends LitElement {
+  static properties = {
+    hass: { attribute: false },
+    room: { attribute: false },
+  };
+
+  declare hass: HomeAssistant | undefined;
+  declare room: Room | undefined;
+
+  constructor() {
+    super();
+    this.hass = undefined;
+    this.room = undefined;
+  }
+
+  #open = (): void => {
+    if (!this.room) return;
+    haptic('selection');
+    navigate(`${basePath()}/${this.room.path}`, { back: true });
+  };
+
+  render() {
+    const { hass, room } = this;
+    if (!hass || !room) return nothing;
+    const on = room.lights.filter((l) => hass.states[l.entityId]?.state === 'on').length;
+    return html`<button class="room ${on ? 'on' : ''}" style=${room.photo ? `--photo:url("${room.photo}")` : ''} @click=${this.#open}>
+      <span class="name">${room.name}</span><span class="status">${on ? onCount(on) : S.roomOff}</span>
+    </button>`;
+  }
+
+  static styles = css`
+    :host {
+      display: block;
+    }
+    .room {
+      all: unset;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      width: 100%;
+      height: 96px;
+      padding: 10px 12px;
+      border-radius: var(--hubb-radius, 16px);
+      background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.55)), var(--photo, none) center / cover,
+        var(--hubb-surface);
+      color: var(--hubb-text);
+      font-family: var(--hubb-font);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .room[style*='--photo'] {
+      color: #fff;
+    }
+    .room.on {
+      background: radial-gradient(120% 90% at 20% 0%, var(--hubb-amber-tint), transparent 60%),
+        linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.45)), var(--photo, none) center / cover, var(--hubb-on-bg);
+    }
+    .name {
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .status {
+      font-size: 11px;
+      font-weight: 600;
+      opacity: 0.8;
+    }
+    .room.on .status {
+      color: var(--hubb-amber-text);
+      opacity: 1;
+    }
+  `;
+}
+
+define('hubb-room-card', HubbRoomCard);

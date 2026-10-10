@@ -1,0 +1,42 @@
+# hubb-ha-ui - files that never enter the repository
+
+# ---- Dependencies and build artefacts ----
+node_modules/
+# The bundle ships as a Release asset built by CI, never from the tree.
+dist/
+
+# ---- Environment ----
+.env
+.env.*
+!.env.example
+
+# ---- Logs ----
+*.log
+npm-debug.log*
+
+# ---- Tests and coverage ----
+coverage/
+test-results/
+playwright-report/
+
+# ---- Generated and regenerable ----
+graphify-out/
+.superpowers/
+
+# ---- Controle de trabalho ----
+# Rascunho de trabalho, nao documentacao: muda a cada sessao e cita o que
+# ainda esta quebrado.
+CHECKLIST*.md
+
+# ---- OS and editors ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+
+# ---- Loose attachments in the root ----
+/*.pdf
+/*.xlsx
+/*.zip

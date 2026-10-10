@@ -1,0 +1,23 @@
+name: HACS
+
+on:
+  release:
+    types:
+      - published
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  hacs:
+    name: HACS validation
+    runs-on: ubuntu-latest
+    steps:
+      # No checkout on purpose: the action reads the repository through the GitHub API.
+      # It only passes once a Release with hubb-ha-ui.js exists, which is why it does not run on push.
+      - name: Run HACS validation
+        uses: hacs/action@main
+        with:
+          category: plugin
