@@ -8,6 +8,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.1] - 2026-10-10
+
 ### Added
 
 - Dashboard strategy `custom:hubb` that builds the home, room and scenes screens from Home
@@ -26,4 +28,5 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/commits/master
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.1...HEAD
+[2026.10.1]: https://github.com/self-labs/hubb-ha-ui/releases/tag/v2026.10.1
