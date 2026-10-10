@@ -8,6 +8,12 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Changed
+
+- README rewritten in the house layout: badges, screenshots of the sample house in both themes,
+  one-click buttons to open the repository in HACS and the dashboards page, the options table and
+  what each house must provide. The screenshots also satisfy the HACS "images" check.
+
 ## [2026.10.2] - 2026-10-10
 
 ### Changed
