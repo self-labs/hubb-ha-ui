@@ -2,15 +2,20 @@ import { mdiChevronLeft } from '@mdi/js';
 import { css, html, nothing } from 'lit';
 import { setLight } from '../actions/light';
 import { goBack } from '../actions/navigate';
+import { artStyles, roomArt } from '../art/render';
+import '../elements/color-panel';
 import { define } from '../elements/define';
 import '../elements/dimmer-panel';
 import { icon } from '../elements/icon';
 import '../elements/light-tile';
 import '../elements/nav-bar';
+import '../elements/outlet-tile';
 import '../elements/scene-button';
 import '../elements/sheet';
+import { normalizeRoom } from '../model/build-house';
 import type { Room } from '../model/types';
-import { roomStatus, roomTurnedOff, S } from '../strings';
+import { outletStatus, roomStatus, roomTurnedOff, S } from '../strings';
+import { outletsOnIn } from '../summary';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 
@@ -42,7 +47,7 @@ export class HubbRoomScreen extends HubbScreen {
 
   setConfig(config: RoomScreenConfig): void {
     if (!config || !config.room) throw new Error('hubb-room-screen: missing room');
-    this.config = config;
+    this.config = { ...config, room: normalizeRoom(config.room) };
   }
 
   protected scope(): string[] {
@@ -52,7 +57,7 @@ export class HubbRoomScreen extends HubbScreen {
   #turnOff(room: Room, onIds: string[]): void {
     const hass = this.hass;
     if (!hass || onIds.length === 0) return;
-    this.undoable(onIds, roomTurnedOff(room.name, onIds.length), () => setLight(hass, onIds, false));
+    this.undoable(onIds, roomTurnedOff(room.name, onIds.length), () => setLight(hass, onIds, false), { targets: onIds });
   }
 
   render() {
@@ -60,31 +65,52 @@ export class HubbRoomScreen extends HubbScreen {
     const room = this.config?.room;
     if (!hass || !room) return nothing;
     const onIds = room.lights.filter((l) => hass.states[l.entityId]?.state === 'on').map((l) => l.entityId);
-    return html`<header class="hero ${room.photo ? 'photo' : ''}" style=${room.photo ? `--photo:url("${room.photo}")` : ''}>
+    const outletsOnly = room.lights.length === 0 && room.outlets.length > 0;
+    const status = outletsOnly
+      ? outletStatus(outletsOnIn(room, hass), room.outlets.length)
+      : roomStatus(onIds.length, room.lights.length);
+    return html`<header
+        class="hero ${room.photo ? 'photo' : ''} ${onIds.length ? 'lit' : ''}"
+        style=${room.photo ? `--photo:url("${room.photo}")` : ''}
+      >
+        ${room.photo ? nothing : roomArt(room.art)}
         <button class="back" aria-label=${S.back} @click=${() => goBack()}>${icon(mdiChevronLeft)}</button>
         <div>
           <h1>${room.name}</h1>
-          <p>${roomStatus(onIds.length, room.lights.length)}</p>
+          <p>${status}</p>
         </div>
       </header>
       <main>
-        <div class="actions">
-          <!-- Always rendered: hiding it would push the lights down the moment one turns on. -->
-          <button
-            class="primary ${onIds.length ? '' : 'idle'}"
-            ?disabled=${onIds.length === 0}
-            aria-hidden=${onIds.length ? 'false' : 'true'}
-            @click=${() => this.#turnOff(room, onIds)}
-          >
-            ${S.turnRoomOff}
-          </button>
-          ${room.scenes.map((s) => html`<hubb-scene-button variant="chip" .scene=${s}></hubb-scene-button>`)}
-        </div>
-        <h2>${S.lights}</h2>
-        <div class="grid">${room.lights.map((l) => html`<hubb-light-tile .hass=${hass} .item=${l}></hubb-light-tile>`)}</div>
+        ${room.lights.length || room.scenes.length
+          ? html`<div class="actions">
+              ${room.lights.length
+                ? html`<!-- Always rendered when the room has lights: hiding it would push them down the moment one turns on. -->
+                    <button
+                      class="primary ${onIds.length ? '' : 'idle'}"
+                      ?disabled=${onIds.length === 0}
+                      aria-hidden=${onIds.length ? 'false' : 'true'}
+                      @click=${() => this.#turnOff(room, onIds)}
+                    >
+                      ${S.turnRoomOff}
+                    </button>`
+                : nothing}
+              ${room.scenes.map((s) => html`<hubb-scene-button variant="chip" .scene=${s}></hubb-scene-button>`)}
+            </div>`
+          : nothing}
+        ${room.lights.length
+          ? html`<h2>${S.lights}</h2>
+              <div class="grid">${room.lights.map((l) => html`<hubb-light-tile .hass=${hass} .item=${l}></hubb-light-tile>`)}</div>`
+          : nothing}
+        ${room.outlets.length
+          ? html`<h2>${S.outlets}</h2>
+              <div class="grid">${room.outlets.map((o) => html`<hubb-outlet-tile .hass=${hass} .item=${o}></hubb-outlet-tile>`)}</div>`
+          : nothing}
       </main>
       <hubb-sheet ?open=${this.dimmer !== null} heading=${this.dimmer?.name ?? ''} subheading=${room.name} @hubb-close=${() => (this.dimmer = null)}>
-        ${this.dimmer ? html`<hubb-dimmer-panel .hass=${hass} .entityId=${this.dimmer.entityId}></hubb-dimmer-panel>` : nothing}
+        ${this.dimmer
+          ? html`<hubb-dimmer-panel .hass=${hass} .entityId=${this.dimmer.entityId}></hubb-dimmer-panel>
+              <hubb-color-panel .hass=${hass} .entityId=${this.dimmer.entityId}></hubb-color-panel>`
+          : nothing}
       </hubb-sheet>
       <hubb-toast></hubb-toast>
       <hubb-nav-bar current="home"></hubb-nav-bar>`;
@@ -93,6 +119,7 @@ export class HubbRoomScreen extends HubbScreen {
   static styles = [
     tokens,
     HubbScreen.baseStyles,
+    artStyles,
     css`
       /* Home Assistant already keeps the page below the status bar: no safe-area padding here. */
       .hero {
@@ -102,8 +129,19 @@ export class HubbRoomScreen extends HubbScreen {
         align-items: center;
         gap: 12px;
         max-width: 560px;
+        min-height: 76px;
         margin: 0 auto;
         padding: 12px 16px 4px;
+        overflow: hidden;
+      }
+      .hero .art {
+        top: 4px;
+        right: 12px;
+        width: 46%;
+        height: calc(100% - 4px);
+      }
+      .hero > div {
+        position: relative;
       }
       .hero.photo {
         max-width: none;
@@ -114,6 +152,7 @@ export class HubbRoomScreen extends HubbScreen {
       }
       .back {
         all: unset;
+        position: relative;
         flex: none;
         width: 44px;
         height: 44px;
@@ -123,6 +162,10 @@ export class HubbRoomScreen extends HubbScreen {
         background: var(--hubb-surface);
         color: var(--hubb-text);
         cursor: pointer;
+      }
+      .back:focus-visible {
+        outline: 2px solid var(--hubb-focus);
+        outline-offset: 2px;
       }
       .hero.photo .back {
         position: absolute;

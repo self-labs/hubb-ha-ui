@@ -3,35 +3,55 @@ import { haptic } from '../actions/haptic';
 import { S } from '../strings';
 import { define } from './define';
 
+/** The undo on offer. One for the whole panel, so it survives moving to another screen within its time. */
+interface Offer {
+  message: string;
+  onUndo: () => void;
+  until: number;
+}
+
+let offer: Offer | null = null;
+const onPage = new Set<HubbToast>();
+
+function current(): Offer | null {
+  return offer && Date.now() < offer.until ? offer : null;
+}
+
+function publish(next: Offer | null): void {
+  offer = next;
+  onPage.forEach((toast) => toast.requestUpdate());
+}
+
+/** Shows the undo on offer. Every screen has one; they all show the same offer. */
 export class HubbToast extends LitElement {
-  static properties = { message: { state: true } };
-
-  declare message: string | null;
-
-  #onUndo: (() => void) | null = null;
   #timer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor() {
-    super();
-    this.message = null;
-  }
-
   show(message: string, onUndo: () => void, ms = 5000): void {
-    this.#clearTimer();
-    this.message = message;
-    this.#onUndo = onUndo;
-    this.#timer = setTimeout(() => this.hide(), ms);
+    publish({ message, onUndo, until: Date.now() + ms });
   }
 
-  hide(): void {
-    this.#clearTimer();
-    this.message = null;
-    this.#onUndo = null;
+  /** Withdraws the offer; given its undo, only if that offer is still the one shown. */
+  hide(onUndo?: () => void): void {
+    if (onUndo && offer?.onUndo !== onUndo) return;
+    publish(null);
+  }
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    onPage.add(this);
+    this.requestUpdate();
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    onPage.delete(this);
     this.#clearTimer();
+  }
+
+  protected updated(): void {
+    this.#clearTimer();
+    const o = current();
+    if (o) this.#timer = setTimeout(() => this.requestUpdate(), o.until - Date.now());
   }
 
   #clearTimer(): void {
@@ -42,17 +62,20 @@ export class HubbToast extends LitElement {
   }
 
   #undo = (): void => {
-    const fn = this.#onUndo;
-    this.hide();
-    if (fn) {
+    const o = current();
+    publish(null);
+    if (o) {
       haptic('success');
-      fn();
+      o.onUndo();
     }
   };
 
   render() {
-    if (this.message === null) return nothing;
-    return html`<div class="toast" role="status"><span>${this.message}</span><button @click=${this.#undo}>${S.undo}</button></div>`;
+    const o = current();
+    // The live region stays on the page and only its content changes, so readers announce it.
+    return html`<div class="region" role="status">
+      ${o ? html`<div class="toast"><span>${o.message}</span><button @click=${this.#undo}>${S.undo}</button></div>` : nothing}
+    </div>`;
   }
 
   static styles = css`
@@ -87,6 +110,10 @@ export class HubbToast extends LitElement {
       color: var(--hubb-toast-action);
       font-weight: 800;
       cursor: pointer;
+    }
+    button:focus-visible {
+      outline: 2px solid var(--hubb-primary-ink);
+      outline-offset: 2px;
     }
   `;
 }

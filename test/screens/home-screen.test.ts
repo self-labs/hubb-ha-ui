@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '../../src/screens/home-screen';
 import type { HubbHomeScreen } from '../../src/screens/home-screen';
+import type { HubbRoomCard } from '../../src/elements/room-card';
 import type { HubbSheet } from '../../src/elements/sheet';
 import type { HubbToast } from '../../src/elements/toast';
 import { buildHouse } from '../../src/model/build-house';
@@ -42,7 +43,7 @@ describe('hubb-home-screen', () => {
 
   it('summarizes the house and lists every room', async () => {
     const el = await mount(sampleHouseHass());
-    expect($(el, '.headline')!.textContent!.replace(/\s+/g, ' ').trim()).toBe('Cozinha com 1 luz acesa. O resto da casa está apagado.');
+    expect($(el, '.headline')!.textContent!.replace(/\s+/g, ' ').trim()).toBe('Cozinha com 1 luz acesa. O resto está apagado.');
     expect(el.shadowRoot!.querySelectorAll('.rooms hubb-room-card')).toHaveLength(3);
     expect($(el, '.chips .chip')!.textContent!.trim()).toBe('1 acesa');
   });
@@ -66,6 +67,24 @@ describe('hubb-home-screen', () => {
     expect(toast.shadowRoot!.querySelector('.toast span')!.textContent).toBe('1 luz apagada');
   });
 
+  it('Apagar todas turns off only lights, even with an outlet on in the same room', async () => {
+    const h = makeHass({
+      areas: [area('cozinha', 'Cozinha')],
+      entities: [
+        { entity_id: 'light.bancada', area_id: 'cozinha', name: 'Bancada', state: 'on' },
+        { entity_id: 'switch.geladeira', area_id: 'cozinha', name: 'Geladeira', state: 'on', attributes: { device_class: 'outlet' } },
+      ],
+    });
+    const el = await mount(h);
+    ($(el, '.chips .chip') as HTMLButtonElement).click();
+    await el.updateComplete;
+    const sheet = $(el, 'hubb-sheet') as HubbSheet;
+    expect(sheet.querySelectorAll('hubb-outlet-tile')).toHaveLength(0);
+    (sheet.querySelector('.primary.wide') as HTMLButtonElement).click();
+    await Promise.resolve();
+    expect(h.calls).toEqual([{ domain: 'light', service: 'turn_off', data: undefined, target: { entity_id: ['light.bancada'] } }]);
+  });
+
   it('shows at most four scenes', async () => {
     const entities = ['a', 'b', 'c', 'd', 'e'].map((x) => ({ entity_id: `scene.${x}`, name: `Cena ${x}`, labels: ['hubb_cena'], state: 'unknown' }));
     const h = makeHass({
@@ -83,5 +102,26 @@ describe('hubb-home-screen', () => {
     document.body.replaceChildren();
     const admin = await mount(makeHass({ user: { id: 'a', name: 'Gustavo', is_admin: true } }));
     expect($(admin, '.empty span')!.textContent).toContain('Configurações');
+  });
+
+  it('still shows a house saved by 2026.10.2, before drawings and outlets existed', async () => {
+    const h = sampleHouseHass();
+    const house = buildHouse(h);
+    const rooms = house.rooms.map((r) => {
+      const old: Record<string, unknown> = { ...r };
+      delete old.art;
+      delete old.outlets;
+      return old;
+    });
+    const el = document.createElement('hubb-home-screen') as HubbHomeScreen;
+    el.setConfig({ type: 'custom:hubb-home-screen', house: { ...house, rooms: rooms as never } });
+    el.hass = h;
+    document.body.appendChild(el);
+    await el.updateComplete;
+    const cards = [...el.shadowRoot!.querySelectorAll('hubb-room-card')] as HubbRoomCard[];
+    expect(cards).toHaveLength(3);
+    await cards[0]!.updateComplete;
+    expect(cards[0]!.shadowRoot!.querySelectorAll('svg.art path, svg.art rect, svg.art circle').length).toBeGreaterThan(0);
+    expect(cards[0]!.shadowRoot!.querySelector('.status')!.textContent).toBe('1 acesa');
   });
 });

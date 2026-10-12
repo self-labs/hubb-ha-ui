@@ -12,6 +12,8 @@ async function mount(): Promise<HubbToast> {
 describe('hubb-toast', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => {
+    // The offer is shared by every toast of the panel; withdraw it so the next test starts clean.
+    (document.createElement('hubb-toast') as HubbToast).hide();
     vi.useRealTimers();
     document.body.replaceChildren();
   });
@@ -57,5 +59,44 @@ describe('hubb-toast', () => {
     (el.shadowRoot!.querySelector('.toast button') as HTMLButtonElement).click();
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the undo on offer when the screen changes within the 5 s', async () => {
+    const first = await mount();
+    const undo = vi.fn();
+    first.show('Sala: 1 luz apagada', undo);
+    first.remove();
+    vi.advanceTimersByTime(2000);
+    const second = await mount();
+    expect(second.shadowRoot!.querySelector('.toast span')!.textContent).toBe('Sala: 1 luz apagada');
+    (second.shadowRoot!.querySelector('.toast button') as HTMLButtonElement).click();
+    expect(undo).toHaveBeenCalledOnce();
+    vi.advanceTimersByTime(3100);
+    await second.updateComplete;
+    expect(second.shadowRoot!.querySelector('.toast')).toBeNull();
+  });
+
+  it('withdraws only its own offer when one is named, so a late failure cannot take another undo away', async () => {
+    const el = await mount();
+    const first = vi.fn();
+    const second = vi.fn();
+    el.show('primeira', first);
+    el.show('segunda', second);
+    el.hide(first);
+    await el.updateComplete;
+    expect(el.shadowRoot!.querySelector('.toast span')!.textContent).toBe('segunda');
+    el.hide(second);
+    await el.updateComplete;
+    expect(el.shadowRoot!.querySelector('.toast')).toBeNull();
+  });
+
+  it('keeps an empty live region on the page, so the message is announced when it arrives', async () => {
+    const el = await mount();
+    const region = el.shadowRoot!.querySelector('[role="status"]');
+    expect(region).not.toBeNull();
+    el.show('x', () => undefined);
+    await el.updateComplete;
+    expect(el.shadowRoot!.querySelector('[role="status"]')).toBe(region);
+    expect(region!.textContent).toContain('x');
   });
 });

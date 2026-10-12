@@ -5,7 +5,8 @@ strategy (`custom:hubb`) plus Lit cards that build the Hubb home screens from th
 entities Home Assistant already knows. One code base for every Hubb client, whatever the hardware
 (ControlArt relay and dimmer, KinCony relay and IR).
 
-Design spec: `homeassistant` repo, `docs/superpowers/specs/2026-10-09-hubb-ha-ui-design.md`.
+Design spec: `homeassistant` repo, `docs/superpowers/specs/2026-10-09-hubb-ha-ui-design.md`; scope
+v2 (any kind of place, panel editor, phases M1.1 to M4) in `2026-10-10-hubb-ha-ui-escopo-v2.md`.
 
 ## Language
 
@@ -22,9 +23,11 @@ src/
   model/               pure rules: buildHouse, names, paths (no DOM)
   summary.ts           the home headline
   strings.ts           every resident string
-  actions/             light, scene, pending (3 s window), undo (5 s), haptic, navigate
+  actions/             light, colour, switch, scene, pending (3 s window), undo (5 s), haptic, navigate
   theme/               CSS tokens (screens only) and the embedded Manrope font
-  elements/            light tile, sheet, dimmer panel, toast, nav bar, room card, scene button
+  art/                 the 59 room drawings, the name/icon resolver, the render helper
+  elements/            toggle tile (light, outlet), sheet, dimmer and colour panels, toast, nav bar,
+                       room card, scene button
   screens/             home, room, scenes (each is a Lovelace card filling a panel view)
   cards/               standalone light card, error card
   strategy/            generateDashboard and the ll-strategy-dashboard-hubb element
@@ -60,5 +63,16 @@ Never commit or push without Gustavo's explicit approval.
 
 - happy-dom has no layout: tests that need sizes mock `getBoundingClientRect`.
 - `haptic` is a window event the Companion App turns into vibration; browsers ignore it.
+- The undo offer lives in module state of `elements/toast.ts`, shared by every screen's toast, so it
+  survives a view switch within its 5 s. Tests that show one withdraw it with `hide()`.
+- Home Assistant stops sending `hass` to a hidden cached view. Undo reads the newest hass any screen
+  got (module state in `screens/base.ts`), not the one of the screen that started the action.
+- A tile keeps one timer, re-armed after every render from `PendingTracker.msUntilChange`; it also
+  re-arms on reconnect, because a view switch disconnects the tile and drops the timer.
 - HACS serves only `hubb-ha-ui.js`, which is why the font is inlined.
 - `vite.config.ts` is outside `tsc` on purpose: it uses `node:fs` and would need `@types/node`.
+- Room drawings go into the page through `unsafeSVG`. Only `src/art/drawings.ts` may feed it, and
+  `test/art/drawings.test.ts` keeps that file to plain shapes with no colours, links or handlers.
+  A new drawing also needs its words in `src/art/resolve.ts` and a row in `docs/drawings.md`.
+- An outlet is a `switch` whose state attribute `device_class` is `outlet`: `hass.entities` does
+  not carry the device class. Bulk actions and undo read `room.lights` only, on purpose.

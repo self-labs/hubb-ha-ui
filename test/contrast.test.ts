@@ -51,6 +51,25 @@ describe('contrast of text on its background, both themes (AA, 4.5:1)', () => {
     it(`Desfazer on the toast, ${theme}`, () => {
       expect(contrast(token('--hubb-toast-action', theme), token('--hubb-primary-bg', theme))).toBeGreaterThanOrEqual(4.5);
     });
+
+    for (const bg of ['--hubb-bg', '--hubb-surface', '--hubb-surface-2', '--hubb-sheet', '--hubb-on-bg']) {
+      it(`secondary text on ${bg}, ${theme}`, () => {
+        expect(contrast(token('--hubb-text-2', theme), token(bg, theme))).toBeGreaterThanOrEqual(4.5);
+      });
+
+      // A focus ring is not text: WCAG asks 3:1 against what is around it.
+      it(`the focus ring on ${bg}, ${theme}`, () => {
+        expect(contrast(token('--hubb-focus', theme), token(bg, theme))).toBeGreaterThanOrEqual(3);
+      });
+    }
+
+    it(`the focus ring of Desfazer on the toast, ${theme}`, () => {
+      expect(contrast(token('--hubb-primary-ink', theme), token('--hubb-primary-bg', theme))).toBeGreaterThanOrEqual(3);
+    });
+
+    it(`the icon of a lit tile on the amber, ${theme}`, () => {
+      expect(contrast(token('--hubb-amber-ink', theme), token('--hubb-amber', theme))).toBeGreaterThanOrEqual(4.5);
+    });
   }
 
   it('lit labels and the toast action use the text tokens, not the fill amber', () => {

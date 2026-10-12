@@ -11,16 +11,18 @@ lights.
 
 <table>
   <tr>
-    <td><img src="docs/images/home-dark.png" width="200" alt="Home screen, dark theme"></td>
-    <td><img src="docs/images/home-light.png" width="200" alt="Home screen, light theme"></td>
-    <td><img src="docs/images/room-dark.png" width="200" alt="Room page, dark theme"></td>
-    <td><img src="docs/images/room-light.png" width="200" alt="Room page, light theme"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/home-dark.png" width="160" alt="Home screen, dark theme"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/home-light.png" width="160" alt="Home screen, light theme"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/room-dark.png" width="160" alt="Room page, dark theme"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/room-light.png" width="160" alt="Room page, light theme"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/sheet-dark.png" width="160" alt="Light sheet with colours, dark theme"></td>
   </tr>
   <tr>
     <td align="center">Home, Ardósia</td>
     <td align="center">Home, Areia</td>
     <td align="center">Room, Ardósia</td>
     <td align="center">Room, Areia</td>
+    <td align="center">Light sheet</td>
   </tr>
 </table>
 
@@ -44,7 +46,7 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
 | Screen          | What it shows                                                                                       |
 | :-------------- | :-------------------------------------------------------------------------------------------------- |
 | **Home**        | A greeting, the outside temperature, one sentence about the house, the first four scenes, the rooms |
-| **Room page**   | The area photo, "Apagar tudo", the room's scenes and one tile per light                             |
+| **Room page**   | The area photo or a drawing of the room, "Apagar tudo", the room's scenes, one tile per light and per outlet |
 | **Lights on**   | A sheet with every light that is on, grouped by room, and "Apagar todas"                            |
 | **Scenes**      | Every scene, with the rooms it touches                                                              |
 
@@ -54,10 +56,12 @@ And the way it behaves:
 | :------------------------ | :------------------------------------------------------------------------------------------------ |
 | Tap a light               | Changes at once and vibrates; if Home Assistant does not confirm in 3 s, it says "Sem resposta"   |
 | Tap a light that is down  | Says since when it stopped answering                                                               |
-| Long press a dimmer       | Opens a brightness sheet: drag the column, or 25, 50, 75 and 100                                   |
-| Bulk action or scene      | Runs at once and offers **Desfazer** for 5 s, restoring every light to how it was                  |
+| Long press a dimmer       | Opens the light sheet: drag the column or pick 25, 50, 75 and 100; a colour light adds up to 9 colours, a white-temperature light adds its whites and a slider |
+| Tap an outlet             | Switches it like a light; "Apagar tudo", "Apagar todas" and Desfazer never touch outlets          |
+| Bulk action or scene      | Runs at once and offers **Desfazer** for 5 s, even on another screen: the lights that changed go back, and a running script stops |
 | Theme                     | Ardósia (dark) or Areia (light), following the Home Assistant profile, AA contrast in both         |
 | Back                      | The in-app arrow and the Android back gesture stay in step                                         |
+| Keyboard and readers      | A focus ring on every button; Escape closes the sheet; arrows, Page, Home and End set the brightness; right click or Shift+F10 opens the light sheet |
 
 > [!NOTE]
 > Vibration comes from the Home Assistant Companion App, which turns the frontend's `haptic` event
@@ -119,8 +123,9 @@ strategy:
 | `scenes`              | Alphabetical                       | Scene order; the first four go to the home screen          |
 | `rooms.<area>.order`  | Alphabetical                       | Room order                                                 |
 | `rooms.<area>.photo`  | The area picture                   | Photo for the room card and the room page                  |
+| `rooms.<area>.art`    | Picked from the area name, then its icon | Drawing for a room with no photo: one of the ids in [the list of drawings](docs/drawings.md) |
 | `rooms.<area>.hidden` | `false`                            | Leaves a room out                                          |
-| `hide_entities`       | none                               | Lights left out even though they have an area              |
+| `hide_entities`       | none                               | Lights and outlets left out even though they have an area (the fridge or the router plug) |
 
 ```yaml
 strategy:
@@ -140,10 +145,11 @@ The strategy shows what Home Assistant knows, so the work happens in Home Assist
 | What                      | Why                                                       | How                                                                                                   |
 | :------------------------ | :-------------------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
 | **Every light in an area** | A light with no area is left out on purpose              | Settings → Areas, labels & zones, or the area field of each entity                                    |
-| **Lights as `light.*`**   | Relays exposed as switches or helpers are not lights      | ControlArt: the [ControlArt integration](https://github.com/tompsonpecini/controlart). KinCony with Tasmota: `SetOption30 1`. Anything else: a template light |
+| **Lights as `light.*`**   | Relays exposed as switches or helpers are not lights      | A switch that is a light: entity settings, **Show as** Light. ControlArt: the [ControlArt integration](https://github.com/tompsonpecini/controlart). KinCony with Tasmota: `SetOption30 1`. Anything else: a template light |
+| **Outlets as outlets**    | Only a switch shown as an outlet reaches the panel        | Entity settings, **Show as** Outlet. Any other switch stays out for now                              |
 | **Short, client names**   | The tile shows the name as is                             | "Sofá", not "Saída 1". A room name at the start or the end is dropped ("LED Sala" in the Sala shows "LED") |
 | **Scenes labelled**       | Only labelled scenes and scripts reach the panel          | Label **`hubb_cena`** on a `scene.*` or `script.*`; give it an area to show it on that room too       |
-| **Area pictures**         | The room card is plain without one                        | The picture field of each area                                                                        |
+| **Area pictures** (optional) | Without one, the card shows a drawing picked from the area name or icon ([list](docs/drawings.md)) | The picture field of each area                                                  |
 
 Hidden and diagnostic entities never show up, and neither does anything without an area, which is
 why the per-browser screen lights that Browser Mod creates stay out by themselves.

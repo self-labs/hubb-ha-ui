@@ -38,20 +38,81 @@ export async function runCalls(hass: HomeAssistant, calls: readonly ServiceCall[
   await Promise.all(calls.map((c) => hass.callService(c.domain, c.service, c.data, c.target)));
 }
 
+/** The lights of the snapshot that already show a change. */
+function moved(snapshot: readonly LightSnapshot[], hass: HomeAssistant): LightSnapshot[] {
+  return snapshot.filter((s) => {
+    const st = hass.states[s.entityId];
+    if (!st || st.state === 'unavailable' || st.state === 'unknown') return false;
+    const on = st.state === 'on';
+    if (on !== s.on) return true;
+    const b = st.attributes.brightness;
+    return on && s.brightness !== null && typeof b === 'number' && b !== s.brightness;
+  });
+}
+
+/**
+ * The lights that moved away from the snapshot. When none has moved yet (Desfazer tapped before the
+ * first answer arrived), all of them, so a quick undo still works.
+ */
+export function changedSince(snapshot: readonly LightSnapshot[], hass: HomeAssistant): LightSnapshot[] {
+  const changed = moved(snapshot, hass);
+  return changed.length ? changed : [...snapshot];
+}
+
+/** How long Desfazer waits for an action that has not answered before putting the lights back. */
+export const UNDO_WAIT_MS = 2500;
+
+/** The lights a scene sets, from its `entity_id` attribute; none for a script, which does not say. */
+export function sceneLights(hass: HomeAssistant, sceneId: string): string[] {
+  const members = hass.states[sceneId]?.attributes.entity_id;
+  return Array.isArray(members) ? members.filter((m): m is string => typeof m === 'string' && m.startsWith('light.')) : [];
+}
+
+export interface UndoOptions {
+  /** The hass of the moment Desfazer is tapped; the one the action started with is stale by then. */
+  current?: () => HomeAssistant | undefined;
+  /** Calls that stop what the action started (a running script) before the lights go back. */
+  stop?: readonly ServiceCall[];
+  /**
+   * The lights the action is known to set ("Apagar tudo", a scene's members). They always go back,
+   * whether or not their change has arrived; putting back a light that did not move changes nothing.
+   */
+  targets?: readonly string[];
+  /** Called when the action fails and no light has changed: there is nothing to undo. */
+  failed?: () => void;
+}
+
 /** Takes a snapshot, offers the undo at once, then runs the action. */
 export async function withUndo(
   hass: HomeAssistant,
   ids: readonly string[],
   action: () => Promise<unknown>,
   show: (onUndo: () => void) => void,
+  options: UndoOptions = {},
 ): Promise<void> {
   const snapshot = snapshotLights(hass, ids);
+  const known = new Set(options.targets ?? []);
+  let running: Promise<unknown> = Promise.resolve();
   show(() => {
-    void runCalls(hass, restoreCalls(snapshot));
+    void (async () => {
+      // Let the action land first, so what it changed is known, but never wait more than UNDO_WAIT_MS.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      await Promise.race([running.catch(() => undefined), new Promise((resolve) => (timer = setTimeout(resolve, UNDO_WAIT_MS)))]);
+      clearTimeout(timer);
+      const now = options.current?.() ?? hass;
+      if (options.stop?.length) await runCalls(now, options.stop);
+      const targets = snapshot.filter((s) => known.has(s.entityId));
+      const others = snapshot.filter((s) => !known.has(s.entityId));
+      const rest = targets.length ? moved(others, now) : changedSince(others, now);
+      await runCalls(now, restoreCalls([...targets, ...rest]));
+    })().catch(() => haptic('failure'));
   });
   try {
-    await action();
+    running = action();
+    await running;
   } catch {
     haptic('failure');
+    // A failed call may still have changed some lights (one bad member of a scene): keep the undo then.
+    if (moved(snapshot, options.current?.() ?? hass).length === 0) options.failed?.();
   }
 }

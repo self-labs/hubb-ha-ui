@@ -1,4 +1,5 @@
 import { LitElement, css, html } from 'lit';
+import { lightCaps } from '../actions/color';
 import { haptic } from '../actions/haptic';
 import { brightnessPct, setLight } from '../actions/light';
 import type { HomeAssistant } from '../ha/types';
@@ -7,6 +8,8 @@ import { define } from './define';
 
 export const PRESETS = [25, 50, 75, 100] as const;
 const CONFIRM_MS = 3000;
+/** Quiet time after the last key before the brightness is sent. */
+const KEY_SEND_MS = 250;
 
 export function pctFromPointer(clientY: number, top: number, height: number): number {
   if (height <= 0) return 0;
@@ -30,6 +33,8 @@ export class HubbDimmerPanel extends LitElement {
   #pendingPct: number | null = null;
   #pendingAt = 0;
   #pendingTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Keys move the column at once; the call leaves when they stop, so a held arrow sends one. */
+  #keyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     super();
@@ -41,7 +46,17 @@ export class HubbDimmerPanel extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     if (this.#pendingTimer) clearTimeout(this.#pendingTimer);
+    // The sheet closed right after a key: the value the resident chose still goes out.
+    if (this.#keyTimer) this.#sendKeyed();
   }
+
+  #sendKeyed = (): void => {
+    if (this.#keyTimer) clearTimeout(this.#keyTimer);
+    this.#keyTimer = null;
+    const pct = this.dragPct;
+    this.dragPct = null;
+    if (pct !== null) this.#apply(pct);
+  };
 
   #current(): number {
     if (this.dragPct !== null) return this.dragPct;
@@ -88,15 +103,32 @@ export class HubbDimmerPanel extends LitElement {
     if (pct !== null) this.#apply(pct);
   };
 
+  /** The slider keys: arrows step 5, Page keys step 25, Home turns the light off, End is 100. */
+  #key = (e: KeyboardEvent): void => {
+    const steps: Record<string, number> = { ArrowUp: 5, ArrowRight: 5, ArrowDown: -5, ArrowLeft: -5, PageUp: 25, PageDown: -25 };
+    let next: number | null = null;
+    if (e.key in steps) next = this.#current() + steps[e.key]!;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = 100;
+    if (next === null) return;
+    e.preventDefault();
+    this.dragPct = Math.min(100, Math.max(0, next));
+    if (this.#keyTimer) clearTimeout(this.#keyTimer);
+    this.#keyTimer = setTimeout(this.#sendKeyed, KEY_SEND_MS);
+  };
+
   render() {
     const pct = this.#current();
+    const caps = lightCaps(this.hass?.states[this.entityId]);
     return html`<div
-        class="column"
+        class="column ${caps.color || caps.temp ? 'compact' : ''}"
         role="slider"
         aria-label=${S.brightness}
         aria-valuemin="0"
         aria-valuemax="100"
         aria-valuenow=${pct}
+        tabindex="0"
+        @keydown=${this.#key}
         @pointerdown=${this.#down}
         @pointermove=${this.#move}
         @pointerup=${this.#up}
@@ -125,6 +157,15 @@ export class HubbDimmerPanel extends LitElement {
       background: var(--hubb-surface-2);
       touch-action: none;
       cursor: ns-resize;
+    }
+    .column:focus-visible {
+      outline: 2px solid var(--hubb-focus);
+      outline-offset: 2px;
+    }
+    /* Shorter when the colour controls come below, so the sheet still fits a phone. */
+    .column.compact {
+      height: 168px;
+      margin-bottom: 12px;
     }
     .fill {
       position: absolute;
@@ -166,6 +207,10 @@ export class HubbDimmerPanel extends LitElement {
       background: var(--hubb-surface-2);
       color: var(--hubb-text);
       cursor: pointer;
+    }
+    .presets button:focus-visible {
+      outline: 2px solid var(--hubb-focus);
+      outline-offset: 2px;
     }
     .presets button.cur {
       background: var(--hubb-primary-bg);

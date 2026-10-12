@@ -59,6 +59,28 @@ describe('buildHouse', () => {
     expect(names(buildHouse(sample(), { rooms: { quarto: { hidden: true } } }).rooms)).toEqual(['Sala']);
   });
 
+  it('picks a drawing for each room from the area name, then its icon', () => {
+    const h = makeHass({
+      areas: [area('sala', 'Sala de Jantar'), { ...area('b1', 'Bloco B'), icon: 'mdi:bed' }, area('b2', 'Bloco C')],
+      entities: [
+        { entity_id: 'light.a', area_id: 'sala', state: 'off' },
+        { entity_id: 'light.b', area_id: 'b1', state: 'off' },
+        { entity_id: 'light.c', area_id: 'b2', state: 'off' },
+      ],
+    });
+    expect(buildHouse(h).rooms.map((r) => [r.areaId, r.art])).toEqual([
+      ['b1', 'quarto'],
+      ['b2', 'casa'],
+      ['sala', 'jantar'],
+    ]);
+  });
+
+  it('takes the drawing from the config, and ignores an id it does not know', () => {
+    const sala = (art: string) => buildHouse(sample(), { rooms: { sala: { art } } }).rooms.find((r) => r.areaId === 'sala')!;
+    expect(sala('tv').art).toBe('tv');
+    expect(sala('cozinah').art).toBe('sala');
+  });
+
   it('collects only scenes and scripts with the hubb_cena label, in config order then by name', () => {
     expect(names(buildHouse(sample()).scenes)).toEqual(['Chegar', 'Cinema']);
     expect(names(buildHouse(sample(), { scenes: ['scene.cinema'] }).scenes)).toEqual(['Cinema', 'Chegar']);
@@ -95,5 +117,35 @@ describe('buildHouse', () => {
     expect(allLightIds(house)).toHaveLength(18);
     expect(allLightIds(house)).not.toContain('light.hubb_m2_saida_8');
     expect(house.weatherEntityId).toBe('weather.forecast_home');
+  });
+
+  it('puts outlets in their room, and lets a room with only outlets in', () => {
+    const h = makeHass({
+      areas: [area('sala', 'Sala'), area('lavanderia', 'Lavanderia')],
+      entities: [
+        { entity_id: 'light.sofa', area_id: 'sala', name: 'Sofá', state: 'off' },
+        { entity_id: 'switch.tv', area_id: 'sala', name: 'TV', state: 'on', attributes: { device_class: 'outlet' } },
+        { entity_id: 'switch.secadora', area_id: 'lavanderia', name: 'Secadora', state: 'off', attributes: { device_class: 'outlet' } },
+      ],
+    });
+    const house = buildHouse(h);
+    expect(names(house.rooms)).toEqual(['Lavanderia', 'Sala']);
+    expect(house.rooms[0]!.lights).toEqual([]);
+    expect(house.rooms[0]!.outlets).toEqual([{ entityId: 'switch.secadora', name: 'Secadora' }]);
+    expect(house.rooms[1]!.outlets).toEqual([{ entityId: 'switch.tv', name: 'TV' }]);
+    expect(allLightIds(house)).toEqual(['light.sofa']);
+  });
+
+  it('leaves out switches that are not outlets, and outlets that are hidden, configuration or without an area', () => {
+    const h = makeHass({
+      areas: [area('sala', 'Sala')],
+      entities: [
+        { entity_id: 'switch.jet', area_id: 'sala', state: 'off' },
+        { entity_id: 'switch.trava', area_id: 'sala', state: 'off', entity_category: 'config', attributes: { device_class: 'outlet' } },
+        { entity_id: 'switch.velha', area_id: 'sala', state: 'off', hidden: true, attributes: { device_class: 'outlet' } },
+        { entity_id: 'switch.solta', state: 'off', attributes: { device_class: 'outlet' } },
+      ],
+    });
+    expect(buildHouse(h).rooms).toEqual([]);
   });
 });

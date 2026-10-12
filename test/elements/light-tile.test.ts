@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '../../src/elements/light-tile';
-import type { HubbLightTile } from '../../src/elements/light-tile';
+import { HubbLightTile } from '../../src/elements/light-tile';
 import type { LightItem } from '../../src/model/types';
 import { makeHass, withState, type FakeHass } from '../helpers/fake-hass';
 
@@ -16,6 +16,8 @@ async function mount(hass: FakeHass, item: LightItem = SOFA): Promise<HubbLightT
 }
 const button = (el: HubbLightTile) => el.shadowRoot!.querySelector('button')!;
 const status = (el: HubbLightTile) => el.shadowRoot!.querySelector('.state')!.textContent;
+const cssOf = (styles: unknown): string =>
+  ([] as unknown[]).concat(styles).map((s) => (s as { cssText: string }).cssText).join('\n');
 
 describe('hubb-light-tile', () => {
   beforeEach(() => vi.useFakeTimers());
@@ -66,10 +68,85 @@ describe('hubb-light-tile', () => {
     button(el).click();
     await el.updateComplete;
     expect(hass.calls.map((c) => c.service)).toEqual(['turn_on', 'turn_off']);
+    // The old "off" does not count as an answer to the second tap: it waits for a new state.
+    expect(status(el)).toBe('Apagando…');
+    el.hass = withState(withState(hass, 'light.sofa', 'on'), 'light.sofa', 'off');
+    await el.updateComplete;
     expect(status(el)).toBe('Apagada');
     vi.advanceTimersByTime(8000);
     await el.updateComplete;
     expect(status(el)).toBe('Apagada');
+  });
+
+  it('a second tap does not pass for done when only the first command arrives', async () => {
+    const hass = makeHass({ entities: [{ entity_id: 'light.sofa', state: 'on' }] });
+    const el = await mount(hass);
+    button(el).click();
+    button(el).click();
+    await el.updateComplete;
+    expect(status(el)).toBe('Acendendo…');
+    el.hass = withState(hass, 'light.sofa', 'off');
+    await el.updateComplete;
+    expect(status(el)).toBe('Acendendo…');
+    vi.advanceTimersByTime(3100);
+    await el.updateComplete;
+    expect(status(el)).toBe('Sem resposta');
+  });
+
+  it('keeps counting while it was out of the page, and says Sem resposta when it comes back', async () => {
+    const hass = makeHass({ entities: [{ entity_id: 'light.sofa', state: 'on' }] });
+    const el = await mount(hass);
+    button(el).click();
+    await el.updateComplete;
+    el.remove();
+    document.body.appendChild(el);
+    vi.advanceTimersByTime(3100);
+    await el.updateComplete;
+    expect(status(el)).toBe('Sem resposta');
+  });
+
+  it('does not vibrate for an old tap when it comes back to the page much later', async () => {
+    const hass = makeHass({ entities: [{ entity_id: 'light.sofa', state: 'on' }] });
+    const el = await mount(hass);
+    button(el).click();
+    await el.updateComplete;
+    el.remove();
+    vi.advanceTimersByTime(60000);
+    const seen: string[] = [];
+    const listener = (e: Event) => seen.push((e as CustomEvent<string>).detail);
+    window.addEventListener('haptic', listener);
+    document.body.appendChild(el);
+    await el.updateComplete;
+    window.removeEventListener('haptic', listener);
+    expect(seen).toEqual([]);
+    expect(status(el)).toBe('Acesa');
+  });
+
+  it('after a finger tap, Shift+F10 from a keyboard does not swallow the next Enter', async () => {
+    const hass = makeHass({ entities: [{ entity_id: 'light.mesa', state: 'on', attributes: { brightness: 128 } }] });
+    const el = await mount(hass, { entityId: 'light.mesa', name: 'Mesa', dimmable: true });
+    button(el).dispatchEvent(Object.assign(new Event('pointerdown'), { pointerType: 'touch', button: 0 }));
+    button(el).dispatchEvent(new Event('pointerup'));
+    button(el).dispatchEvent(new KeyboardEvent('keydown', { key: 'F10', shiftKey: true, bubbles: true }));
+    button(el).dispatchEvent(new Event('contextmenu', { bubbles: true, cancelable: true }));
+    button(el).click();
+    expect(hass.calls.map((c) => c.service)).toEqual(['turn_off']);
+  });
+
+  it('opens the dimmer from the context menu too (right click, Shift+F10), and the next click still toggles', async () => {
+    const hass = makeHass({ entities: [{ entity_id: 'light.mesa', state: 'on', attributes: { brightness: 128 } }] });
+    const el = await mount(hass, { entityId: 'light.mesa', name: 'Mesa', dimmable: true });
+    const asked: unknown[] = [];
+    const listener = (e: Event) => asked.push((e as CustomEvent).detail);
+    document.body.addEventListener('hubb-open-dimmer', listener);
+    const menu = new Event('contextmenu', { bubbles: true, cancelable: true });
+    button(el).dispatchEvent(menu);
+    document.body.removeEventListener('hubb-open-dimmer', listener);
+    expect(asked).toEqual([{ entityId: 'light.mesa', name: 'Mesa' }]);
+    expect(menu.defaultPrevented).toBe(true);
+    expect(hass.calls).toEqual([]);
+    button(el).click();
+    expect(hass.calls.map((c) => c.service)).toEqual(['turn_off']);
   });
 
   it('shows the brightness of a dimmable light', async () => {
@@ -164,5 +241,37 @@ describe('hubb-light-tile', () => {
     button(el).click();
     window.removeEventListener('haptic', listener);
     expect(seen).toEqual(['light']);
+  });
+
+  it('paints the icon with the colour of a colour light that is on', async () => {
+    const el = await mount(
+      makeHass({
+        entities: [
+          { entity_id: 'light.fita', state: 'on', attributes: { supported_color_modes: ['hs'], color_mode: 'hs', rgb_color: [255, 0, 0], brightness: 255 } },
+        ],
+      }),
+      { entityId: 'light.fita', name: 'Fita', dimmable: true },
+    );
+    expect(button(el).classList.contains('colored')).toBe(true);
+    expect(button(el).getAttribute('style')).toContain('--tile-color:rgb(255, 0, 0)');
+    expect(button(el).getAttribute('style')).toContain('--tile-ink:#ffffff');
+    expect(cssOf(HubbLightTile.styles)).toMatch(/\.tile\.on\.colored \.icon\s*\{[^}]*background: var\(--tile-color\)/);
+  });
+
+  it('keeps the amber icon for a white light, and drops any colour once it is off', async () => {
+    const hass = makeHass({
+      entities: [
+        {
+          entity_id: 'light.fita',
+          state: 'on',
+          attributes: { supported_color_modes: ['color_temp', 'hs'], color_mode: 'color_temp', color_temp_kelvin: 2700, rgb_color: [255, 167, 87] },
+        },
+      ],
+    });
+    const el = await mount(hass, { entityId: 'light.fita', name: 'Fita', dimmable: true });
+    expect(button(el).classList.contains('colored')).toBe(false);
+    el.hass = withState(hass, 'light.fita', 'off', { supported_color_modes: ['hs'], color_mode: 'hs', rgb_color: [255, 0, 0] });
+    await el.updateComplete;
+    expect(button(el).classList.contains('colored')).toBe(false);
   });
 });

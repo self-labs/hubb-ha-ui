@@ -16,6 +16,17 @@ function hass(): FakeHass {
 }
 
 describe('summarize', () => {
+  it('does not mention the rest when the other rooms only have outlets', () => {
+    const h = makeHass({
+      areas: [area('sala', 'Sala'), area('lav', 'Lavanderia')],
+      entities: [
+        { entity_id: 'light.sofa', area_id: 'sala', state: 'on' },
+        { entity_id: 'switch.secadora', area_id: 'lav', state: 'off', attributes: { device_class: 'outlet' } },
+      ],
+    });
+    expect(summarize(buildHouse(h), h)).toEqual({ headline: 'Sala com 1 luz acesa.', detail: '', lightsOn: 1 });
+  });
+
   it('says everything is off', () => {
     const h = hass();
     expect(summarize(buildHouse(h), h)).toEqual({ headline: 'Tudo apagado.', detail: '', lightsOn: 0 });
@@ -27,7 +38,7 @@ describe('summarize', () => {
     h = withState(withState(h, 'light.sofa', 'on'), 'light.lustre', 'on');
     expect(summarize(house, h)).toEqual({
       headline: 'Sala com 2 luzes acesas.',
-      detail: 'O resto da casa está apagado.',
+      detail: 'O resto está apagado.',
       lightsOn: 2,
     });
     expect(summarize(house, withState(h, 'light.lustre', 'off')).headline).toBe('Sala com 1 luz acesa.');

@@ -34,6 +34,44 @@ describe('PendingTracker', () => {
     expect(t.status('light.a', 'on')).toBe('idle');
   });
 
+  it('dates the failure from the end of the wait, not from when someone looks', () => {
+    const c = clock();
+    const t = new PendingTracker(3000, 4000, c.now);
+    t.start('light.a', 'off');
+    c.advance(60000);
+    expect(t.status('light.a', 'on')).toBe('idle');
+  });
+
+  it('drops the failure as soon as a late confirmation arrives', () => {
+    const c = clock();
+    const t = new PendingTracker(3000, 4000, c.now);
+    t.start('light.a', 'off');
+    c.advance(3000);
+    expect(t.status('light.a', 'on')).toBe('failed');
+    c.advance(500);
+    expect(t.status('light.a', 'off')).toBe('idle');
+  });
+
+  it('waits for a new state when it asked for the state the entity already had', () => {
+    const t = new PendingTracker();
+    const before = { state: 'on' };
+    t.start('light.a', 'on', before);
+    expect(t.status('light.a', 'on', before)).toBe('pending');
+    expect(t.status('light.a', 'on', { state: 'on' })).toBe('idle');
+  });
+
+  it('says how long until the status changes by time alone', () => {
+    const c = clock();
+    const t = new PendingTracker(3000, 4000, c.now);
+    expect(t.msUntilChange('light.a')).toBeNull();
+    t.start('light.a', 'off');
+    c.advance(1000);
+    expect(t.msUntilChange('light.a')).toBe(2000);
+    c.advance(2000);
+    t.status('light.a', 'on');
+    expect(t.msUntilChange('light.a')).toBe(4000);
+  });
+
   it('starts over when asked again, even after a failure', () => {
     const c = clock();
     const t = new PendingTracker(3000, 4000, c.now);

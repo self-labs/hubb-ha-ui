@@ -22,7 +22,12 @@ export function lightsOnByRoom(house: House, hass: HomeAssistant): RoomLightsOn[
     .filter((g) => g.on.length > 0);
 }
 
-/** The sentence at the top of the home screen. */
+/** Outlets of a room that are on. */
+export function outletsOnIn(room: Room, hass: HomeAssistant): number {
+  return room.outlets.filter((o) => hass.states[o.entityId]?.state === 'on').length;
+}
+
+/** The sentence at the top of the home screen. Only lights count: an outlet may be a fridge. */
 export function summarize(house: House, hass: HomeAssistant): Summary {
   const groups = lightsOnByRoom(house, hass);
   const lightsOn = groups.reduce((n, g) => n + g.on.length, 0);
@@ -30,7 +35,7 @@ export function summarize(house: House, hass: HomeAssistant): Summary {
   if (groups.length === 1) {
     return {
       headline: roomWithLights(groups[0]!.room.name, lightsOn),
-      detail: house.rooms.length > 1 ? S.restOff : '',
+      detail: house.rooms.filter((r) => r.lights.length > 0).length > 1 ? S.restOff : '',
       lightsOn,
     };
   }

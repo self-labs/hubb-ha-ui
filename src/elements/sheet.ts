@@ -1,4 +1,4 @@
-import { LitElement, css, html, nothing } from 'lit';
+import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { define } from './define';
 
 const DRAG_CLOSE_PX = 80;
@@ -43,10 +43,22 @@ export class HubbSheet extends LitElement {
     this.#dragStartY = null;
   };
 
+  #onKey = (e: KeyboardEvent): void => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      this.close();
+    }
+  };
+
+  protected updated(changed: PropertyValues<this>): void {
+    // The focus goes into the sheet when it opens, so the keyboard and screen readers land inside it.
+    if (changed.has('open') && this.open) this.renderRoot.querySelector<HTMLElement>('.sheet')?.focus();
+  }
+
   render() {
     if (!this.open) return nothing;
     return html`<div class="backdrop" @click=${() => this.close()}></div>
-      <section class="sheet" role="dialog" aria-modal="true" aria-label=${this.heading}>
+      <section class="sheet" role="dialog" aria-modal="true" aria-label=${this.heading} tabindex="-1" @keydown=${this.#onKey}>
         <div class="grab" @pointerdown=${this.#down} @pointermove=${this.#move} @pointerup=${this.#up} @pointercancel=${this.#up}>
           <span></span>
         </div>
@@ -77,6 +89,10 @@ export class HubbSheet extends LitElement {
       background: var(--hubb-sheet);
       color: var(--hubb-text);
       font-family: var(--hubb-font);
+    }
+    /* It takes the focus only to hand it to its content; the whole sheet needs no ring. */
+    .sheet:focus {
+      outline: none;
     }
     .grab {
       display: flex;

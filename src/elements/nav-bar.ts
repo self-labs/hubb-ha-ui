@@ -72,6 +72,10 @@ export class HubbNavBar extends LitElement {
       font-weight: 700;
       cursor: pointer;
     }
+    button:focus-visible {
+      outline: 2px solid var(--hubb-focus);
+      outline-offset: 2px;
+    }
     button svg {
       width: 22px;
       height: 22px;

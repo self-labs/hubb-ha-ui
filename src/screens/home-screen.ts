@@ -7,7 +7,7 @@ import '../elements/room-card';
 import '../elements/scene-button';
 import '../elements/sheet';
 import type { HomeAssistant } from '../ha/types';
-import { allLightIds } from '../model/build-house';
+import { allLightIds, normalizeRoom } from '../model/build-house';
 import type { House } from '../model/types';
 import { greeting, lightsCount, lightsTurnedOff, onCount, S } from '../strings';
 import { lightsOnByRoom, summarize } from '../summary';
@@ -43,7 +43,7 @@ export class HubbHomeScreen extends HubbScreen {
 
   setConfig(config: HomeScreenConfig): void {
     if (!config || !config.house) throw new Error('hubb-home-screen: missing house');
-    this.config = config;
+    this.config = { ...config, house: { ...config.house, rooms: config.house.rooms.map(normalizeRoom) } };
   }
 
   protected scope(): string[] {
@@ -60,7 +60,7 @@ export class HubbHomeScreen extends HubbScreen {
     if (!hass) return;
     const on = ids.filter((id) => hass.states[id]?.state === 'on');
     if (on.length === 0) return;
-    this.undoable(on, lightsTurnedOff(on.length), () => setLight(hass, on, false));
+    this.undoable(on, lightsTurnedOff(on.length), () => setLight(hass, on, false), { targets: on });
   }
 
   #empty(hass: HomeAssistant) {
@@ -161,12 +161,12 @@ export class HubbHomeScreen extends HubbScreen {
       .chips {
         display: flex;
         gap: 6px;
-        min-height: 36px;
+        min-height: 44px;
       }
       .chip {
         all: unset;
         box-sizing: border-box;
-        min-height: 36px;
+        min-height: 44px;
         padding: 0 12px;
         display: inline-flex;
         align-items: center;
@@ -175,6 +175,10 @@ export class HubbHomeScreen extends HubbScreen {
         font-size: 12px;
         font-weight: 700;
         cursor: pointer;
+      }
+      .chip:focus-visible {
+        outline: 2px solid var(--hubb-focus);
+        outline-offset: 2px;
       }
       .chip.on {
         background: var(--hubb-on-bg);

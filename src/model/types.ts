@@ -1,7 +1,15 @@
+import type { ArtId } from '../art/drawings';
+
 export interface LightItem {
   entityId: string;
   name: string;
   dimmable: boolean;
+}
+
+/** A `switch` that Home Assistant shows as an outlet ("Mostrar como > Tomada"). */
+export interface OutletItem {
+  entityId: string;
+  name: string;
 }
 
 export interface SceneItem {
@@ -19,7 +27,11 @@ export interface Room {
   name: string;
   photo: string | null;
   icon: string | null;
+  /** The drawing shown on the card and the header when there is no photo. */
+  art: ArtId;
   lights: LightItem[];
+  /** Only ever switched one by one: bulk actions and undo leave outlets alone. */
+  outlets: OutletItem[];
   scenes: SceneItem[];
 }
 
@@ -34,6 +46,8 @@ export interface RoomOverride {
   order?: number;
   photo?: string;
   hidden?: boolean;
+  /** A drawing id from src/art/drawings.ts; an id it does not know is ignored. */
+  art?: string;
 }
 
 export interface HubbConfig {

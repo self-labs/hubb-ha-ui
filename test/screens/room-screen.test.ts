@@ -3,8 +3,25 @@ import '../../src/screens/room-screen';
 import type { HubbRoomScreen } from '../../src/screens/room-screen';
 import type { HubbSheet } from '../../src/elements/sheet';
 import type { HubbToast } from '../../src/elements/toast';
+import type { HubbColorPanel } from '../../src/elements/color-panel';
 import { buildHouse, allLightIds } from '../../src/model/build-house';
-import { area, makeHass, type FakeHass } from '../helpers/fake-hass';
+import { area, makeHass, withState, type FakeHass } from '../helpers/fake-hass';
+
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+async function runRoomScene(el: HubbRoomScreen): Promise<void> {
+  const button = el.shadowRoot!.querySelector('.actions hubb-scene-button')!;
+  await (button as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+  (button.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
+  await Promise.resolve();
+}
+
+async function tapUndo(el: HubbRoomScreen): Promise<void> {
+  const toast = el.shadowRoot!.querySelector('hubb-toast') as HubbToast;
+  await toast.updateComplete;
+  (toast.shadowRoot!.querySelector('.toast button') as HTMLButtonElement).click();
+  await flush();
+}
 
 function hass(opts: { darkMode?: boolean } = {}): FakeHass {
   return makeHass({
@@ -64,7 +81,7 @@ describe('hubb-room-screen', () => {
     await toast.updateComplete;
     expect(toast.shadowRoot!.querySelector('.toast span')!.textContent).toBe('Sala: 1 luz apagada');
     (toast.shadowRoot!.querySelector('.toast button') as HTMLButtonElement).click();
-    await Promise.resolve();
+    await flush();
     expect(h.calls[1]).toEqual({ domain: 'light', service: 'turn_on', target: { entity_id: 'light.sofa' } });
   });
 
@@ -119,5 +136,198 @@ describe('hubb-room-screen', () => {
     ($(el, '.back') as HTMLButtonElement).click();
     expect(back).toHaveBeenCalledOnce();
     back.mockRestore();
+  });
+
+  it('draws the room in the header, with the lamp lit while a light is on', async () => {
+    const el = await mount(hass());
+    const hero = $(el, 'header.hero')!;
+    expect(hero.querySelector('svg.art')).not.toBeNull();
+    expect(hero.classList.contains('lit')).toBe(true);
+  });
+
+  it('lets an area photo take the place of the drawing in the header', async () => {
+    const h = makeHass({
+      areas: [area('sala', 'Sala', '/local/sala.jpg')],
+      entities: [{ entity_id: 'light.sofa', area_id: 'sala', name: 'Sofá', state: 'off' }],
+    });
+    const el = await mount(h);
+    expect($(el, 'header.hero')!.classList.contains('photo')).toBe(true);
+    expect($(el, 'header.hero svg.art')).toBeNull();
+  });
+
+  it('puts the colour controls under the brightness in the light sheet', async () => {
+    const el = await mount(hass());
+    $(el, '.grid')!.dispatchEvent(new CustomEvent('hubb-open-dimmer', { detail: { entityId: 'light.mesa', name: 'Mesa' }, bubbles: true, composed: true }));
+    await el.updateComplete;
+    const panel = ($(el, 'hubb-sheet') as HubbSheet).querySelector('hubb-color-panel') as HubbColorPanel | null;
+    expect(panel).not.toBeNull();
+    expect(panel!.entityId).toBe('light.mesa');
+  });
+
+  it('lists the outlets under their own heading, and Apagar tudo leaves them alone', async () => {
+    const h = makeHass({
+      areas: [area('sala', 'Sala')],
+      entities: [
+        { entity_id: 'light.sofa', area_id: 'sala', name: 'Sofá', state: 'on' },
+        { entity_id: 'switch.geladeira', area_id: 'sala', name: 'Geladeira', state: 'on', attributes: { device_class: 'outlet' } },
+      ],
+    });
+    const el = await mount(h);
+    expect([...el.shadowRoot!.querySelectorAll('h2')].map((x) => x.textContent)).toEqual(['Luzes', 'Tomadas e equipamentos']);
+    expect(el.shadowRoot!.querySelectorAll('hubb-outlet-tile')).toHaveLength(1);
+    ($(el, '.actions .primary') as HTMLButtonElement).click();
+    await Promise.resolve();
+    expect(h.calls).toEqual([{ domain: 'light', service: 'turn_off', data: undefined, target: { entity_id: ['light.sofa'] } }]);
+  });
+
+  it('shows a room with only outlets, with their status in the header', async () => {
+    const h = makeHass({
+      areas: [area('lav', 'Lavanderia')],
+      entities: [
+        { entity_id: 'switch.secadora', area_id: 'lav', name: 'Secadora', state: 'on', attributes: { device_class: 'outlet' } },
+        { entity_id: 'switch.ferro', area_id: 'lav', name: 'Ferro', state: 'off', attributes: { device_class: 'outlet' } },
+      ],
+    });
+    const el = await mount(h);
+    expect($(el, 'header p')!.textContent).toBe('1 de 2 tomadas ligadas');
+    expect([...el.shadowRoot!.querySelectorAll('h2')].map((x) => x.textContent)).toEqual(['Tomadas e equipamentos']);
+  });
+
+  it('leaves out the empty actions row in a room with only outlets and no scenes', async () => {
+    const h = makeHass({
+      areas: [area('lav', 'Lavanderia')],
+      entities: [{ entity_id: 'switch.secadora', area_id: 'lav', name: 'Secadora', state: 'on', attributes: { device_class: 'outlet' } }],
+    });
+    const el = await mount(h);
+    expect($(el, '.actions')).toBeNull();
+  });
+
+  it('Desfazer after Apagar tudo restores the lights and never touches an outlet', async () => {
+    const h = makeHass({
+      areas: [area('sala', 'Sala')],
+      entities: [
+        { entity_id: 'light.sofa', area_id: 'sala', name: 'Sofá', state: 'on' },
+        { entity_id: 'switch.geladeira', area_id: 'sala', name: 'Geladeira', state: 'on', attributes: { device_class: 'outlet' } },
+      ],
+    });
+    const el = await mount(h);
+    ($(el, '.actions .primary') as HTMLButtonElement).click();
+    await Promise.resolve();
+    const toast = $(el, 'hubb-toast') as HubbToast;
+    await toast.updateComplete;
+    (toast.shadowRoot!.querySelector('.toast button') as HTMLButtonElement).click();
+    await flush();
+    expect(h.calls.map((c) => [c.domain, c.service])).toEqual([
+      ['light', 'turn_off'],
+      ['light', 'turn_on'],
+    ]);
+    expect(h.calls[1]!.target).toEqual({ entity_id: 'light.sofa' });
+  });
+
+  it('still draws a room saved by 2026.10.2, before drawings and outlets existed', async () => {
+    const h = hass();
+    const old: Record<string, unknown> = { ...buildHouse(h).rooms[0]! };
+    delete old.art;
+    delete old.outlets;
+    const el = document.createElement('hubb-room-screen') as HubbRoomScreen;
+    el.setConfig({ type: 'custom:hubb-room-screen', room: old as never, lightIds: ['light.sofa', 'light.mesa'] });
+    el.hass = h;
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.shadowRoot!.querySelectorAll('.grid hubb-light-tile')).toHaveLength(2);
+    expect($(el, 'header.hero svg.art')).not.toBeNull();
+  });
+
+  it('scene undo also puts back the lights of the scene that are not on the panel', async () => {
+    const h = makeHass({
+      areas: [area('sala', 'Sala')],
+      entities: [
+        { entity_id: 'light.sofa', area_id: 'sala', name: 'Sofá', state: 'off' },
+        { entity_id: 'light.jardim', name: 'Jardim', state: 'off' },
+        {
+          entity_id: 'scene.noite',
+          area_id: 'sala',
+          name: 'Noite',
+          labels: ['hubb_cena'],
+          state: 'unknown',
+          attributes: { entity_id: ['light.sofa', 'light.jardim'] },
+        },
+      ],
+    });
+    const el = await mount(h);
+    await runRoomScene(el);
+    el.hass = withState(withState(h, 'light.sofa', 'on'), 'light.jardim', 'on');
+    await el.updateComplete;
+    await tapUndo(el);
+    expect(h.calls.slice(1).map((c) => `${c.service} ${String(c.target?.entity_id)}`).sort()).toEqual([
+      'turn_off light.jardim',
+      'turn_off light.sofa',
+    ]);
+  });
+
+  it('scene undo first stops a script that may still be running', async () => {
+    const h = makeHass({
+      areas: [area('sala', 'Sala')],
+      entities: [
+        { entity_id: 'light.sofa', area_id: 'sala', name: 'Sofá', state: 'off' },
+        { entity_id: 'script.chegar', area_id: 'sala', name: 'Chegar', labels: ['hubb_cena'], state: 'off' },
+      ],
+    });
+    const el = await mount(h);
+    await runRoomScene(el);
+    await tapUndo(el);
+    expect(h.calls.map((c) => `${c.domain}.${c.service}`)).toEqual(['script.turn_on', 'script.turn_off', 'light.turn_off']);
+  });
+
+  it('Desfazer tapped on another screen reads the newest state, not the one the first screen kept', async () => {
+    const h = makeHass({
+      areas: [area('sala', 'Sala')],
+      entities: [
+        { entity_id: 'light.sofa', area_id: 'sala', name: 'Sofá', state: 'off' },
+        { entity_id: 'light.mesa', area_id: 'sala', name: 'Mesa', state: 'off' },
+        { entity_id: 'script.chegar', area_id: 'sala', name: 'Chegar', labels: ['hubb_cena'], state: 'off' },
+      ],
+    });
+    const first = await mount(h);
+    await runRoomScene(first);
+    first.remove();
+    const second = await mount(withState(h, 'light.sofa', 'on'));
+    await tapUndo(second);
+    expect(h.calls.map((c) => `${c.domain}.${c.service} ${String(c.target?.entity_id)}`)).toEqual([
+      'script.turn_on script.chegar',
+      'script.turn_off script.chegar',
+      'light.turn_off light.sofa',
+    ]);
+  });
+
+  it('scene undo puts back only what the scene sets, not a light an automation changed meanwhile', async () => {
+    const h = makeHass({
+      areas: [area('sala', 'Sala')],
+      entities: [
+        { entity_id: 'light.sofa', area_id: 'sala', name: 'Sofá', state: 'off' },
+        { entity_id: 'light.mesa', area_id: 'sala', name: 'Mesa', state: 'off' },
+        { entity_id: 'scene.leitura', area_id: 'sala', name: 'Leitura', labels: ['hubb_cena'], state: 'unknown', attributes: { entity_id: ['light.sofa'] } },
+      ],
+    });
+    const el = await mount(h);
+    await runRoomScene(el);
+    el.hass = withState(withState(h, 'light.sofa', 'on'), 'light.mesa', 'on');
+    await el.updateComplete;
+    await tapUndo(el);
+    expect(h.calls.slice(1).map((c) => `${c.service} ${String(c.target?.entity_id)}`)).toEqual(['turn_off light.sofa']);
+  });
+
+  it('takes Desfazer away when the action fails', async () => {
+    const h = makeHass({
+      failService: true,
+      areas: [area('sala', 'Sala')],
+      entities: [{ entity_id: 'light.sofa', area_id: 'sala', name: 'Sofá', state: 'on' }],
+    });
+    const el = await mount(h);
+    ($(el, '.actions .primary') as HTMLButtonElement).click();
+    await flush();
+    const toast = $(el, 'hubb-toast') as HubbToast;
+    await toast.updateComplete;
+    expect(toast.shadowRoot!.querySelector('.toast')).toBeNull();
   });
 });

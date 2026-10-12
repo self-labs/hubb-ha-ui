@@ -1,11 +1,14 @@
 import { LitElement, css, type PropertyDeclarations, type PropertyValues } from 'lit';
 import { runScene } from '../actions/light';
-import { withUndo } from '../actions/undo';
+import { sceneLights, withUndo, type ServiceCall } from '../actions/undo';
 import type { HubbToast } from '../elements/toast';
 import type { HomeAssistant } from '../ha/types';
 import type { SceneItem } from '../model/types';
 import { sceneRan } from '../strings';
 import '../elements/toast';
+
+/** The newest hass any screen received: the one on screen keeps getting updates, a hidden one does not. */
+let latest: HomeAssistant | undefined;
 
 /** What every screen shares: theme from the profile, the undo toast, and running scenes. */
 export abstract class HubbScreen extends LitElement {
@@ -65,6 +68,10 @@ export abstract class HubbScreen extends LitElement {
       font-size: 13px;
       cursor: pointer;
     }
+    .primary:focus-visible {
+      outline: 2px solid var(--hubb-focus);
+      outline-offset: 2px;
+    }
     .empty {
       margin-top: 48px;
       text-align: center;
@@ -83,7 +90,16 @@ export abstract class HubbScreen extends LitElement {
     const hass = this.hass;
     if (!hass) return;
     const scene = (e as CustomEvent<{ scene: SceneItem }>).detail.scene;
-    this.undoable(this.scope(), sceneRan(scene.name), () => runScene(hass, scene.entityId));
+    // A scene says which lights it sets, on the panel or not: those, and only those, go back. A script
+    // does not say, so the whole panel is the scope, and a still running script is stopped first.
+    const members = sceneLights(hass, scene.entityId);
+    const stop: ServiceCall[] = scene.entityId.startsWith('script.')
+      ? [{ domain: 'script', service: 'turn_off', target: { entity_id: scene.entityId } }]
+      : [];
+    this.undoable(members.length ? members : this.scope(), sceneRan(scene.name), () => runScene(hass, scene.entityId), {
+      stop,
+      targets: members,
+    });
   };
 
   constructor() {
@@ -97,17 +113,44 @@ export abstract class HubbScreen extends LitElement {
   protected abstract scope(): string[];
 
   protected willUpdate(changed: PropertyValues<this>): void {
-    if (changed.has('hass') && this.hass) this.theme = this.hass.themes.darkMode ? 'dark' : 'light';
+    if (changed.has('hass') && this.hass) {
+      this.theme = this.hass.themes.darkMode ? 'dark' : 'light';
+      latest = this.hass;
+    }
   }
 
   protected toast(): HubbToast | null {
     return this.renderRoot.querySelector('hubb-toast');
   }
 
-  protected undoable(ids: string[], message: string, action: () => Promise<unknown>): void {
+  protected undoable(
+    ids: string[],
+    message: string,
+    action: () => Promise<unknown>,
+    extra: { stop?: readonly ServiceCall[]; targets?: readonly string[] } = {},
+  ): void {
     const hass = this.hass;
     if (!hass) return;
-    void withUndo(hass, ids, action, (undo) => this.toast()?.show(message, undo));
+    let mine: (() => void) | null = null;
+    void withUndo(
+      hass,
+      ids,
+      action,
+      (undo) => {
+        mine = undo;
+        this.toast()?.show(message, undo);
+      },
+      {
+        // Desfazer may be tapped on another screen; Home Assistant stops updating a hidden view.
+        current: () => latest ?? this.hass,
+        stop: extra.stop,
+        targets: extra.targets,
+        // Withdraw this action's offer only: a later action may already have its own.
+        failed: () => {
+          if (mine) this.toast()?.hide(mine);
+        },
+      },
+    );
   }
 
   getCardSize(): number {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { greeting, joinPt, lightsCount, roomStatus, roomTurnedOff } from '../src/strings';
+import { greeting, joinPt, lightsCount, outletStatus, outletsOnCount, roomStatus, roomTurnedOff } from '../src/strings';
 
 describe('strings', () => {
   it('joins names the Portuguese way', () => {
@@ -26,5 +26,13 @@ describe('strings', () => {
     expect(greeting(13)).toBe('Boa tarde');
     expect(greeting(19)).toBe('Boa noite');
     expect(greeting(2)).toBe('Boa noite');
+  });
+
+  it('counts outlets that are on', () => {
+    expect(outletsOnCount(1)).toBe('1 ligada');
+    expect(outletsOnCount(2)).toBe('2 ligadas');
+    expect(outletStatus(0, 2)).toBe('Tudo desligado');
+    expect(outletStatus(1, 2)).toBe('1 de 2 tomadas ligadas');
+    expect(outletStatus(1, 1)).toBe('1 de 1 tomada ligada');
   });
 });

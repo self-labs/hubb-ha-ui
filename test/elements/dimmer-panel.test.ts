@@ -90,4 +90,43 @@ describe('hubb-dimmer-panel', () => {
       ['turn_off', undefined],
     ]);
   });
+
+  it('makes room for the colour controls with a shorter column', async () => {
+    const color = await mount(makeHass({ entities: [{ entity_id: 'light.mesa', state: 'on', attributes: { supported_color_modes: ['hs'], brightness: 128 } }] }));
+    expect(color.shadowRoot!.querySelector('.column')!.classList.contains('compact')).toBe(true);
+    document.body.replaceChildren();
+    const plain = await mount(makeHass({ entities: [{ entity_id: 'light.mesa', state: 'on', attributes: { supported_color_modes: ['brightness'], brightness: 128 } }] }));
+    expect(plain.shadowRoot!.querySelector('.column')!.classList.contains('compact')).toBe(false);
+  });
+
+  it('works from the keyboard: arrows step 5, Home turns off, End goes to 100', async () => {
+    vi.useFakeTimers();
+    try {
+      const hass = makeHass({ entities: [{ entity_id: 'light.mesa', state: 'on', attributes: { brightness: 153 } }] });
+      const el = await mount(hass);
+      const column = el.shadowRoot!.querySelector('.column') as HTMLElement;
+      expect(column.getAttribute('tabindex')).toBe('0');
+      const press = (key: string) => column.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+      // A held arrow repeats about 30 times a second: the column follows at once, one call goes out.
+      press('ArrowUp');
+      press('ArrowUp');
+      press('ArrowUp');
+      await el.updateComplete;
+      expect(el.shadowRoot!.querySelector('.pct')!.textContent).toBe('75%');
+      expect(hass.calls).toEqual([]);
+      vi.advanceTimersByTime(300);
+      press('End');
+      vi.advanceTimersByTime(300);
+      press('Home');
+      press('a');
+      vi.advanceTimersByTime(300);
+      expect(hass.calls.map((c) => [c.service, c.data])).toEqual([
+        ['turn_on', { brightness_pct: 75 }],
+        ['turn_on', { brightness_pct: 100 }],
+        ['turn_off', undefined],
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

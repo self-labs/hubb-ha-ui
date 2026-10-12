@@ -35,3 +35,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" dist/hubb-ha-ui.js --title "$GITHUB_REF_NAME" --notes-from-tag
+
+  # A Release made with GITHUB_TOKEN triggers no other workflow, so hacs.yml never sees it:
+  # the validation runs here, once the Release and its asset exist.
+  hacs:
+    name: HACS validation
+    needs: release
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Run HACS validation
+        uses: hacs/action@main
+        with:
+          category: plugin

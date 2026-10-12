@@ -14,7 +14,7 @@ if (!window.customCards.some((c) => c.type === 'hubb-light-card')) {
   window.customCards.push({
     type: 'hubb-light-card',
     name: 'Hubb: luz',
-    description: 'Um card de luz da Hubb, com intensidade no toque longo.',
+    description: 'Um card de luz da Hubb: toque para ligar e desligar, toque longo para intensidade e cor.',
   });
 }
 

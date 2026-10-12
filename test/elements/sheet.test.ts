@@ -49,4 +49,21 @@ describe('hubb-sheet', () => {
     grab.dispatchEvent(new MouseEvent('pointermove', { clientY: 100 }));
     expect(el.open).toBe(false);
   });
+
+  it('takes the focus when it opens, so the keyboard and screen readers land inside it', async () => {
+    const el = await mount(true);
+    const dialog = el.shadowRoot!.querySelector('.sheet') as HTMLElement;
+    expect(dialog.getAttribute('tabindex')).toBe('-1');
+    expect(el.shadowRoot!.activeElement).toBe(dialog);
+  });
+
+  it('closes on Escape and tells the parent', async () => {
+    const el = await mount(true);
+    let closed = 0;
+    el.addEventListener('hubb-close', () => { closed += 1; });
+    el.shadowRoot!.querySelector('.sheet')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await el.updateComplete;
+    expect(el.open).toBe(false);
+    expect(closed).toBe(1);
+  });
 });
