@@ -36,4 +36,13 @@ describe('hubb-nav-bar', () => {
     buttons(el)[2]!.click();
     expect(location.pathname).toBe('/hubb-casa/home');
   });
+
+  it('names the first tab with the label it is given', async () => {
+    const el = document.createElement('hubb-nav-bar') as HubbNavBar;
+    el.homeLabel = 'Início';
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.shadowRoot!.querySelector('nav button span')!.textContent).toBe('Início');
+    el.remove();
+  });
 });

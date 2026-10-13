@@ -267,7 +267,8 @@ function find(words: readonly string[], phrase: readonly string[]): number {
   return -1;
 }
 
-export function artFromName(name: string): ArtId | null {
+/** `meaning` says what a generic word alone draws in this kind of place (src/model/profiles.ts). */
+export function artFromName(name: string, meaning: Readonly<Partial<Record<string, ArtId>>> = {}): ArtId | null {
   const words = normalizeName(name).split(' ').filter(Boolean);
   let best: { art: ArtId; len: number; at: number } | null = null;
   for (const k of TABLE) {
@@ -281,7 +282,7 @@ export function artFromName(name: string): ArtId | null {
   let generic: { art: ArtId; at: number } | null = null;
   for (const [art, word] of GENERIC) {
     const at = find(words, [word]);
-    if (at !== -1 && (!generic || at < generic.at)) generic = { art, at };
+    if (at !== -1 && (!generic || at < generic.at)) generic = { art: meaning[word] ?? art, at };
   }
   return generic?.art ?? null;
 }
@@ -291,6 +292,11 @@ export function artFromIcon(icon: string | null | undefined): ArtId | null {
 }
 
 /** The drawing for an area: by its name, else by its icon, else the default of the place. */
-export function artFor(name: string, icon: string | null | undefined, fallback: ArtId = 'casa'): ArtId {
-  return artFromName(name) ?? artFromIcon(icon) ?? fallback;
+export function artFor(
+  name: string,
+  icon: string | null | undefined,
+  fallback: ArtId = 'casa',
+  meaning: Readonly<Partial<Record<string, ArtId>>> = {},
+): ArtId {
+  return artFromName(name, meaning) ?? artFromIcon(icon) ?? fallback;
 }

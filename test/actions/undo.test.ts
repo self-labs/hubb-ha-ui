@@ -159,3 +159,25 @@ describe('undo', () => {
     expect(seen).toEqual(['failure']);
   });
 });
+
+describe('undo for a switch with the light role', () => {
+  it('puts it back through the switch domain, on or off only', () => {
+    expect(
+      restoreCalls([
+        { entityId: 'switch.teto', on: true, brightness: null },
+        { entityId: 'switch.varanda', on: false, brightness: null },
+      ]),
+    ).toEqual([
+      { domain: 'switch', service: 'turn_on', target: { entity_id: 'switch.teto' } },
+      { domain: 'switch', service: 'turn_off', target: { entity_id: 'switch.varanda' } },
+    ]);
+  });
+
+  it('counts the switch lights a scene sets among its lights, and only those', () => {
+    const h = makeHass({
+      entities: [{ entity_id: 'scene.noite', state: 'unknown', attributes: { entity_id: ['light.sofa', 'switch.teto', 'switch.bomba'] } }],
+    });
+    expect(sceneLights(h, 'scene.noite', ['switch.teto', 'light.sofa'])).toEqual(['light.sofa', 'switch.teto']);
+    expect(sceneLights(h, 'scene.noite')).toEqual(['light.sofa']);
+  });
+});

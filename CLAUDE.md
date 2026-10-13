@@ -20,19 +20,24 @@ v2 (any kind of place, panel editor, phases M1.1 to M4) in `2026-10-10-hubb-ha-u
 ```text
 src/
   ha/types.ts          the slice of the frontend `hass` object we read
-  model/               pure rules: buildHouse, names, paths (no DOM)
+  model/               pure rules (no DOM): config (tolerant reader), profiles, classify (the one
+                       rule that places every entity), appliances, floors, review, buildHouse,
+                       names, paths
   summary.ts           the home headline
   strings.ts           every resident string
-  actions/             light, colour, switch, scene, pending (3 s window), undo (5 s), haptic, navigate
+  actions/             light (by domain), colour, switch, action, scene, pending (3 s window),
+                       undo (5 s), clipboard, haptic, navigate
   theme/               CSS tokens (screens only) and the embedded Manrope font
   art/                 the 59 room drawings, the name/icon resolver, the render helper
-  elements/            toggle tile (light, outlet), sheet, dimmer and colour panels, toast, nav bar,
-                       room card, scene button
-  screens/             home, room, scenes (each is a Lovelace card filling a panel view)
+  elements/            toggle tile (light, outlet, equipment), action button, appliance card and
+                       panel, floor tabs, sheet, dimmer and colour panels, toast, nav bar, room card,
+                       scene button
+  screens/             home, room, scenes, review (each is a Lovelace card filling a panel view)
   cards/               standalone light card, error card
   strategy/            generateDashboard and the ll-strategy-dashboard-hubb element
   hubb-ha-ui.ts        entry: registers everything, injects the font
-test/                  Vitest + happy-dom; helpers/fake-hass.ts, fixtures/sample-house.ts
+test/                  Vitest + happy-dom; helpers/fake-hass.ts; fixtures: sample-house (Kleber
+                       shaped), clinic, casa-exemplo-2 (switch lights, washer), washer
 ```
 
 ## Commands
@@ -76,3 +81,8 @@ Never commit or push without Gustavo's explicit approval.
   A new drawing also needs its words in `src/art/resolve.ts` and a row in `docs/drawings.md`.
 - An outlet is a `switch` whose state attribute `device_class` is `outlet`: `hass.entities` does
   not carry the device class. Bulk actions and undo read `room.lights` only, on purpose.
+- `src/model/classify.ts` is the one rule that decides where an entity goes. The panel, "Revisar o
+  painel" and, later, the editor all call it; never place an entity anywhere else.
+- `cachedStaticReview` keys on the identity of `hass.entities`, `hass.devices`, `hass.areas`,
+  `hass.floors` and the configuration object: the frontend keeps those objects across state
+  changes, so the home can count the review on every update.

@@ -1,32 +1,23 @@
 import { isArtId } from '../art/drawings';
 import { artFor } from '../art/resolve';
 import type { HomeAssistant } from '../ha/types';
-import { joinPt } from '../strings';
+import { joinPt, S } from '../strings';
+import { applianceName, findParts } from './appliances';
+import { areaOf, classify, classifyContext } from './classify';
+import { readConfig } from './config';
+import { floorTabs, roomFloor } from './floors';
 import { displayName } from './names';
 import { roomPath } from './paths';
+import { isProfileId, PROFILES } from './profiles';
 import type { House, HubbConfig, Room, SceneItem } from './types';
-
-export const SCENE_LABEL = 'hubb_cena';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 const LAST = Number.MAX_SAFE_INTEGER;
-
-/** The area of an entity, else the area of its device. */
-export function entityAreaId(hass: HomeAssistant, entityId: string): string | null {
-  const reg = hass.entities[entityId];
-  if (!reg) return null;
-  if (reg.area_id) return reg.area_id;
-  return reg.device_id ? (hass.devices[reg.device_id]?.area_id ?? null) : null;
-}
+const byName = (a: { name: string }, b: { name: string }): number => collator.compare(a.name, b.name);
 
 export function isDimmable(hass: HomeAssistant, entityId: string): boolean {
   const modes = hass.states[entityId]?.attributes.supported_color_modes;
   return Array.isArray(modes) && modes.some((m) => m !== 'onoff');
-}
-
-function isShown(hass: HomeAssistant, entityId: string, hidden: ReadonlySet<string>): boolean {
-  const reg = hass.entities[entityId];
-  return !!reg && !reg.hidden && !reg.entity_category && !hidden.has(entityId);
 }
 
 function sceneDescription(hass: HomeAssistant, entityId: string): string | null {
@@ -36,21 +27,28 @@ function sceneDescription(hass: HomeAssistant, entityId: string): string | null 
   const rooms: string[] = [];
   for (const member of members) {
     if (typeof member !== 'string') continue;
-    const areaId = entityAreaId(hass, member);
+    const areaId = areaOf(hass, member);
     const name = areaId ? hass.areas[areaId]?.name : undefined;
     if (name && !rooms.includes(name)) rooms.push(name);
   }
   return rooms.length ? joinPt(rooms) : null;
 }
 
+const hasContent = (r: Room): boolean =>
+  r.lights.length + r.outlets.length + r.equipment.length + r.appliances.length + r.actions.length > 0;
+
 export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House {
-  const hidden = new Set(config.hide_entities ?? []);
+  const cfg = readConfig(hass, config);
+  const profile = PROFILES[cfg.profile];
+  const ctx = classifyContext(hass, cfg, config.hide_entities);
   const overrides = config.rooms ?? {};
   const rooms = new Map<string, Room>();
   const scenes: SceneItem[] = [];
+  const placedDevices = new Set<string>();
   let weatherEntityId: string | null = null;
 
-  const roomFor = (areaId: string): Room | null => {
+  const roomFor = (areaId: string | null): Room | null => {
+    if (!areaId) return null;
     const known = rooms.get(areaId);
     if (known) return known;
     const area = hass.areas[areaId];
@@ -63,9 +61,13 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
       name: area.name,
       photo: override?.photo ?? area.picture ?? null,
       icon: area.icon ?? null,
-      art: isArtId(chosen) ? chosen : artFor(area.name, area.icon),
+      art: isArtId(chosen) ? chosen : artFor(area.name, area.icon, profile.defaultArt, profile.generic),
+      floorId: roomFloor(hass, areaId, override),
       lights: [],
       outlets: [],
+      equipment: [],
+      appliances: [],
+      actions: [],
       scenes: [],
     };
     rooms.set(areaId, room);
@@ -73,24 +75,40 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
   };
 
   for (const entityId of Object.keys(hass.entities).sort()) {
-    const domain = entityId.slice(0, entityId.indexOf('.'));
-    if (domain === 'weather') {
+    if (entityId.startsWith('weather.')) {
       if (!weatherEntityId && hass.states[entityId]) weatherEntityId = entityId;
       continue;
     }
-    if (!isShown(hass, entityId, hidden)) continue;
-    const areaId = entityAreaId(hass, entityId);
-    if (domain === 'light') {
-      const room = areaId ? roomFor(areaId) : null;
-      if (room) {
-        room.lights.push({ entityId, name: displayName(hass, entityId, room.name), dimmable: isDimmable(hass, entityId) });
-      }
-    } else if (domain === 'switch' && hass.states[entityId]?.attributes.device_class === 'outlet') {
-      // Only a switch the installer marked as an outlet; any other switch stays out of the panel.
-      const room = areaId ? roomFor(areaId) : null;
-      if (room) room.outlets.push({ entityId, name: displayName(hass, entityId, room.name) });
-    } else if ((domain === 'scene' || domain === 'script') && hass.entities[entityId].labels.includes(SCENE_LABEL)) {
-      scenes.push({ entityId, name: displayName(hass, entityId, null), areaId, description: sceneDescription(hass, entityId) });
+    const placed = classify(hass, entityId, ctx);
+    if (placed.block === null) continue;
+    const s = cfg.entities[entityId];
+    if (placed.block === 'scene') {
+      scenes.push({
+        entityId,
+        name: s?.name ?? displayName(hass, entityId, null),
+        areaId: placed.areaId,
+        description: sceneDescription(hass, entityId),
+      });
+      continue;
+    }
+    const room = roomFor(placed.areaId);
+    if (!room) continue;
+    const name = s?.name ?? displayName(hass, entityId, room.name);
+    if (placed.block === 'light') {
+      // A switch with the light role has no brightness: never a sheet, never a bar.
+      room.lights.push({ entityId, name, dimmable: entityId.startsWith('light.') && isDimmable(hass, entityId) });
+    } else if (placed.block === 'outlet') {
+      room.outlets.push({ entityId, name });
+    } else if (placed.block === 'equipment') {
+      room.equipment.push({ entityId, name, icon: s?.icon ?? null });
+    } else if (placed.block === 'action') {
+      room.actions.push({ entityId, name, icon: s?.icon ?? null });
+    } else {
+      // Two entities of one device marked as appliance still make one appliance: the device.
+      const deviceId = hass.entities[entityId]!.device_id!;
+      if (placedDevices.has(deviceId)) continue;
+      placedDevices.add(deviceId);
+      room.appliances.push({ deviceId, entityId, name: applianceName(hass, deviceId, s), parts: findParts(hass, deviceId, entityId, s) });
     }
   }
 
@@ -99,34 +117,59 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     const i = order.indexOf(id);
     return i === -1 ? LAST : i;
   };
-  scenes.sort((a, b) => rank(a.entityId) - rank(b.entityId) || collator.compare(a.name, b.name));
+  scenes.sort((a, b) => rank(a.entityId) - rank(b.entityId) || byName(a, b));
 
-  const shown = [...rooms.values()].filter((r) => r.lights.length > 0 || r.outlets.length > 0);
+  const shown = [...rooms.values()].filter(hasContent);
   for (const room of shown) {
-    room.lights.sort((a, b) => collator.compare(a.name, b.name));
-    room.outlets.sort((a, b) => collator.compare(a.name, b.name));
+    room.lights.sort(byName);
+    room.outlets.sort(byName);
+    room.equipment.sort(byName);
+    room.appliances.sort(byName);
+    room.actions.sort(byName);
     room.scenes = scenes.filter((s) => s.areaId === room.areaId);
   }
-  shown.sort(
-    (a, b) =>
-      (overrides[a.areaId]?.order ?? LAST) - (overrides[b.areaId]?.order ?? LAST) || collator.compare(a.name, b.name),
-  );
+  shown.sort((a, b) => (overrides[a.areaId]?.order ?? LAST) - (overrides[b.areaId]?.order ?? LAST) || byName(a, b));
 
-  return { name: config.name || hass.config.location_name || 'Casa', rooms: shown, scenes, weatherEntityId };
+  return {
+    name: config.name || hass.config.location_name || 'Casa',
+    profile: cfg.profile,
+    homeLabel: profile.homeLabel,
+    floors: floorTabs(hass, shown),
+    rooms: shown,
+    scenes,
+    weatherEntityId,
+  };
 }
 
 export function allLightIds(house: House): string[] {
   return house.rooms.flatMap((r) => r.lights.map((l) => l.entityId));
 }
 
+const list = <T>(value: T[] | undefined): T[] => (Array.isArray(value) ? value : []);
+
 /**
- * A room as a screen receives it. A dashboard frozen with "Take control" on 2026.10.2 keeps rooms
- * with no `art` and no `outlets`; filling them in keeps those screens working after an update.
+ * A room as a screen receives it. A dashboard frozen with "Take control" on an older version keeps
+ * rooms without the newer fields; filling them in keeps those screens working after an update.
  */
 export function normalizeRoom(room: Room): Room {
   return {
     ...room,
     art: isArtId(room.art) ? room.art : artFor(room.name, room.icon),
-    outlets: Array.isArray(room.outlets) ? room.outlets : [],
+    floorId: typeof room.floorId === 'string' ? room.floorId : null,
+    outlets: list(room.outlets),
+    equipment: list(room.equipment),
+    appliances: list(room.appliances),
+    actions: list(room.actions),
+  };
+}
+
+/** The house as the home screen receives it, frozen dashboards included. */
+export function normalizeHouse(house: House): House {
+  return {
+    ...house,
+    profile: isProfileId(house.profile) ? house.profile : 'home',
+    homeLabel: typeof house.homeLabel === 'string' && house.homeLabel ? house.homeLabel : S.home,
+    floors: list(house.floors),
+    rooms: house.rooms.map(normalizeRoom),
   };
 }

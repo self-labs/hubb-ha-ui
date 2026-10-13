@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { allLightIds, buildHouse } from '../../src/model/build-house';
+import { allLightIds, buildHouse, normalizeHouse, normalizeRoom } from '../../src/model/build-house';
+import type { House, Room } from '../../src/model/types';
+import { CASA2_CONFIG, casa2Hass } from '../fixtures/casa-exemplo-2';
+import { CLINIC_CONFIG, clinicHass } from '../fixtures/clinic';
 import { sampleHouseHass } from '../fixtures/sample-house';
 import { area, device, makeHass } from '../helpers/fake-hass';
 
@@ -147,5 +150,100 @@ describe('buildHouse', () => {
       ],
     });
     expect(buildHouse(h).rooms).toEqual([]);
+  });
+});
+
+describe('buildHouse with roles, profiles and floors', () => {
+  it('builds the same house as before when the configuration has no new keys', () => {
+    const house = buildHouse(sampleHouseHass());
+    expect(house.profile).toBe('home');
+    expect(house.homeLabel).toBe('Casa');
+    expect(house.floors).toEqual([]);
+    expect(
+      house.rooms.map((r) => [r.name, r.art, r.floorId, r.lights.length, r.outlets.length, r.equipment.length, r.appliances.length, r.actions.length]),
+    ).toEqual([
+      ['Cozinha', 'cozinha', null, 4, 0, 0, 0, 0],
+      ['Quarto', 'quarto', null, 7, 0, 0, 0, 0],
+      ['Sala', 'sala', null, 7, 0, 0, 0, 0],
+    ]);
+  });
+
+  it('puts a switch with the light role among the lights, never dimmable, and keeps the switch with no class out', () => {
+    const house = buildHouse(casa2Hass(), CASA2_CONFIG);
+    const escritorio = house.rooms.find((r) => r.areaId === 'escritorio')!;
+    expect(escritorio.lights).toEqual([{ entityId: 'switch.escritorio_luz', name: 'Teto', dimmable: false }]);
+    expect(escritorio.equipment).toEqual([]);
+    expect(allLightIds(house)).toEqual(['switch.escritorio_luz', 'switch.varanda_luz']);
+  });
+
+  it('makes one appliance per device, in the room of its device, with its parts kept inside it', () => {
+    const config = { ...CASA2_CONFIG, entities: { ...CASA2_CONFIG.entities, 'switch.lavadora_rinse': { role: 'appliance' } } };
+    const terraco = buildHouse(casa2Hass(), config).rooms.find((r) => r.areaId === 'terraco')!;
+    expect(terraco.appliances).toHaveLength(1);
+    expect(terraco.appliances[0]).toMatchObject({
+      deviceId: 'd_lavadora',
+      entityId: 'sensor.lavadora_appliancestate',
+      name: 'Lavadora',
+      parts: { state: 'sensor.lavadora_appliancestate', remaining: 'sensor.lavadora_timetoend' },
+    });
+    expect(terraco.equipment).toEqual([]);
+    expect(terraco.lights.map((l) => l.entityId)).toEqual(['switch.varanda_luz']);
+  });
+
+  it('places equipment and actions with the name and icon of the configuration, in rooms that have only them', () => {
+    const h = makeHass({
+      areas: [area('area_externa', 'Área externa'), area('rack', 'Rack')],
+      entities: [
+        { entity_id: 'switch.bomba', area_id: 'area_externa', state: 'off' },
+        { entity_id: 'button.reiniciar', area_id: 'rack', state: 'unknown', attributes: { friendly_name: 'Reiniciar roteador' } },
+      ],
+    });
+    const house = buildHouse(h, {
+      entities: { 'switch.bomba': { role: 'equipment', name: 'Bomba', icon: 'mdi:pool' }, 'button.reiniciar': { role: 'action' } },
+    });
+    expect(house.rooms.map((r) => r.name)).toEqual(['Área externa', 'Rack']);
+    expect(house.rooms[0]!.equipment).toEqual([{ entityId: 'switch.bomba', name: 'Bomba', icon: 'mdi:pool' }]);
+    expect(house.rooms[1]!.actions).toEqual([{ entityId: 'button.reiniciar', name: 'Reiniciar roteador', icon: null }]);
+  });
+
+  it('draws the rooms by the profile, names the first tab after it and gives each room its floor', () => {
+    const house = buildHouse(clinicHass(), CLINIC_CONFIG);
+    expect(house.profile).toBe('clinic');
+    expect(house.homeLabel).toBe('Início');
+    expect(house.rooms.map((r) => [r.name, r.art, r.floorId])).toEqual([
+      ['Consultório 3', 'consultorio', 'primeiro'],
+      ['Espera', 'espera', 'terreo'],
+      ['Esterilização', 'esterilizacao', 'primeiro'],
+      ['Recepção', 'recepcao', 'terreo'],
+      ['Sala 1', 'consultorio', 'primeiro'],
+      ['Sala 2', 'consultorio', 'primeiro'],
+    ]);
+    expect(house.floors).toEqual([
+      { floorId: 'terreo', name: 'Térreo' },
+      { floorId: 'primeiro', name: '1º andar' },
+    ]);
+  });
+
+  it('moves a room to another floor from the configuration', () => {
+    const house = buildHouse(clinicHass(), { ...CLINIC_CONFIG, rooms: { espera: { floor: 'primeiro' } } });
+    expect(house.rooms.find((r) => r.areaId === 'espera')!.floorId).toBe('primeiro');
+  });
+
+  it('fills the new fields of a dashboard frozen on 2026.10.3', () => {
+    const frozen = {
+      areaId: 'sala',
+      path: 'sala',
+      name: 'Sala',
+      photo: null,
+      icon: null,
+      art: 'sala',
+      lights: [],
+      outlets: [],
+      scenes: [],
+    } as unknown as Room;
+    expect(normalizeRoom(frozen)).toMatchObject({ floorId: null, equipment: [], appliances: [], actions: [] });
+    const house = normalizeHouse({ name: 'Casa', rooms: [frozen], scenes: [], weatherEntityId: null } as unknown as House);
+    expect(house).toMatchObject({ profile: 'home', homeLabel: 'Casa', floors: [] });
+    expect(house.rooms[0]!.actions).toEqual([]);
   });
 });

@@ -8,6 +8,47 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.4] - 2026-10-13
+
+### Added
+
+- Roles from the dashboard configuration (`entities.<entity_id>.role`): a `switch` given the `light`
+  role counts as a light everywhere (card, "Apagar tudo", "Apagar todas", the home sentence and
+  Desfazer), with its commands sent through `switch.*`.
+- The `equipment` role (a `switch` that is a pump, a fan or a heater: "Ligado"/"Desligado", the
+  `mdi:` icon of the configuration or a power icon) and the `action` role (a `button`,
+  `input_button` or `script` in the new "Ações" block, which says "Feito" for 2 s).
+- The room page in fixed blocks: Luzes, Tomadas e equipamentos, Ações. An empty block does not show.
+- Appliances: an entity given the `appliance` role turns its device into an appliance card in the
+  new "Aparelhos" block ("Lavando · faltam 40 min"). While it works, a "Lavadora · 40 min" button
+  shows on the home and the room card says it when no light is on. Its sheet shows how long is
+  left, the commands that make sense now (Pausar and Desligar while it works, Iniciar and Desligar
+  while it waits switched on, Ligar and Iniciar while it is off), the choices (program, level) and
+  the options; an option the program does not take disappears.
+- Places: `profile` (`home`, `clinic`, `restaurant`, `office`, `store`, `gym`, `salon`, `hotel`).
+  Away from a home the first tab is called "Início" and the drawings follow the place: in a clinic
+  "Sala 3" is drawn as a consulting room, in a hotel "Quarto 12" as a hotel room.
+- Floors: when the rooms sit on two or more floors of Home Assistant, the home shows one floor at a
+  time, with a button per floor and the number of lights on in each; the floor picked last is
+  remembered on the device. `rooms.<area>.floor` moves a room to another floor. The sentence at the
+  top, the "N acesas" button and its sheet still cover the whole place.
+- "Revisar o painel", a screen for administrators only, opened by a wrench at the top of the home
+  that shows how many items wait. It lists the switches with no role (with the roles as buttons,
+  the suggested one highlighted; modes, displays and the Alexa announcement and communication
+  switches are suggested hidden), the appliances of known brands (Electrolux, LG), what has no
+  room, the problems of the configuration and what has not answered for more than a day. A tap
+  copies the line of YAML; "Copiar tudo" copies the whole `entities:` block. On plain `http://`
+  it copies through the old browser command, and when nothing works the line stays on screen to
+  copy by hand.
+- A value the panel does not know (a role, a profile, a drawing, a floor, an area, an icon without
+  `mdi:`) is ignored and listed on "Revisar o painel" instead of breaking the dashboard.
+
+### Changed
+
+- A `switch` with no class and no role still stays out of the panel, and now waits on "Revisar o
+  painel" instead of disappearing in silence.
+- The room card of a room with no lights speaks about its equipment or a working appliance.
+
 ## [2026.10.3] - 2026-10-12
 
 ### Added
@@ -105,7 +146,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.3...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.4...HEAD
+[2026.10.4]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.3...v2026.10.4
 [2026.10.3]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.2...v2026.10.3
 [2026.10.2]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.1...v2026.10.2
 [2026.10.1]: https://github.com/self-labs/hubb-ha-ui/releases/tag/v2026.10.1

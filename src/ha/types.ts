@@ -16,7 +16,9 @@ export interface HassEntityRegistryDisplay {
   hidden?: boolean;
   entity_category?: 'config' | 'diagnostic' | null;
   name?: string | null;
+  /** The integration that owns the entity (`electrolux_status`, `lg_thinq`...). */
   platform?: string;
+  translation_key?: string | null;
 }
 
 export interface HassDevice {
@@ -36,6 +38,13 @@ export interface HassArea {
   humidity_entity_id?: string | null;
 }
 
+export interface HassFloor {
+  floor_id: string;
+  name: string;
+  /** Below zero for a basement, 0 for the ground floor; null when the installer left it empty. */
+  level: number | null;
+}
+
 export interface HassServiceTarget {
   entity_id: string | string[];
 }
@@ -45,6 +54,7 @@ export interface HomeAssistant {
   entities: Record<string, HassEntityRegistryDisplay>;
   devices: Record<string, HassDevice>;
   areas: Record<string, HassArea>;
+  floors?: Record<string, HassFloor>;
   user?: { id: string; name: string; is_admin: boolean };
   themes: { darkMode: boolean };
   config: { location_name: string };
@@ -54,4 +64,6 @@ export interface HomeAssistant {
     data?: Record<string, unknown>,
     target?: HassServiceTarget,
   ): Promise<unknown>;
+  /** The state as a person reads it, translated by the integration; the real frontend always has it. */
+  formatEntityState?(stateObj: HassEntityState, state?: string): string;
 }

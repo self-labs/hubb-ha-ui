@@ -28,9 +28,11 @@ export function snapshotLights(hass: HomeAssistant, ids: readonly string[]): Lig
 export function restoreCalls(snapshot: readonly LightSnapshot[]): ServiceCall[] {
   return snapshot.map((s): ServiceCall => {
     const target = { entity_id: s.entityId };
-    if (!s.on) return { domain: 'light', service: 'turn_off', target };
-    if (s.brightness !== null) return { domain: 'light', service: 'turn_on', data: { brightness: s.brightness }, target };
-    return { domain: 'light', service: 'turn_on', target };
+    // A switch with the light role only goes on or off: it has no brightness to put back.
+    const domain = s.entityId.startsWith('switch.') ? 'switch' : 'light';
+    if (!s.on) return { domain, service: 'turn_off', target };
+    if (s.brightness !== null && domain === 'light') return { domain, service: 'turn_on', data: { brightness: s.brightness }, target };
+    return { domain, service: 'turn_on', target };
   });
 }
 
@@ -62,10 +64,17 @@ export function changedSince(snapshot: readonly LightSnapshot[], hass: HomeAssis
 /** How long Desfazer waits for an action that has not answered before putting the lights back. */
 export const UNDO_WAIT_MS = 2500;
 
-/** The lights a scene sets, from its `entity_id` attribute; none for a script, which does not say. */
-export function sceneLights(hass: HomeAssistant, sceneId: string): string[] {
+/**
+ * The lights a scene sets, from its `entity_id` attribute: its `light.*` members, plus the members
+ * the panel shows as lights (`lightIds`, where the switches with the light role are). None for a
+ * script, which does not say.
+ */
+export function sceneLights(hass: HomeAssistant, sceneId: string, lightIds: readonly string[] = []): string[] {
   const members = hass.states[sceneId]?.attributes.entity_id;
-  return Array.isArray(members) ? members.filter((m): m is string => typeof m === 'string' && m.startsWith('light.')) : [];
+  const panel = new Set(lightIds);
+  return Array.isArray(members)
+    ? members.filter((m): m is string => typeof m === 'string' && (m.startsWith('light.') || panel.has(m)))
+    : [];
 }
 
 export interface UndoOptions {

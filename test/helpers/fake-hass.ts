@@ -3,6 +3,7 @@ import type {
   HassDevice,
   HassEntityRegistryDisplay,
   HassEntityState,
+  HassFloor,
   HassServiceTarget,
   HomeAssistant,
 } from '../../src/ha/types';
@@ -27,24 +28,32 @@ export interface FakeEntity {
   entity_category?: 'config' | 'diagnostic' | null;
   name?: string | null;
   last_changed?: string;
+  platform?: string;
+  translation_key?: string | null;
 }
 
 export interface FakeHassInput {
   areas?: HassArea[];
   devices?: HassDevice[];
+  floors?: HassFloor[];
   entities?: FakeEntity[];
   user?: { id: string; name: string; is_admin: boolean };
   darkMode?: boolean;
   locationName?: string;
   failService?: boolean;
+  formatEntityState?: (stateObj: HassEntityState, state?: string) => string;
 }
 
-export function area(area_id: string, name: string, picture: string | null = null): HassArea {
-  return { area_id, name, picture, icon: null, floor_id: null };
+export function area(area_id: string, name: string, picture: string | null = null, floor_id: string | null = null): HassArea {
+  return { area_id, name, picture, icon: null, floor_id };
 }
 
 export function device(id: string, area_id: string | null, name: string): HassDevice {
   return { id, area_id, name, name_by_user: null };
+}
+
+export function floor(floor_id: string, name: string, level: number | null): HassFloor {
+  return { floor_id, name, level };
 }
 
 export function makeHass(input: FakeHassInput = {}): FakeHass {
@@ -59,17 +68,20 @@ export function makeHass(input: FakeHassInput = {}): FakeHass {
       hidden: e.hidden ?? false,
       entity_category: e.entity_category ?? null,
       name: e.name ?? null,
+      platform: e.platform,
+      translation_key: e.translation_key ?? null,
     };
     if (e.state !== undefined) {
       states[e.entity_id] = { entity_id: e.entity_id, state: e.state, attributes: e.attributes ?? {}, last_changed: e.last_changed };
     }
   }
   const calls: ServiceCallRecord[] = [];
-  return {
+  const hass: FakeHass = {
     states,
     entities,
     devices: Object.fromEntries((input.devices ?? []).map((d) => [d.id, d])),
     areas: Object.fromEntries((input.areas ?? []).map((a) => [a.area_id, a])),
+    floors: Object.fromEntries((input.floors ?? []).map((f) => [f.floor_id, f])),
     user: input.user ?? { id: 'u1', name: 'Ana Souza', is_admin: false },
     themes: { darkMode: input.darkMode ?? true },
     config: { location_name: input.locationName ?? 'Casa' },
@@ -79,6 +91,8 @@ export function makeHass(input: FakeHassInput = {}): FakeHass {
       return input.failService ? Promise.reject(new Error('service failed')) : Promise.resolve();
     },
   };
+  if (input.formatEntityState) hass.formatEntityState = input.formatEntityState;
+  return hass;
 }
 
 /** A copy of `hass` with one state replaced, the way the frontend hands a new object on every change. */

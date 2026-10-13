@@ -11,6 +11,8 @@ export interface ScenesScreenConfig {
   type: string;
   scenes: SceneItem[];
   lightIds: string[];
+  /** Name of the first tab of the bottom bar; "Casa" when missing. */
+  homeLabel?: string;
 }
 
 export class HubbScenesScreen extends HubbScreen {
@@ -46,7 +48,7 @@ export class HubbScenesScreen extends HubbScreen {
             </div>`}
       </main>
       <hubb-toast></hubb-toast>
-      <hubb-nav-bar current="scenes"></hubb-nav-bar>`;
+      <hubb-nav-bar current="scenes" home-label=${this.config?.homeLabel ?? S.home}></hubb-nav-bar>`;
   }
 
   static styles = [

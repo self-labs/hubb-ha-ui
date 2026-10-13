@@ -79,8 +79,12 @@ describe('room card shading', () => {
     photo,
     icon: null,
     art: 'sala',
+    floorId: null,
     lights: [{ entityId: 'light.sofa', name: 'Sofá', dimmable: false }],
     outlets: [],
+    equipment: [],
+    appliances: [],
+    actions: [],
     scenes: [],
   });
 
@@ -96,5 +100,17 @@ describe('room card shading', () => {
     const css = cssOf(HubbRoomCard.styles);
     expect(css).toMatch(/\.room\s*\{[^}]*background: var\(--hubb-surface\)/);
     expect(css).toMatch(/\.room\.photo\s*\{[^}]*rgba\(0, 0, 0/);
+  });
+});
+
+describe('appliances fit on a phone', () => {
+  it('lets the appliance card span two of the three columns, so its state line does not wrap', async () => {
+    const { HubbRoomScreen: Screen } = await import('../src/screens/room-screen');
+    expect(cssOf(Screen.styles)).toMatch(/hubb-appliance-card\s*\{[^}]*grid-column: span 2/);
+  });
+
+  it('lays the options of the appliance sheet in two columns, so their names fit', async () => {
+    const { HubbAppliancePanel } = await import('../src/elements/appliance-panel');
+    expect(cssOf(HubbAppliancePanel.styles)).toMatch(/\.options\s*\{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
   });
 });

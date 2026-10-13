@@ -125,6 +125,14 @@ strategy:
 | `rooms.<area>.photo`  | The area picture                   | Photo for the room card and the room page                  |
 | `rooms.<area>.art`    | Picked from the area name, then its icon | Drawing for a room with no photo: one of the ids in [the list of drawings](docs/drawings.md) |
 | `rooms.<area>.hidden` | `false`                            | Leaves a room out                                          |
+| `rooms.<area>.floor`  | The floor of the area              | Moves a room to another floor without touching Home Assistant |
+| `profile`             | `home`                             | Kind of place: `home`, `clinic`, `restaurant`, `office`, `store`, `gym`, `salon` or `hotel`. See [Places and floors](#places-and-floors) |
+| `entities.<id>.role`  | From the entity type               | `light`, `outlet`, `equipment`, `appliance`, `action` or `hidden`. See [Roles](#roles) |
+| `entities.<id>.name`  | The entity name                    | Name on the panel                                          |
+| `entities.<id>.icon`  | The icon of the role               | An `mdi:` icon for equipment and actions                   |
+| `entities.<id>.area`  | The area of the entity, then of its device | Room of the entity on the panel                    |
+| `entities.<id>.hide`  | none                               | Appliance only: entities of its device left out of its sheet |
+| `entities.<id>.remaining`, `.progress` | Found on the device | Appliance only: the time left and the progress sensors, when the automatic pick is wrong |
 | `hide_entities`       | none                               | Lights and outlets left out even though they have an area (the fridge or the router plug) |
 
 ```yaml
@@ -138,6 +146,58 @@ strategy:
   hide_entities: [light.spot_da_garagem]
 ```
 
+### Roles
+
+Without a role, an entity reaches the panel by its type: `light.*` is a light, a `switch` shown as an
+outlet is an outlet, a scene or script labelled `hubb_cena` is a scene. A role puts it somewhere else:
+
+| Role        | Takes                                | Shows as                                                       |
+| :---------- | :----------------------------------- | :------------------------------------------------------------- |
+| `light`     | `light`, `switch`                    | A light, counted by "Apagar tudo", the home sentence and Desfazer |
+| `outlet`    | `switch`                             | An outlet ("Ligada"/"Desligada")                               |
+| `equipment` | `switch`                             | Equipment ("Ligado"/"Desligado"), with its `icon` or a power icon |
+| `appliance` | any entity with a device             | The device becomes an appliance card, with a full sheet        |
+| `action`    | `button`, `input_button`, `script`   | A button in "Ações" that says "Feito"                          |
+| `hidden`    | anything                             | Left out                                                       |
+
+```yaml
+strategy:
+  type: custom:hubb
+  entities:
+    switch.luz_varanda: { role: light }
+    switch.bomba_piscina: { role: equipment, name: Bomba, icon: mdi:pool }
+    switch.jet_mode: { role: hidden }
+    button.reiniciar_roteador: { role: action }
+    sensor.electrolux_lavadora_appliancestate:
+      role: appliance
+      hide: [button.electrolux_lavadora_executecommand_6]
+```
+
+A `switch` with no class and no role stays out of the panel and waits on **Revisar o painel**.
+
+### Places and floors
+
+`profile` names the first tab ("Casa" for a home, "Início" elsewhere) and picks the drawings: in a
+`clinic` a "Sala 3" is drawn as a consulting room, in an `office` as an office, in a `hotel` a
+"Quarto 12" as a hotel room. When the rooms sit on two or more floors of Home Assistant, the home
+shows one floor at a time, with the lights on of each floor on its button; the floor picked last is
+remembered on the phone.
+
+### Appliances
+
+Give the `appliance` role to one entity of a washer, a dryer or a dishwasher (its state sensor is the
+natural pick). Its device becomes a card in the room ("Lavando · faltam 40 min"); while it works, a
+"Lavadora · 40 min" button shows on the home. Its sheet shows how long is left, the commands that make
+sense now, the program and level choices and the options; an option the program does not take
+disappears. Made with the [Electrolux integration](https://github.com/albaintor/homeassistant_electrolux_status)
+in mind, it reads any device that exposes its state, buttons, `select` and `switch` entities.
+
+### Review the panel
+
+Administrators get a wrench at the top of the home. It opens **Revisar o painel**: the switches with no
+role, the appliances found, what has no room, the problems of the configuration and what has not
+answered for more than a day. A tap copies the line of YAML to paste under `strategy:`.
+
 ## Prepare the house
 
 The strategy shows what Home Assistant knows, so the work happens in Home Assistant, once per house:
@@ -146,7 +206,7 @@ The strategy shows what Home Assistant knows, so the work happens in Home Assist
 | :------------------------ | :-------------------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
 | **Every light in an area** | A light with no area is left out on purpose              | Settings → Areas, labels & zones, or the area field of each entity                                    |
 | **Lights as `light.*`**   | Relays exposed as switches or helpers are not lights      | A switch that is a light: entity settings, **Show as** Light. ControlArt: the [ControlArt integration](https://github.com/tompsonpecini/controlart). KinCony with Tasmota: `SetOption30 1`. Anything else: a template light |
-| **Outlets as outlets**    | Only a switch shown as an outlet reaches the panel        | Entity settings, **Show as** Outlet. Any other switch stays out for now                              |
+| **Outlets as outlets**    | Only a switch shown as an outlet reaches the panel on its own | Entity settings, **Show as** Outlet, or a [role](#roles). Any other switch waits on **Revisar o painel** |
 | **Short, client names**   | The tile shows the name as is                             | "Sofá", not "Saída 1". A room name at the start or the end is dropped ("LED Sala" in the Sala shows "LED") |
 | **Scenes labelled**       | Only labelled scenes and scripts reach the panel          | Label **`hubb_cena`** on a `scene.*` or `script.*`; give it an area to show it on that room too       |
 | **Area pictures** (optional) | Without one, the card shows a drawing picked from the area name or icon ([list](docs/drawings.md)) | The picture field of each area                                                  |

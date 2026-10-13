@@ -11,11 +11,15 @@ const SALA: Room = {
   photo: '/local/hubb/sala.jpg',
   icon: null,
   art: 'sala',
+  floorId: null,
   lights: [
     { entityId: 'light.sofa', name: 'Sofá', dimmable: false },
     { entityId: 'light.lustre', name: 'Lustre', dimmable: false },
   ],
   outlets: [],
+  equipment: [],
+  appliances: [],
+  actions: [],
   scenes: [],
 };
 

@@ -3,9 +3,13 @@ import { css, html, nothing } from 'lit';
 import { setLight } from '../actions/light';
 import { goBack } from '../actions/navigate';
 import { artStyles, roomArt } from '../art/render';
+import '../elements/action-button';
+import '../elements/appliance-card';
+import '../elements/appliance-panel';
 import '../elements/color-panel';
 import { define } from '../elements/define';
 import '../elements/dimmer-panel';
+import '../elements/equipment-tile';
 import { icon } from '../elements/icon';
 import '../elements/light-tile';
 import '../elements/nav-bar';
@@ -14,8 +18,8 @@ import '../elements/scene-button';
 import '../elements/sheet';
 import { normalizeRoom } from '../model/build-house';
 import type { Room } from '../model/types';
-import { outletStatus, roomStatus, roomTurnedOff, S } from '../strings';
-import { outletsOnIn } from '../summary';
+import { roomTurnedOff, S } from '../strings';
+import { applianceSubheading, roomHeroStatus } from '../summary';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 
@@ -23,26 +27,37 @@ export interface RoomScreenConfig {
   type: string;
   room: Room;
   lightIds: string[];
+  /** Name of the first tab of the bottom bar; "Casa" when missing (dashboards frozen on 2026.10.3). */
+  homeLabel?: string;
 }
 
 export class HubbRoomScreen extends HubbScreen {
   static properties = {
     config: { attribute: false },
     dimmer: { state: true },
+    appliance: { state: true },
   };
 
   declare config: RoomScreenConfig | undefined;
   declare dimmer: { entityId: string; name: string } | null;
+  /** The device of the appliance whose sheet is open. */
+  declare appliance: string | null;
 
   #onOpenDimmer = (e: Event): void => {
     this.dimmer = (e as CustomEvent<{ entityId: string; name: string }>).detail;
+  };
+
+  #onOpenAppliance = (e: Event): void => {
+    this.appliance = (e as CustomEvent<{ deviceId: string }>).detail.deviceId;
   };
 
   constructor() {
     super();
     this.config = undefined;
     this.dimmer = null;
+    this.appliance = null;
     this.addEventListener('hubb-open-dimmer', this.#onOpenDimmer);
+    this.addEventListener('hubb-open-appliance', this.#onOpenAppliance);
   }
 
   setConfig(config: RoomScreenConfig): void {
@@ -65,10 +80,8 @@ export class HubbRoomScreen extends HubbScreen {
     const room = this.config?.room;
     if (!hass || !room) return nothing;
     const onIds = room.lights.filter((l) => hass.states[l.entityId]?.state === 'on').map((l) => l.entityId);
-    const outletsOnly = room.lights.length === 0 && room.outlets.length > 0;
-    const status = outletsOnly
-      ? outletStatus(outletsOnIn(room, hass), room.outlets.length)
-      : roomStatus(onIds.length, room.lights.length);
+    const status = roomHeroStatus(room, hass);
+    const open = this.appliance ? (room.appliances.find((a) => a.deviceId === this.appliance) ?? null) : null;
     return html`<header
         class="hero ${room.photo ? 'photo' : ''} ${onIds.length ? 'lit' : ''}"
         style=${room.photo ? `--photo:url("${room.photo}")` : ''}
@@ -77,7 +90,7 @@ export class HubbRoomScreen extends HubbScreen {
         <button class="back" aria-label=${S.back} @click=${() => goBack()}>${icon(mdiChevronLeft)}</button>
         <div>
           <h1>${room.name}</h1>
-          <p>${status}</p>
+          ${status ? html`<p>${status}</p>` : nothing}
         </div>
       </header>
       <main>
@@ -101,9 +114,22 @@ export class HubbRoomScreen extends HubbScreen {
           ? html`<h2>${S.lights}</h2>
               <div class="grid">${room.lights.map((l) => html`<hubb-light-tile .hass=${hass} .item=${l}></hubb-light-tile>`)}</div>`
           : nothing}
-        ${room.outlets.length
+        ${room.outlets.length || room.equipment.length
           ? html`<h2>${S.outlets}</h2>
-              <div class="grid">${room.outlets.map((o) => html`<hubb-outlet-tile .hass=${hass} .item=${o}></hubb-outlet-tile>`)}</div>`
+              <div class="grid">
+                ${room.outlets.map((o) => html`<hubb-outlet-tile .hass=${hass} .item=${o}></hubb-outlet-tile>`)}
+                ${room.equipment.map((q) => html`<hubb-equipment-tile .hass=${hass} .item=${q}></hubb-equipment-tile>`)}
+              </div>`
+          : nothing}
+        ${room.appliances.length
+          ? html`<h2>${S.appliances}</h2>
+              <div class="grid">
+                ${room.appliances.map((a) => html`<hubb-appliance-card .hass=${hass} .item=${a}></hubb-appliance-card>`)}
+              </div>`
+          : nothing}
+        ${room.actions.length
+          ? html`<h2>${S.actions}</h2>
+              <div class="grid">${room.actions.map((a) => html`<hubb-action-button .hass=${hass} .item=${a}></hubb-action-button>`)}</div>`
           : nothing}
       </main>
       <hubb-sheet ?open=${this.dimmer !== null} heading=${this.dimmer?.name ?? ''} subheading=${room.name} @hubb-close=${() => (this.dimmer = null)}>
@@ -112,8 +138,17 @@ export class HubbRoomScreen extends HubbScreen {
               <hubb-color-panel .hass=${hass} .entityId=${this.dimmer.entityId}></hubb-color-panel>`
           : nothing}
       </hubb-sheet>
+      <hubb-sheet
+        class="appliance"
+        ?open=${open !== null}
+        heading=${open?.name ?? ''}
+        subheading=${open ? applianceSubheading(hass, open, room.name) : ''}
+        @hubb-close=${() => (this.appliance = null)}
+      >
+        ${open ? html`<hubb-appliance-panel .hass=${hass} .item=${open}></hubb-appliance-panel>` : nothing}
+      </hubb-sheet>
       <hubb-toast></hubb-toast>
-      <hubb-nav-bar current="home"></hubb-nav-bar>`;
+      <hubb-nav-bar current="home" home-label=${this.config?.homeLabel ?? S.home}></hubb-nav-bar>`;
   }
 
   static styles = [
@@ -202,6 +237,10 @@ export class HubbRoomScreen extends HubbScreen {
       }
       .primary.idle {
         visibility: hidden;
+      }
+      /* Wide: two of the three columns, so "Lavando · faltam 40 min" fits on one line. */
+      hubb-appliance-card {
+        grid-column: span 2;
       }
     `,
   ];

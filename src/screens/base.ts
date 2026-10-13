@@ -92,7 +92,7 @@ export abstract class HubbScreen extends LitElement {
     const scene = (e as CustomEvent<{ scene: SceneItem }>).detail.scene;
     // A scene says which lights it sets, on the panel or not: those, and only those, go back. A script
     // does not say, so the whole panel is the scope, and a still running script is stopped first.
-    const members = sceneLights(hass, scene.entityId);
+    const members = sceneLights(hass, scene.entityId, this.scope());
     const stop: ServiceCall[] = scene.entityId.startsWith('script.')
       ? [{ domain: 'script', service: 'turn_off', target: { entity_id: scene.entityId } }]
       : [];

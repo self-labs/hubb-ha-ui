@@ -15,9 +15,11 @@ zones. The drawing follows it:
    ("Consultório 3" reads `consultorio`). A word also matches in the plural: "s" or "es" added
    ("Vinhos", "Bares"), "ão" made "ões" ("Reuniões"), "m" made "ns" ("Jardins"). The longest match
    wins; on a tie, the word nearer the start ("Banheiro da Suíte" is a bathroom). `sala`, `quarto` and `salao` count only when nothing else matched ("Sala de Jantar"
-   is a dining room).
+   is a dining room), and the kind of place (`profile`) decides what they draw alone: in a
+   `clinic` "Sala 3" is a `consultorio`, in an `office` an `escritorio`; in a `hotel` "Quarto 12"
+   is a `quarto-hotel`; in a `salon` "Salão" is a `salao-beleza`.
 3. The area icon (`mdi:sofa`, `mdi:stove`, `mdi:bed` and 155 more, listed in `src/art/resolve.ts`).
-4. `casa`.
+4. `casa` for a home, `predio` for every other kind of place.
 
 To use another drawing:
 
@@ -119,4 +121,4 @@ An id that does not exist is ignored and the room keeps the drawing its name giv
 | :--- | :--- | :--- |
 | `quarto-hotel` | Quarto de hotel | `apartamento`, `hotel` |
 | `casa` | Padrão residencial | default when nothing matches |
-| `predio` | Padrão comercial | default of commercial places (with the place profiles, later) |
+| `predio` | Padrão comercial | default of every `profile` other than `home` |

@@ -1,23 +1,36 @@
+import { mdiWrenchOutline } from '@mdi/js';
 import { css, html, nothing } from 'lit';
+import { haptic } from '../actions/haptic';
 import { setLight } from '../actions/light';
+import { basePath, navigate } from '../actions/navigate';
 import { define } from '../elements/define';
+import { icon } from '../elements/icon';
+import '../elements/appliance-panel';
+import '../elements/floor-tabs';
 import '../elements/light-tile';
 import '../elements/nav-bar';
 import '../elements/room-card';
 import '../elements/scene-button';
 import '../elements/sheet';
 import type { HomeAssistant } from '../ha/types';
-import { allLightIds, normalizeRoom } from '../model/build-house';
-import type { House } from '../model/types';
-import { greeting, lightsCount, lightsTurnedOff, onCount, S } from '../strings';
-import { lightsOnByRoom, summarize } from '../summary';
+import { allLightIds, normalizeHouse } from '../model/build-house';
+import { pickFloor, roomsOn } from '../model/floors';
+import { reviewItems } from '../model/review';
+import type { House, HubbConfig } from '../model/types';
+import { greeting, lightsCount, lightsTurnedOff, onCount, REVIEW, S } from '../strings';
+import { applianceChipText, applianceSubheading, busyAppliances, findAppliance, lightsOnByRoom, summarize } from '../summary';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 
 export interface HomeScreenConfig {
   type: string;
   house: House;
+  /** The dashboard configuration, for the number on the review key; missing on frozen dashboards. */
+  options?: HubbConfig;
 }
+
+/** One object for a missing configuration, so the cached review keeps its key. */
+const NO_OPTIONS: HubbConfig = {};
 
 function outsideTemp(hass: HomeAssistant, entityId: string | null): number | null {
   if (!entityId) return null;
@@ -25,25 +38,57 @@ function outsideTemp(hass: HomeAssistant, entityId: string | null): number | nul
   return typeof t === 'number' ? Math.round(t) : null;
 }
 
+/** The floor last opened on this device for this dashboard; null when the browser keeps no storage. */
+function rememberedFloor(): string | null {
+  try {
+    return window.localStorage.getItem(`hubb-floor:${basePath()}`);
+  } catch {
+    return null;
+  }
+}
+
+function rememberFloor(floorId: string): void {
+  try {
+    window.localStorage.setItem(`hubb-floor:${basePath()}`, floorId);
+  } catch {
+    // A private window or blocked storage: the floor is kept only while the page stays open.
+  }
+}
+
 export class HubbHomeScreen extends HubbScreen {
   static properties = {
     config: { attribute: false },
     sheetIds: { state: true },
+    applianceId: { state: true },
+    floor: { state: true },
   };
 
   declare config: HomeScreenConfig | undefined;
   /** Lights that were on when the sheet opened; they stay listed while it is open. */
   declare sheetIds: string[] | null;
+  /** The device of the appliance whose sheet is open on the home. */
+  declare applianceId: string | null;
+  /** The floor tab picked on this screen; null until the resident picks one. */
+  declare floor: string | null;
+
+  #onFloor = (e: Event): void => {
+    const floorId = (e as CustomEvent<{ floorId: string }>).detail.floorId;
+    this.floor = floorId;
+    rememberFloor(floorId);
+  };
 
   constructor() {
     super();
     this.config = undefined;
     this.sheetIds = null;
+    this.applianceId = null;
+    this.floor = null;
+    this.addEventListener('hubb-floor', this.#onFloor);
   }
 
   setConfig(config: HomeScreenConfig): void {
     if (!config || !config.house) throw new Error('hubb-home-screen: missing house');
-    this.config = { ...config, house: { ...config.house, rooms: config.house.rooms.map(normalizeRoom) } };
+    this.config = { ...config, house: normalizeHouse(config.house) };
   }
 
   protected scope(): string[] {
@@ -61,6 +106,11 @@ export class HubbHomeScreen extends HubbScreen {
     const on = ids.filter((id) => hass.states[id]?.state === 'on');
     if (on.length === 0) return;
     this.undoable(on, lightsTurnedOff(on.length), () => setLight(hass, on, false), { targets: on });
+  }
+
+  #openReview(): void {
+    haptic('selection');
+    navigate(`${basePath()}/revisar`, { back: true });
   }
 
   #empty(hass: HomeAssistant) {
@@ -89,13 +139,28 @@ export class HubbHomeScreen extends HubbScreen {
     const firstName = (hass.user?.name ?? '').trim().split(/\s+/)[0] ?? '';
     const temp = outsideTemp(hass, house.weatherEntityId);
     const ids = this.sheetIds;
+    const busy = busyAppliances(house.rooms, hass);
+    const open = this.applianceId ? findAppliance(house.rooms, this.applianceId) : null;
+    const floor = pickFloor(house.floors, this.floor, this.floor ? null : rememberedFloor());
+    // The strategy hands the configuration to the home exactly when it creates the review view for an
+    // administrator; a dashboard frozen before the review has neither, and its key would lead nowhere.
+    const admin = !!hass.user?.is_admin && this.config?.options !== undefined;
+    const pending = admin ? reviewItems(hass, this.config?.options ?? NO_OPTIONS).length : 0;
+    const shown = floor === null ? house.rooms : roomsOn(house.rooms, floor);
     return html`<main>
         <header>
           <div>
             <h1>${greeting(new Date().getHours())}${firstName ? `, ${firstName}` : ''}</h1>
             <p class="house">${house.name}</p>
           </div>
-          ${temp !== null ? html`<span class="weather">${temp}°</span>` : nothing}
+          <div class="tools">
+            ${temp !== null ? html`<span class="weather">${temp}°</span>` : nothing}
+            ${admin
+              ? html`<button class="key" aria-label=${REVIEW.key(pending)} @click=${() => this.#openReview()}>
+                  ${icon(mdiWrenchOutline)}${pending ? html`<span class="badge">${pending}</span>` : nothing}
+                </button>`
+              : nothing}
+          </div>
         </header>
         ${house.rooms.length === 0
           ? this.#empty(hass)
@@ -104,19 +169,34 @@ export class HubbHomeScreen extends HubbScreen {
                 ${summary.lightsOn > 0
                   ? html`<button class="chip on" @click=${() => this.#openSheet(house, hass)}>${onCount(summary.lightsOn)}</button>`
                   : nothing}
+                ${busy.map(
+                  (b) =>
+                    html`<button class="chip on" @click=${() => (this.applianceId = b.item.deviceId)}>${applianceChipText(hass, b.item)}</button>`,
+                )}
               </div>
               ${house.scenes.length
                 ? html`<h2>${S.scenes}</h2>
                     <div class="scenes">${house.scenes.slice(0, 4).map((s) => html`<hubb-scene-button variant="tile" .scene=${s}></hubb-scene-button>`)}</div>`
                 : nothing}
-              <h2>${S.rooms}</h2>
-              <div class="rooms">${house.rooms.map((r) => html`<hubb-room-card .hass=${hass} .room=${r}></hubb-room-card>`)}</div>`}
+              ${floor === null
+                ? html`<h2>${S.rooms}</h2>`
+                : html`<hubb-floor-tabs .hass=${hass} .floors=${house.floors} .rooms=${house.rooms} .current=${floor}></hubb-floor-tabs>`}
+              <div class="rooms">${shown.map((r) => html`<hubb-room-card .hass=${hass} .room=${r}></hubb-room-card>`)}</div>`}
       </main>
       <hubb-sheet ?open=${ids !== null} heading=${S.lightsOnTitle} subheading=${ids ? lightsCount(ids.length) : ''} @hubb-close=${() => (this.sheetIds = null)}>
         ${ids ? this.#sheetContent(house, hass, ids) : nothing}
       </hubb-sheet>
+      <hubb-sheet
+        class="appliance"
+        ?open=${open !== null}
+        heading=${open?.item.name ?? ''}
+        subheading=${open ? applianceSubheading(hass, open.item, open.room.name) : ''}
+        @hubb-close=${() => (this.applianceId = null)}
+      >
+        ${open ? html`<hubb-appliance-panel .hass=${hass} .item=${open.item}></hubb-appliance-panel>` : nothing}
+      </hubb-sheet>
       <hubb-toast></hubb-toast>
-      <hubb-nav-bar current="home"></hubb-nav-bar>`;
+      <hubb-nav-bar current="home" home-label=${house.homeLabel}></hubb-nav-bar>`;
   }
 
   static styles = [
@@ -139,6 +219,49 @@ export class HubbHomeScreen extends HubbScreen {
         font-size: 12px;
         color: var(--hubb-text-2);
       }
+      .tools {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .key {
+        all: unset;
+        position: relative;
+        box-sizing: border-box;
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        background: var(--hubb-surface);
+        color: var(--hubb-text-2);
+        cursor: pointer;
+      }
+      .key:focus-visible {
+        outline: 2px solid var(--hubb-focus);
+        outline-offset: 2px;
+      }
+      .key svg {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
+      }
+      .badge {
+        position: absolute;
+        top: 3px;
+        right: 3px;
+        box-sizing: border-box;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        background: var(--hubb-amber);
+        color: var(--hubb-amber-ink);
+        font-size: 10px;
+        font-weight: 800;
+        line-height: 18px;
+        text-align: center;
+      }
       .weather {
         padding: 6px 10px;
         border-radius: 12px;
@@ -160,6 +283,7 @@ export class HubbHomeScreen extends HubbScreen {
       }
       .chips {
         display: flex;
+        flex-wrap: wrap;
         gap: 6px;
         min-height: 44px;
       }
@@ -197,6 +321,9 @@ export class HubbHomeScreen extends HubbScreen {
       .wide {
         width: 100%;
         margin-bottom: 4px;
+      }
+      hubb-floor-tabs {
+        margin: 18px 0 10px;
       }
     `,
   ];

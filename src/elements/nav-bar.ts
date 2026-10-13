@@ -9,13 +9,16 @@ import { icon } from './icon';
 export type NavCurrent = 'home' | 'scenes';
 
 export class HubbNavBar extends LitElement {
-  static properties = { current: {} };
+  static properties = { current: {}, homeLabel: { attribute: 'home-label' } };
 
   declare current: NavCurrent;
+  /** "Casa" for a home, "Início" for the other places. */
+  declare homeLabel: string;
 
   constructor() {
     super();
     this.current = 'home';
+    this.homeLabel = S.home;
   }
 
   #go(path: NavCurrent): void {
@@ -32,7 +35,7 @@ export class HubbNavBar extends LitElement {
 
   render() {
     return html`<nav aria-label=${S.navigation}>
-      ${this.#item('home', S.home, mdiHomeOutline)} ${this.#item('scenes', S.scenes, mdiCreationOutline)}
+      ${this.#item('home', this.homeLabel, mdiHomeOutline)} ${this.#item('scenes', S.scenes, mdiCreationOutline)}
       <button class="soon" aria-disabled="true" title=${S.soon} @click=${(e: Event) => e.preventDefault()}>
         ${icon(mdiShieldHomeOutline)}<span>${S.security}</span>
       </button>

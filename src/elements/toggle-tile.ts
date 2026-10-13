@@ -1,4 +1,4 @@
-import { LitElement, css, html, nothing } from 'lit';
+import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
 import type { TileColor } from '../actions/color';
 import { haptic } from '../actions/haptic';
 import { PendingTracker, type PendingStatus } from '../actions/pending';
@@ -82,6 +82,11 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
 
   protected extras(_item: T, _state: HassEntityState): TileExtras {
     return PLAIN;
+  }
+
+  /** The icon inside the tile; a subclass may draw a Home Assistant icon name instead of a path. */
+  protected iconTemplate(_item: T, on: boolean): TemplateResult {
+    return icon(this.iconPath(on));
   }
 
   connectedCallback(): void {
@@ -225,7 +230,7 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
       @contextmenu=${this.#onContextMenu}
       @click=${this.#onClick}
     >
-      <span class="icon">${icon(this.iconPath(v.on))}</span>
+      <span class="icon">${this.iconTemplate(item, v.on)}</span>
       <span class="text"><span class="name">${item.name}</span><span class="state">${v.text}</span></span>
       ${v.pct !== null ? html`<span class="level" style="width:${v.pct}%"></span>` : nothing}
     </button>`;
@@ -275,6 +280,9 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
       width: 18px;
       height: 18px;
       fill: currentColor;
+    }
+    .icon ha-icon {
+      --mdc-icon-size: 18px;
     }
     .name {
       display: block;

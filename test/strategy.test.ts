@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generateDashboard } from '../src/strategy/generate';
+import { CLINIC_CONFIG, clinicHass } from './fixtures/clinic';
 import { sampleHouseHass } from './fixtures/sample-house';
 import { area, makeHass } from './helpers/fake-hass';
 
@@ -42,5 +43,39 @@ describe('generateDashboard', () => {
       message: 'Não foi possível montar o painel.',
       detail: 'registry not loaded',
     });
+  });
+
+  it('names the first tab after the place and tells every screen', () => {
+    const config = generateDashboard(CLINIC_CONFIG, clinicHass());
+    expect(config.views[0]!.title).toBe('Início');
+    expect(config.views[1]!.cards[0]).toMatchObject({ type: 'custom:hubb-scenes-screen', homeLabel: 'Início' });
+    expect(config.views[2]!.cards[0]).toMatchObject({ type: 'custom:hubb-room-screen', homeLabel: 'Início' });
+    expect(generateDashboard({}, sampleHouseHass()).views[0]!.title).toBe('Casa');
+  });
+
+  it('adds "Revisar o painel" for an administrator only, and hands the configuration to the home', () => {
+    const config = { name: 'Casa Exemplo' };
+    const h = sampleHouseHass();
+    h.user = { id: 'u1', name: 'Gustavo Exemplo', is_admin: true };
+    const views = generateDashboard(config, h).views;
+    expect(views.at(-1)).toEqual({
+      title: 'Revisar o painel',
+      path: 'revisar',
+      type: 'panel',
+      subview: true,
+      cards: [{ type: 'custom:hubb-review-screen', options: config, homeLabel: 'Casa' }],
+    });
+    expect(views[0]!.cards[0]).toMatchObject({ type: 'custom:hubb-home-screen', options: config });
+    expect(generateDashboard(config, sampleHouseHass()).views.some((v) => v.path === 'revisar')).toBe(false);
+  });
+
+  it('keeps an area called revisar off the path of the review', () => {
+    const h = makeHass({
+      user: { id: 'u1', name: 'Gustavo Exemplo', is_admin: true },
+      areas: [area('revisar', 'Revisar')],
+      entities: [{ entity_id: 'light.a', area_id: 'revisar', state: 'off' }],
+    });
+    const paths = generateDashboard({}, h).views.map((v) => v.path);
+    expect(paths).toEqual(['home', 'scenes', 'area-revisar', 'revisar']);
   });
 });

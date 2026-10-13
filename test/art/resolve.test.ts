@@ -92,3 +92,21 @@ describe('artFromIcon and artFor', () => {
     expect(artFor('101', undefined, 'predio')).toBe('predio');
   });
 });
+
+describe('artFor in each kind of place', () => {
+  it('lets the place decide what a generic word alone draws', () => {
+    expect(artFor('Sala 3', null, 'predio', { sala: 'consultorio' })).toBe('consultorio');
+    expect(artFor('Quarto 12', null, 'predio', { quarto: 'quarto-hotel' })).toBe('quarto-hotel');
+    expect(artFor('Salão', null, 'predio', { salao: 'salao-beleza' })).toBe('salao-beleza');
+  });
+
+  it('keeps the specific words as they are in any place', () => {
+    expect(artFor('Sala de Espera', null, 'predio', { sala: 'consultorio' })).toBe('espera');
+    expect(artFor('Recepção', null, 'predio', { sala: 'consultorio' })).toBe('recepcao');
+    expect(artFor('Sala', null, 'casa', {})).toBe('sala');
+  });
+
+  it('uses the default of the place when nothing matches', () => {
+    expect(artFor('Bloco B', null, 'predio', {})).toBe('predio');
+  });
+});

@@ -4,8 +4,7 @@ import { basePath, navigate } from '../actions/navigate';
 import { artStyles, roomArt } from '../art/render';
 import type { HomeAssistant } from '../ha/types';
 import type { Room } from '../model/types';
-import { onCount, outletsOnCount, S } from '../strings';
-import { outletsOnIn } from '../summary';
+import { roomCardStatus } from '../summary';
 import { define } from './define';
 
 export class HubbRoomCard extends LitElement {
@@ -33,10 +32,8 @@ export class HubbRoomCard extends LitElement {
     const { hass, room } = this;
     if (!hass || !room) return nothing;
     const on = room.lights.filter((l) => hass.states[l.entityId]?.state === 'on').length;
-    // A room with no lights speaks about its outlets instead of saying "Apagado".
-    const outletsOnly = room.lights.length === 0 && room.outlets.length > 0;
-    const plugged = outletsOnly ? outletsOnIn(room, hass) : 0;
-    const status = outletsOnly ? (plugged ? outletsOnCount(plugged) : S.roomOutletsOff) : on ? onCount(on) : S.roomOff;
+    // A room with no lights speaks about what it has instead of saying "Apagado".
+    const status = roomCardStatus(room, hass);
     return html`<button
       class="room ${on ? 'on lit' : ''} ${room.photo ? 'photo' : ''}"
       style=${room.photo ? `--photo:url("${room.photo}")` : ''}
