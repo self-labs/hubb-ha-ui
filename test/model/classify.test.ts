@@ -50,6 +50,11 @@ describe('classify', () => {
     expect(at('light.nao_existe')).toEqual({ block: null, why: 'hidden', areaId: null });
   });
 
+  it('keeps out, with no review, a switch with no class and no room (AdGuard, containers)', () => {
+    const h = makeHass({ entities: [{ entity_id: 'switch.adguard', state: 'on' }] });
+    expect(classify(h, 'switch.adguard', classifyContext(h, readConfig(h, {})))).toEqual({ block: null, why: 'unsupported', areaId: null });
+  });
+
   it('keeps out the switch that "Mostrar como" hid behind its light', () => {
     const at = setup();
     expect(at('switch.varanda')).toEqual({ block: null, why: 'hidden', areaId: null });

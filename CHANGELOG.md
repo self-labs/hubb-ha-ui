@@ -8,6 +8,14 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.5] - 2026-10-13
+
+### Fixed
+
+- "Revisar o painel" no longer lists the switches that have no class and no room (AdGuard,
+  containers and the like): no role could put them on the panel, and on a real house they buried
+  the few switches worth reviewing (106 items on the first house it ran on).
+
 ## [2026.10.4] - 2026-10-13
 
 ### Added
@@ -146,7 +154,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.4...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.5...HEAD
+[2026.10.5]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.4...v2026.10.5
 [2026.10.4]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.3...v2026.10.4
 [2026.10.3]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.2...v2026.10.3
 [2026.10.2]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.1...v2026.10.2

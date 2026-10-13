@@ -84,7 +84,9 @@ export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyCon
   if (domain === 'light') return areaId ? { block: 'light', areaId } : roomless;
   if (domain === 'switch') {
     if (hass.states[entityId]?.attributes.device_class === 'outlet') return areaId ? { block: 'outlet', areaId } : roomless;
-    return { block: null, why: 'review', areaId };
+    // With no room it stays out in silence (spec, Section 3 step 1): a real house has dozens of such
+    // switches (AdGuard, containers) that would bury the ones to review.
+    return areaId ? { block: null, why: 'review', areaId } : { block: null, why: 'unsupported', areaId: null };
   }
   return { block: null, why: 'unsupported', areaId };
 }

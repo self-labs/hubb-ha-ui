@@ -76,6 +76,16 @@ describe('staticReview', () => {
     expect(staticReview(h, {}).items).toEqual([]);
   });
 
+  it('leaves out the switches with no class and no room, which no role could put on the panel', () => {
+    const h = makeHass({
+      entities: [
+        { entity_id: 'switch.adguard_home_protecao', name: 'Proteção', state: 'on', platform: 'adguard' },
+        { entity_id: 'switch.alferes_app_container', name: 'Container', state: 'on', platform: 'portainer' },
+      ],
+    });
+    expect(staticReview(h, {}).items).toEqual([]);
+  });
+
   it('lists what would show but has no room, except the screens that Browser Mod creates', () => {
     const h = makeHass({
       entities: [
