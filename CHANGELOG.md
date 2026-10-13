@@ -8,6 +8,25 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.6] - 2026-10-13
+
+### Changed
+
+- The commands of the appliance sheet sit on one row, as many columns as buttons (up to three):
+  Iniciar, Desligar and Parar side by side.
+- Appliance states that the integration leaves in English (Electrolux: "Idle", "End Of Cycle")
+  show in Portuguese: Parada, Lavando (Secando for a dryer), Pausada, Pronta para iniciar, Início
+  programado, Ciclo concluído, Desligada, Alarme. Any other value still shows as it comes.
+- A light, outlet or equipment whose name is only the name of its room (the device "Banheiro" in
+  the Banheiro) shows what it is instead: "Luz", "Tomada" or "Equipamento", numbered when the
+  room has several ("Luz 1", "Luz 2"). A `name` set in the configuration is kept as it is.
+
+### Fixed
+
+- Lights and outlets named after their device (an empty name in the registry, as Sonoff and
+  "Show as" entities have) lost their label: the cards read only "Apagada" and the "Luzes
+  acesas" sheet could not tell them apart. They now take the friendly name.
+
 ## [2026.10.5] - 2026-10-13
 
 ### Fixed
@@ -154,7 +173,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.5...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.6...HEAD
+[2026.10.6]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.5...v2026.10.6
 [2026.10.5]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.4...v2026.10.5
 [2026.10.4]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.3...v2026.10.4
 [2026.10.3]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.2...v2026.10.3

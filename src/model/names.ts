@@ -18,10 +18,11 @@ function stripAffix(name: string, affix: string): string {
 export function displayName(hass: HomeAssistant, entityId: string, roomName: string | null): string {
   const reg = hass.entities[entityId];
   const friendly = hass.states[entityId]?.attributes.friendly_name;
-  let name = (
-    reg?.name ?? (typeof friendly === 'string' ? friendly : entityId.slice(entityId.indexOf('.') + 1))
-  ).trim();
-  if (!reg?.name && reg?.device_id) {
+  // An empty registry name means the entity is named after its device (has_entity_name with an
+  // empty original name): the friendly name says it, so it counts as no name here.
+  const own = reg?.name?.trim() || null;
+  let name = (own ?? (typeof friendly === 'string' ? friendly : entityId.slice(entityId.indexOf('.') + 1))).trim();
+  if (!own && reg?.device_id) {
     const dev = hass.devices[reg.device_id];
     name = stripAffix(name, dev?.name_by_user ?? dev?.name ?? '') || name;
   }

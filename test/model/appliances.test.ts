@@ -108,9 +108,14 @@ describe('time, progress and situation', () => {
     expect(situation(h, parts(h))).toBe('stopped');
   });
 
-  it('shows the state as Home Assistant translates it, or the raw value', () => {
+  it('shows the state as Home Assistant translates it, else in Portuguese when the panel knows the word, else raw', () => {
     const raw = washer();
-    expect(stateText(raw, parts(raw))).toBe('Running');
+    expect(stateText(raw, parts(raw), 'Lavadora')).toBe('Lavando');
+    const words = (state: string, name: string) => { const h = washer(state); return stateText(h, parts(h), name); };
+    expect(['Off', 'Idle', 'Ready To Start', 'Paused', 'Delayed Start', 'End Of Cycle', 'Alarm', 'Rinse Hold'].map((s) => words(s, 'Lavadora'))).toEqual([
+      'Desligada', 'Parada', 'Pronta para iniciar', 'Pausada', 'Início programado', 'Ciclo concluído', 'Alarme', 'Rinse Hold',
+    ]);
+    expect([words('Running', 'Secadora'), words('Running', 'Lava-louças'), words('RUNNING', 'Forno')]).toEqual(['Secando', 'Lavando', 'Em funcionamento']);
     const pt = makeHass({
       devices: [device('d_lavadora', 'terraco', 'Lavadora')],
       entities: washerEntities(),

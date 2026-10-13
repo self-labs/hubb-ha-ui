@@ -43,15 +43,14 @@ describe('hubb-appliance-panel', () => {
     const el = await mount(translated('Running', '40'));
     expect($(el, '.now strong')!.textContent).toBe('40 min para terminar');
     expect($(el, '.now span')!.textContent).toBe('Lavando');
-    expect(labels(el, '.commands hubb-action-button')).toEqual(['Pausar', 'Desligar']);
-    expect(labels(el, '.more hubb-action-button')).toEqual(['Parar']);
+    expect(labels(el, '.commands hubb-action-button')).toEqual(['Pausar', 'Desligar', 'Parar']);
   });
 
   it('offers Iniciar and Desligar while stopped and switched on, with the state in large', async () => {
     const el = await mount(casa2Hass('Idle', '80'));
-    expect($(el, '.now strong')!.textContent).toBe('Idle');
+    expect($(el, '.now strong')!.textContent).toBe('Parada');
     expect($(el, '.now span')).toBeNull();
-    expect(labels(el, '.commands hubb-action-button')).toEqual(['Iniciar', 'Desligar']);
+    expect(labels(el, '.commands hubb-action-button')).toEqual(['Iniciar', 'Desligar', 'Parar']);
   });
 
   it('lists the choices with their translated options, and leaves out the unknown one', async () => {
@@ -95,12 +94,10 @@ describe('hubb-appliance-panel', () => {
 
   it('offers Ligar and Iniciar to a washer that is switched off, and Iniciar and Desligar once it waits switched on', async () => {
     const ready = await mount(casa2Hass('Ready To Start', '80'));
-    expect(labels(ready, '.commands hubb-action-button')).toEqual(['Iniciar', 'Desligar']);
-    expect(labels(ready, '.more hubb-action-button')).toEqual(['Parar']);
+    expect(labels(ready, '.commands hubb-action-button')).toEqual(['Iniciar', 'Desligar', 'Parar']);
     document.body.replaceChildren();
     const off = await mount(casa2Hass('Off', '0'));
-    expect(labels(off, '.commands hubb-action-button')).toEqual(['Ligar', 'Iniciar']);
-    expect(labels(off, '.more hubb-action-button')).toEqual(['Parar']);
+    expect(labels(off, '.commands hubb-action-button')).toEqual(['Ligar', 'Iniciar', 'Parar']);
   });
 
   it('takes back a choice: picking the current option while another waits sends it', async () => {
@@ -129,5 +126,11 @@ describe('hubb-appliance-panel', () => {
     await el.updateComplete;
     expect(select.value).toBe('quick');
     expect(rows(el)[0]).toEqual(['Programa', 'Rápido']);
+  });
+
+  it('puts the commands on one row, with as many columns as buttons, up to three', async () => {
+    const el = await mount(casa2Hass('Running', '40'));
+    expect(($(el, '.commands') as HTMLElement).getAttribute('style')).toContain('repeat(3, minmax(0, 1fr))');
+    expect(el.shadowRoot!.querySelector('.more')).toBeNull();
   });
 });

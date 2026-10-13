@@ -112,10 +112,12 @@ export class HubbAppliancePanel extends LitElement {
     const { parts } = item;
     const now = situation(hass, parts);
     const minutes = remainingMinutes(hass, parts);
-    const text = stateText(hass, parts);
+    const text = stateText(hass, parts, item.name);
     const timed = now !== 'stopped' && minutes !== null && minutes > 0 ? minutesToFinish(minutes) : null;
     const pct = now === 'working' ? progressPct(hass, parts) : null;
     const { main, more } = buttonsFor(parts, now, isPoweredOff(hass, parts));
+    // One row: the commands that make sense now first, then the stop and the others (Gustavo, 13/10).
+    const commands = [...main, ...more];
     const selects = parts.selects.filter((id) => isShownOption(hass, id));
     // An option the current program does not take comes as unavailable: it leaves the sheet.
     const switches = parts.switches.filter((id) => isShownOption(hass, id));
@@ -124,8 +126,11 @@ export class HubbAppliancePanel extends LitElement {
         ${timed && text ? html`<span>${text}</span>` : nothing}
         ${pct !== null ? html`<span class="bar"><span style="width:${pct}%"></span></span>` : nothing}
       </div>
-      ${main.length ? html`<div class="commands">${main.map((b) => this.#command(hass, b))}</div>` : nothing}
-      ${more.length ? html`<div class="more">${more.map((b) => this.#command(hass, b))}</div>` : nothing}
+      ${commands.length
+        ? html`<div class="commands" style="grid-template-columns: repeat(${Math.min(commands.length, 3)}, minmax(0, 1fr))">
+            ${commands.map((b) => this.#command(hass, b))}
+          </div>`
+        : nothing}
       ${selects.length ? html`<div class="choices">${selects.map((id) => this.#choice(hass, id))}</div>` : nothing}
       ${switches.length
         ? html`<div class="options">
@@ -176,14 +181,7 @@ export class HubbAppliancePanel extends LitElement {
     }
     .commands {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
-    }
-    .more {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 8px;
     }
     .choices {
       display: grid;

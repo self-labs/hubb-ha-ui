@@ -34,6 +34,17 @@ function sceneDescription(hass: HomeAssistant, entityId: string): string | null 
   return rooms.length ? joinPt(rooms) : null;
 }
 
+/**
+ * A name that is only the room's (the device "Banheiro" in the Banheiro) says nothing on the room page:
+ * the kind of item takes its place, numbered when there are several. A name from the YAML stays.
+ */
+function plainNames(items: { entityId: string; name: string }[], roomName: string, word: string, named: (id: string) => boolean): void {
+  const bare = items.filter((i) => !named(i.entityId) && collator.compare(i.name, roomName) === 0);
+  bare.forEach((i, n) => {
+    i.name = bare.length === 1 ? word : `${word} ${n + 1}`;
+  });
+}
+
 const hasContent = (r: Room): boolean =>
   r.lights.length + r.outlets.length + r.equipment.length + r.appliances.length + r.actions.length > 0;
 
@@ -120,7 +131,11 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
   scenes.sort((a, b) => rank(a.entityId) - rank(b.entityId) || byName(a, b));
 
   const shown = [...rooms.values()].filter(hasContent);
+  const named = (id: string): boolean => !!cfg.entities[id]?.name;
   for (const room of shown) {
+    plainNames(room.lights, room.name, S.lightWord, named);
+    plainNames(room.outlets, room.name, S.outletWord, named);
+    plainNames(room.equipment, room.name, S.equipmentWord, named);
     room.lights.sort(byName);
     room.outlets.sort(byName);
     room.equipment.sort(byName);

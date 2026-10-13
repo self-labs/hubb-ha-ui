@@ -99,7 +99,7 @@ export function roomCardStatus(room: Room, hass: HomeAssistant): string {
 
 /** The state line of an appliance: "Lavando · faltam 40 min" while it runs or waits paused, the state alone otherwise. */
 export function applianceLine(hass: HomeAssistant, item: ApplianceItem): string {
-  const text = stateText(hass, item.parts);
+  const text = stateText(hass, item.parts, item.name);
   if (text === null) return S.noState;
   const minutes = remainingMinutes(hass, item.parts);
   return situation(hass, item.parts) !== 'stopped' && minutes !== null && minutes > 0 ? `${text} · ${minutesLeft(minutes)}` : text;
@@ -121,7 +121,7 @@ export function busyAppliances(rooms: readonly Room[], hass: HomeAssistant): Pla
 export function applianceChipText(hass: HomeAssistant, item: ApplianceItem): string {
   const minutes = remainingMinutes(hass, item.parts);
   if (minutes !== null && minutes > 0) return applianceChip(item.name, `${minutes} min`);
-  const text = stateText(hass, item.parts);
+  const text = stateText(hass, item.parts, item.name);
   return text ? applianceChip(item.name, text) : item.name;
 }
 

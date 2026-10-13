@@ -1,3 +1,5 @@
+import type { ApplianceKind } from './model/appliances';
+
 /**
  * Every resident-facing string, in Brazilian Portuguese. Gender-neutral on purpose: room names come
  * from the client, and the code cannot know whether it is "a Sala" or "o Quarto".
@@ -44,6 +46,9 @@ export const S = {
   actions: 'Ações',
   done: 'Feito',
   appliances: 'Aparelhos',
+  lightWord: 'Luz',
+  outletWord: 'Tomada',
+  equipmentWord: 'Equipamento',
   noState: 'Sem estado',
   start: 'Início',
   otherFloor: 'Outros',
@@ -157,3 +162,30 @@ export const ROLE_LABELS = {
   action: 'Ação',
   hidden: 'Ocultar',
 } as const;
+
+/**
+ * Appliance states some integrations leave in English: Electrolux title-cases its raw values
+ * ("Idle", "End Of Cycle") and gives no translation. Feminine, like most appliances (a lavadora).
+ */
+const APPLIANCE_STATES: Readonly<Record<string, string>> = {
+  off: 'Desligada',
+  idle: 'Parada',
+  'ready to start': 'Pronta para iniciar',
+  paused: 'Pausada',
+  'delayed start': 'Início programado',
+  'end of cycle': 'Ciclo concluído',
+  alarm: 'Alarme',
+};
+
+const RUNNING: Readonly<Record<ApplianceKind, string>> = {
+  washer: 'Lavando',
+  dishwasher: 'Lavando',
+  dryer: 'Secando',
+  other: 'Em funcionamento',
+};
+
+/** The Portuguese word for a raw appliance state, or null when the panel does not know it. */
+export function applianceStatePt(raw: string, kind: ApplianceKind): string | null {
+  const key = raw.trim().toLowerCase().replace(/_/g, ' ');
+  return key === 'running' ? RUNNING[kind] : (APPLIANCE_STATES[key] ?? null);
+}

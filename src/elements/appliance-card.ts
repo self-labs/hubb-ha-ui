@@ -2,18 +2,21 @@ import { mdiDevices, mdiDishwasher, mdiTumbleDryer, mdiWashingMachine } from '@m
 import { LitElement, css, html, nothing } from 'lit';
 import { haptic } from '../actions/haptic';
 import type { HomeAssistant } from '../ha/types';
-import { progressPct, situation, type ApplianceItem } from '../model/appliances';
+import { applianceKind, progressPct, situation, type ApplianceItem, type ApplianceKind } from '../model/appliances';
 import { applianceLine } from '../summary';
 import { define } from './define';
 import { icon } from './icon';
 
+const ICONS: Readonly<Record<ApplianceKind, string>> = {
+  dishwasher: mdiDishwasher,
+  washer: mdiWashingMachine,
+  dryer: mdiTumbleDryer,
+  other: mdiDevices,
+};
+
 /** The icon of an appliance, from its name: a dishwasher, a washer, a dryer, or a generic device. */
 export function applianceIcon(name: string): string {
-  const n = name.toLocaleLowerCase('pt-BR');
-  if (/lou[cç]|dish/.test(n)) return mdiDishwasher;
-  if (/lav|wash/.test(n)) return mdiWashingMachine;
-  if (/sec|dry/.test(n)) return mdiTumbleDryer;
-  return mdiDevices;
+  return ICONS[applianceKind(name)];
 }
 
 /** An appliance on its room page: the name and the state line, amber and the progress bar only while it works. */

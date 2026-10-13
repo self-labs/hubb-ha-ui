@@ -27,11 +27,11 @@ describe('hubb-appliance-card', () => {
     const h = casa2Hass('Running', '40');
     const el = await mount(h, washer(h));
     expect(el.shadowRoot!.querySelector('.name')!.textContent).toBe('Lavadora');
-    expect(el.shadowRoot!.querySelector('.state')!.textContent).toBe('Running · faltam 40 min');
+    expect(el.shadowRoot!.querySelector('.state')!.textContent).toBe('Lavando · faltam 40 min');
     expect(el.shadowRoot!.querySelector('button')!.classList.contains('on')).toBe(true);
     el.hass = withState(h, 'sensor.lavadora_appliancestate', 'End Of Cycle');
     await el.updateComplete;
-    expect(el.shadowRoot!.querySelector('.state')!.textContent).toBe('End Of Cycle');
+    expect(el.shadowRoot!.querySelector('.state')!.textContent).toBe('Ciclo concluído');
     expect(el.shadowRoot!.querySelector('button')!.classList.contains('on')).toBe(false);
   });
 

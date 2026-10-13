@@ -45,4 +45,16 @@ describe('displayName', () => {
     const hass = makeHass({ entities: [{ entity_id: 'light.spot_bancada' }] });
     expect(displayName(hass, 'light.spot_bancada', null)).toBe('spot_bancada');
   });
+
+  it('reads an empty registry name as no name, like the frontend does for an entity named after its device', () => {
+    const hass = makeHass({
+      devices: [device('d_lum', 'quarto', 'Luminária'), device('d_teto', 'quarto', 'Quarto Paraíso')],
+      entities: [
+        { entity_id: 'switch.paraiso_luminaria', device_id: 'd_lum', name: '', state: 'off', attributes: { friendly_name: 'Luminária' } },
+        { entity_id: 'switch.paraiso_quarto', device_id: 'd_teto', name: '', state: 'off', attributes: { friendly_name: 'Quarto Paraíso' } },
+      ],
+    });
+    expect(displayName(hass, 'switch.paraiso_luminaria', 'Quarto')).toBe('Luminária');
+    expect(displayName(hass, 'switch.paraiso_quarto', 'Quarto')).toBe('Paraíso');
+  });
 });

@@ -246,4 +246,25 @@ describe('buildHouse with roles, profiles and floors', () => {
     expect(house).toMatchObject({ profile: 'home', homeLabel: 'Casa', floors: [] });
     expect(house.rooms[0]!.actions).toEqual([]);
   });
+
+  it('names an item called only after its room by what it is, numbered when there are several', () => {
+    const h = makeHass({
+      areas: [area('banheiro', 'Banheiro'), area('quarto', 'Quarto'), area('sala', 'Sala')],
+      devices: [device('d_ban', 'banheiro', 'Banheiro'), device('d_q1', 'quarto', 'Quarto'), device('d_q2', 'quarto', 'Quarto')],
+      entities: [
+        { entity_id: 'light.banheiro', device_id: 'd_ban', name: '', state: 'off', attributes: { friendly_name: 'Banheiro' } },
+        { entity_id: 'switch.quarto_1', device_id: 'd_q1', name: '', state: 'off', attributes: { friendly_name: 'Quarto' } },
+        { entity_id: 'switch.quarto_2', device_id: 'd_q2', name: '', state: 'off', attributes: { friendly_name: 'quarto' } },
+        { entity_id: 'light.luminaria', area_id: 'quarto', name: 'Luminária', state: 'off' },
+        { entity_id: 'switch.sala', area_id: 'sala', state: 'off', attributes: { friendly_name: 'Sala', device_class: 'outlet' } },
+        { entity_id: 'light.sala', area_id: 'sala', state: 'off', attributes: { friendly_name: 'Sala' } },
+      ],
+    });
+    const house = buildHouse(h, { entities: { 'switch.quarto_1': { role: 'light' }, 'switch.quarto_2': { role: 'light' }, 'light.sala': { name: 'Sala' } } });
+    const room = (id: string) => house.rooms.find((r) => r.areaId === id)!;
+    expect(names(room('banheiro').lights)).toEqual(['Luz']);
+    expect(names(room('quarto').lights)).toEqual(['Luminária', 'Luz 1', 'Luz 2']);
+    expect(names(room('sala').outlets)).toEqual(['Tomada']);
+    expect(names(room('sala').lights)).toEqual(['Sala']);
+  });
 });

@@ -1,4 +1,5 @@
 import type { HomeAssistant } from '../ha/types';
+import { applianceStatePt } from '../strings';
 import type { EntitySettings } from './config';
 
 export type Command = 'on' | 'off' | 'start' | 'pause' | 'resume' | 'stop' | 'other';
@@ -29,6 +30,17 @@ export interface ApplianceItem {
 }
 
 export type Situation = 'working' | 'paused' | 'stopped';
+
+/** What the appliance is, read from its name: it picks the icon and the word for "running". */
+export type ApplianceKind = 'dishwasher' | 'washer' | 'dryer' | 'other';
+
+export function applianceKind(name: string): ApplianceKind {
+  const n = name.toLocaleLowerCase('pt-BR');
+  if (/lou[cç]|dish/.test(n)) return 'dishwasher';
+  if (/lav|wash/.test(n)) return 'washer';
+  if (/sec|dry/.test(n)) return 'dryer';
+  return 'other';
+}
 
 /** Integrations whose devices "Revisar o painel" suggests as appliances. */
 export const APPLIANCE_PLATFORMS: readonly string[] = ['electrolux_status', 'lg_thinq', 'smartthinq_sensors'];
@@ -134,11 +146,16 @@ export function situation(hass: HomeAssistant, parts: ApplianceParts): Situation
   return minutes !== null && minutes > 0 && !IDLE.test(raw) ? 'working' : 'stopped';
 }
 
-/** The state as a person reads it (translated when the integration has it), or null without a state sensor. */
-export function stateText(hass: HomeAssistant, parts: ApplianceParts): string | null {
+/**
+ * The state as a person reads it: translated by the integration when it can, else in Portuguese
+ * when the panel knows the word (Electrolux only title-cases its raw values), else the raw value.
+ * Null without a state sensor.
+ */
+export function stateText(hass: HomeAssistant, parts: ApplianceParts, name = ''): string | null {
   const st = parts.state ? hass.states[parts.state] : undefined;
   if (!st) return null;
-  return hass.formatEntityState ? hass.formatEntityState(st) : st.state;
+  const shown = hass.formatEntityState ? hass.formatEntityState(st) : st.state;
+  return shown === st.state ? (applianceStatePt(st.state, applianceKind(name)) ?? shown) : shown;
 }
 
 export function applianceName(hass: HomeAssistant, deviceId: string, s?: EntitySettings): string {
@@ -155,7 +172,7 @@ export function isPoweredOff(hass: HomeAssistant, parts: ApplianceParts): boolea
 }
 
 /**
- * The buttons that make sense now, in their order; the stop and the unknown ones come after, smaller.
+ * The buttons that make sense now, in their order; the stop and the unknown ones come after them.
  * A stopped appliance that is still on ("Ready To Start", "End Of Cycle") offers Iniciar and Desligar;
  * one that is switched off, Ligar and Iniciar.
  */

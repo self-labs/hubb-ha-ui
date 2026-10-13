@@ -130,7 +130,7 @@ describe('room statuses with equipment', () => {
   it('lets a room that has only an appliance speak about it on its card, paused or not, and stays quiet for only actions', () => {
     const paused = casa2Hass('Paused', '40');
     const item = buildHouse(paused, CASA2_CONFIG).rooms.find((r) => r.areaId === 'terraco')!.appliances[0]!;
-    expect(roomCardStatus(bareRoom({ appliances: [item] }), paused)).toBe('Paused · faltam 40 min');
+    expect(roomCardStatus(bareRoom({ appliances: [item] }), paused)).toBe('Pausada · faltam 40 min');
     expect(roomCardStatus(bareRoom({ actions: [{ entityId: 'button.x', name: 'X', icon: null }] }), h)).toBe('');
   });
 
@@ -145,11 +145,11 @@ describe('appliance lines', () => {
 
   it('adds the time left while the appliance runs or waits paused, and shows the state alone otherwise', () => {
     const running = casa2Hass('Running', '40');
-    expect(applianceLine(running, washer(running))).toBe('Running · faltam 40 min');
+    expect(applianceLine(running, washer(running))).toBe('Lavando · faltam 40 min');
     const paused = casa2Hass('Paused', '1');
-    expect(applianceLine(paused, washer(paused))).toBe('Paused · falta 1 min');
+    expect(applianceLine(paused, washer(paused))).toBe('Pausada · falta 1 min');
     const idle = casa2Hass('Idle', '80');
-    expect(applianceLine(idle, washer(idle))).toBe('Idle');
+    expect(applianceLine(idle, washer(idle))).toBe('Parada');
   });
 
   it('says Sem estado for an appliance with no state sensor', () => {
@@ -163,7 +163,7 @@ describe('appliance lines', () => {
     expect(busyAppliances(house.rooms, running).map((b) => [b.item.name, b.room.name])).toEqual([['Lavadora', 'Terraço']]);
     expect(applianceChipText(running, washer(running))).toBe('Lavadora · 40 min');
     const unknownTime = withState(running, 'sensor.lavadora_timetoend', 'unknown');
-    expect(applianceChipText(unknownTime, washer(running))).toBe('Lavadora · Running');
+    expect(applianceChipText(unknownTime, washer(running))).toBe('Lavadora · Lavando');
     expect(busyAppliances(house.rooms, casa2Hass('Idle', '80'))).toEqual([]);
   });
 
