@@ -11,26 +11,28 @@ describe('generateDashboard', () => {
     expect(config.views.map((v) => [v.path, v.type, v.subview ?? false])).toEqual([
       ['home', 'panel', false],
       ['scenes', 'panel', true],
+      ['seguranca', 'panel', true],
       ['cozinha', 'panel', true],
       ['quarto', 'panel', true],
       ['sala_de_estar', 'panel', true],
     ]);
     expect(config.views[0]!.cards[0]!.type).toBe('custom:hubb-home-screen');
-    expect(config.views[2]!.cards[0]).toMatchObject({ type: 'custom:hubb-room-screen', room: { name: 'Cozinha' } });
-    expect(config.views[2]!.cards[0]!.lightIds as string[]).toHaveLength(18);
+    expect(config.views[3]!.cards[0]).toMatchObject({ type: 'custom:hubb-room-screen', room: { name: 'Cozinha' } });
+    expect(config.views[3]!.cards[0]!.lightIds as string[]).toHaveLength(18);
   });
 
   it('never repeats a view path, even for an area called home', () => {
     const h = makeHass({
-      areas: [area('home', 'Home'), area('scenes', 'Cenas da casa')],
+      areas: [area('home', 'Home'), area('scenes', 'Cenas da casa'), area('seguranca', 'Segurança')],
       entities: [
         { entity_id: 'light.a', area_id: 'home', state: 'off' },
         { entity_id: 'light.b', area_id: 'scenes', state: 'off' },
+        { entity_id: 'light.c', area_id: 'seguranca', state: 'off' },
       ],
     });
     const paths = generateDashboard({}, h).views.map((v) => v.path);
     expect(new Set(paths).size).toBe(paths.length);
-    expect(paths).toEqual(['home', 'scenes', 'area-scenes', 'area-home']);
+    expect(paths).toEqual(['home', 'scenes', 'seguranca', 'area-home', 'area-scenes', 'area-seguranca']);
   });
 
   it('turns a failure into an error card instead of a blank dashboard', () => {
@@ -49,7 +51,8 @@ describe('generateDashboard', () => {
     const config = generateDashboard(CLINIC_CONFIG, clinicHass());
     expect(config.views[0]!.title).toBe('Início');
     expect(config.views[1]!.cards[0]).toMatchObject({ type: 'custom:hubb-scenes-screen', homeLabel: 'Início' });
-    expect(config.views[2]!.cards[0]).toMatchObject({ type: 'custom:hubb-room-screen', homeLabel: 'Início' });
+    expect(config.views[2]!.cards[0]).toMatchObject({ type: 'custom:hubb-security-screen', homeLabel: 'Início' });
+    expect(config.views[3]!.cards[0]).toMatchObject({ type: 'custom:hubb-room-screen', homeLabel: 'Início' });
     expect(generateDashboard({}, sampleHouseHass()).views[0]!.title).toBe('Casa');
   });
 
@@ -58,12 +61,12 @@ describe('generateDashboard', () => {
     const h = sampleHouseHass();
     h.user = { id: 'u1', name: 'Gustavo Exemplo', is_admin: true };
     const views = generateDashboard(config, h).views;
-    expect(views.at(-1)).toEqual({
+    expect(views.find((v) => v.path === 'revisar')).toEqual({
       title: 'Revisar o painel',
       path: 'revisar',
       type: 'panel',
       subview: true,
-      cards: [{ type: 'custom:hubb-review-screen', options: config, homeLabel: 'Casa' }],
+      cards: [{ type: 'custom:hubb-review-screen', options: config, homeLabel: 'Casa', shared: { alerts: [], security: false } }],
     });
     expect(views[0]!.cards[0]).toMatchObject({ type: 'custom:hubb-home-screen', options: config });
     expect(generateDashboard(config, sampleHouseHass()).views.some((v) => v.path === 'revisar')).toBe(false);
@@ -76,6 +79,21 @@ describe('generateDashboard', () => {
       entities: [{ entity_id: 'light.a', area_id: 'revisar', state: 'off' }],
     });
     const paths = generateDashboard({}, h).views.map((v) => v.path);
-    expect(paths).toEqual(['home', 'scenes', 'area-revisar', 'revisar']);
+    expect(paths).toEqual(['home', 'scenes', 'seguranca', 'revisar', 'area-revisar']);
+  });
+
+  it('keeps every view in its place when a room appears or goes, so Home Assistant stays on the same screen after a save', () => {
+    const h = makeHass({
+      user: { id: 'u1', name: 'Gustavo Exemplo', is_admin: true },
+      areas: [area('cozinha', 'Cozinha'), area('entrada', 'Entrada'), area('quarto', 'Quarto')],
+      entities: [
+        { entity_id: 'light.cozinha', area_id: 'cozinha', state: 'off' },
+        { entity_id: 'switch.escada', area_id: 'entrada', state: 'off' },
+      ],
+    });
+    const before = generateDashboard({}, h).views.map((v) => v.path);
+    const after = generateDashboard({ entities: { 'switch.escada': { role: 'light' } }, rooms: { quarto: { hidden: true } } }, h).views.map((v) => v.path);
+    expect(before).toEqual(['home', 'scenes', 'seguranca', 'revisar', 'cozinha', 'entrada', 'quarto']);
+    expect(after).toEqual(before);
   });
 });

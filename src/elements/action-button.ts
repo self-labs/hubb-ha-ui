@@ -17,6 +17,7 @@ export class HubbActionButton extends LitElement {
     hass: { attribute: false },
     item: { attribute: false },
     path: { attribute: false },
+    disabled: { type: Boolean },
     result: { state: true },
   };
 
@@ -24,6 +25,8 @@ export class HubbActionButton extends LitElement {
   declare item: ActionItem | undefined;
   /** A built-in icon path for an item with no icon of its own (the appliance commands). */
   declare path: string | null;
+  /** Greyed out: the appliance cannot take a command now (no connection, remote control off). */
+  declare disabled: boolean;
   declare result: 'done' | 'failed' | null;
 
   #timer: ReturnType<typeof setTimeout> | null = null;
@@ -33,6 +36,7 @@ export class HubbActionButton extends LitElement {
     this.hass = undefined;
     this.item = undefined;
     this.path = null;
+    this.disabled = false;
     this.result = null;
   }
 
@@ -54,7 +58,7 @@ export class HubbActionButton extends LitElement {
 
   #press = (): void => {
     const { hass, item } = this;
-    if (!hass || !item) return;
+    if (!hass || !item || this.disabled) return;
     if (hass.states[item.entityId]?.state === 'unavailable') {
       haptic('warning');
       return;
@@ -74,7 +78,7 @@ export class HubbActionButton extends LitElement {
     if (!item) return nothing;
     const down = this.hass?.states[item.entityId]?.state === 'unavailable';
     const said = this.result === 'done' ? S.done : this.result === 'failed' || down ? S.noResponse : null;
-    return html`<button class="action ${this.result ?? ''} ${down ? 'na' : ''}" @click=${this.#press}>
+    return html`<button class="action ${this.result ?? ''} ${down ? 'na' : ''}" ?disabled=${this.disabled} @click=${this.#press}>
       <span class="icon">${item.icon ? html`<ha-icon .icon=${item.icon}></ha-icon>` : icon(this.path ?? mdiPlayCircleOutline)}</span>
       <span class="name">${item.name}</span>
       <!-- Always there, empty or not: "Feito" appearing must not move the buttons beside it. -->
@@ -109,6 +113,10 @@ export class HubbActionButton extends LitElement {
     .action:focus-visible {
       outline: 2px solid var(--hubb-focus);
       outline-offset: 2px;
+    }
+    .action[disabled] {
+      opacity: 0.45;
+      cursor: default;
     }
     .icon {
       width: 30px;

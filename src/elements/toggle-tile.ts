@@ -27,6 +27,8 @@ export interface TileWords {
 export interface TileExtras {
   pct: number | null;
   color: TileColor | null;
+  /** Said after the "on" word: the power of an outlet ("Ligada · 120 W"). */
+  detail?: string | null;
 }
 
 interface TileView extends TileExtras {
@@ -35,7 +37,7 @@ interface TileView extends TileExtras {
   cls: string;
 }
 
-const PLAIN: TileExtras = { pct: null, color: null };
+const PLAIN: TileExtras = { pct: null, color: null, detail: null };
 
 /**
  * A tile that turns one entity on and off. It shows the change at once, waits 3 s for Home Assistant
@@ -142,7 +144,8 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
     if (status === 'failed') return { on, text: S.noResponse, cls: on ? 'on na' : 'na', ...PLAIN };
     if (!on) return { on, text: words.off, cls: '', ...PLAIN };
     const extras = this.extras(item, st);
-    return { on, text: extras.pct !== null ? `${extras.pct}%` : words.on, cls: extras.color ? 'on colored' : 'on', ...extras };
+    const text = extras.pct !== null ? `${extras.pct}%` : extras.detail ? `${words.on} · ${extras.detail}` : words.on;
+    return { on, text, cls: extras.color ? 'on colored' : 'on', ...extras };
   }
 
   #toggle(): void {

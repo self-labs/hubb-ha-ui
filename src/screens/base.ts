@@ -1,13 +1,14 @@
-import { LitElement, css, type PropertyDeclarations, type PropertyValues } from 'lit';
+import { LitElement, css, html, type PropertyDeclarations, type PropertyValues } from 'lit';
 import { dashboardPath } from '../actions/dashboard-config';
 import { haptic } from '../actions/haptic';
 import { runScene } from '../actions/light';
 import { sceneLights, withUndo, type ServiceCall } from '../actions/undo';
 import type { HubbToast } from '../elements/toast';
 import type { HomeAssistant } from '../ha/types';
-import type { SceneItem } from '../model/types';
+import type { SceneItem, Shared } from '../model/types';
 import { onEditingChange } from '../editing';
 import { EDIT, sceneRan } from '../strings';
+import '../elements/status-strips';
 import '../elements/toast';
 
 /** The newest hass any screen received: the one on screen keeps getting updates, a hidden one does not. */
@@ -19,11 +20,14 @@ export abstract class HubbScreen extends LitElement {
   static properties: PropertyDeclarations = {
     hass: { attribute: false },
     theme: { reflect: true },
+    offline: { type: Boolean, reflect: true },
     editNotice: { state: true },
   };
 
   declare hass: HomeAssistant | undefined;
   declare theme: 'dark' | 'light';
+  /** Home Assistant lost the connection: the strip says so and the controls take no tap. */
+  declare offline: boolean;
   /** Said in place of the edit hint when a save failed. */
   declare editNotice: string | null;
 
@@ -38,6 +42,11 @@ export abstract class HubbScreen extends LitElement {
       color: var(--hubb-text);
       font-family: var(--hubb-font);
       -webkit-font-smoothing: antialiased;
+    }
+    /* Out of reach: nothing on screen would answer, so nothing takes a tap. */
+    :host([offline]) main {
+      opacity: 0.45;
+      pointer-events: none;
     }
     main {
       box-sizing: border-box;
@@ -114,6 +123,7 @@ export abstract class HubbScreen extends LitElement {
     super();
     this.hass = undefined;
     this.theme = 'dark';
+    this.offline = false;
     this.editNotice = null;
     this.addEventListener('hubb-run-scene', this.#onRunScene);
   }
@@ -167,8 +177,14 @@ export abstract class HubbScreen extends LitElement {
   protected willUpdate(changed: PropertyValues<this>): void {
     if (changed.has('hass') && this.hass) {
       this.theme = this.hass.themes.darkMode ? 'dark' : 'light';
+      this.offline = this.hass.connected === false;
       latest = this.hass;
     }
+  }
+
+  /** The strips of every screen (alerts, the house out of reach), from the slice the strategy shares. */
+  protected strips(shared: Shared | undefined) {
+    return html`<hubb-status-strips .hass=${this.hass} .alerts=${shared?.alerts ?? []}></hubb-status-strips>`;
   }
 
   protected toast(): HubbToast | null {

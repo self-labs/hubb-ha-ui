@@ -69,7 +69,7 @@ describe('hubb-review-screen', () => {
     const el = await mount(admin(casa2Hass()), LIGHTS_ONLY);
     expect($$(el, 'main h2').map((h) => h.textContent)).toEqual(['Escolha como mostrar (1)', 'Aparelhos encontrados (1)']);
     const roles = [...$$(el, '.item')[0]!.querySelectorAll('.role')];
-    expect(roles.map((b) => b.textContent!.trim())).toEqual(['Luz', 'Tomada', 'Equipamento', 'Não mostrar']);
+    expect(roles.map((b) => b.textContent!.trim())).toEqual(['Luz', 'Tomada', 'Equipamento', 'Portão', 'Não mostrar']);
     expect(roles.filter((b) => b.classList.contains('suggested')).map((b) => b.textContent!.trim())).toEqual(['Não mostrar']);
     expect($$(el, '.item')[0]!.querySelector('.where')!.textContent).toBe('Escritório · switch.jet_mode');
   });

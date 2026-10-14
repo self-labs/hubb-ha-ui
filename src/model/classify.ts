@@ -4,7 +4,35 @@ import type { PanelConfig } from './config';
 export const SCENE_LABEL = 'hubb_cena';
 
 /** The blocks of a room page, plus the scenes of the house. */
-export type Block = 'light' | 'outlet' | 'equipment' | 'appliance' | 'action' | 'scene';
+export type Block =
+  | 'light'
+  | 'outlet'
+  | 'equipment'
+  | 'appliance'
+  | 'action'
+  | 'scene'
+  | 'climate'
+  | 'fan'
+  | 'cover'
+  | 'media'
+  | 'gate'
+  | 'lock'
+  | 'alert'
+  | 'opening'
+  | 'presence'
+  | 'temperature'
+  | 'humidity'
+  | 'camera'
+  | 'alarm';
+
+/** Binary sensors that light the red strip. `problem` stays out: integrations use it for device faults. */
+export const ALERT_CLASSES: ReadonlySet<string> = new Set(['smoke', 'gas', 'carbon_monoxide', 'moisture']);
+export const OPENING_CLASSES: ReadonlySet<string> = new Set(['door', 'window', 'garage_door', 'opening']);
+export const PRESENCE_CLASSES: ReadonlySet<string> = new Set(['motion', 'occupancy', 'presence']);
+
+/** A cover that is a gate, a garage or a door: by its class, else by its name. */
+const GATE_CLASSES = new Set(['gate', 'garage', 'door']);
+const GATE_WORDS = /port[aã]o|\bgate\b/;
 
 /** Why an entity stays off the panel. */
 export type Exclusion =
@@ -61,6 +89,18 @@ export function applianceAreaOf(hass: HomeAssistant, entityId: string, override?
 const domainOf = (entityId: string): string => entityId.slice(0, entityId.indexOf('.'));
 const roomless: Placement = { block: null, why: 'no-area', areaId: null };
 
+/**
+ * Whether a cover is a gate, a garage or a door. Its class decides when it has one ("Cortina da
+ * garagem" with the curtain class is a curtain); with no class, "portão" or "gate" in the name.
+ */
+export function coverIsGate(hass: HomeAssistant, entityId: string): boolean {
+  const st = hass.states[entityId];
+  const cls = st?.attributes.device_class;
+  if (typeof cls === 'string' && cls) return GATE_CLASSES.has(cls);
+  const name = String(st?.attributes.friendly_name ?? hass.entities[entityId]?.name ?? entityId).toLocaleLowerCase('pt-BR');
+  return GATE_WORDS.test(name);
+}
+
 /** Where an entity goes on the panel, or why it stays off. The one rule every screen uses. */
 export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyContext): Placement {
   const reg = hass.entities[entityId];
@@ -88,5 +128,24 @@ export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyCon
     // switches (AdGuard, containers) that would bury the ones to review.
     return areaId ? { block: null, why: 'review', areaId } : { block: null, why: 'unsupported', areaId: null };
   }
+  const placedAs = (block: Block): Placement => (areaId ? { block, areaId } : roomless);
+  if (domain === 'climate') return placedAs('climate');
+  if (domain === 'fan') return placedAs('fan');
+  if (domain === 'lock') return placedAs('lock');
+  if (domain === 'cover') return placedAs(coverIsGate(hass, entityId) ? 'gate' : 'cover');
+  // Browser Mod makes a player for every browser; they are screens, not media of a room.
+  if (domain === 'media_player' && reg.platform !== 'browser_mod') return placedAs('media');
+  const cls = String(hass.states[entityId]?.attributes.device_class ?? '');
+  // Alerts, openings, cameras and alarms belong to the house: they count with or without a room.
+  if (domain === 'binary_sensor') {
+    if (ALERT_CLASSES.has(cls)) return { block: 'alert', areaId };
+    if (OPENING_CLASSES.has(cls)) return { block: 'opening', areaId };
+    if (PRESENCE_CLASSES.has(cls) && areaId) return { block: 'presence', areaId };
+    return { block: null, why: 'unsupported', areaId };
+  }
+  // A roomless thermometer stays out in silence, like a roomless switch: phones and integrations have dozens.
+  if (domain === 'sensor' && (cls === 'temperature' || cls === 'humidity') && areaId) return { block: cls, areaId };
+  if (domain === 'camera') return { block: 'camera', areaId };
+  if (domain === 'alarm_control_panel') return { block: 'alarm', areaId };
   return { block: null, why: 'unsupported', areaId };
 }

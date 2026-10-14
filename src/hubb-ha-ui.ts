@@ -4,6 +4,7 @@ import './screens/home-screen';
 import './screens/review-screen';
 import './screens/room-screen';
 import './screens/scenes-screen';
+import './screens/security-screen';
 import './strategy/hubb-strategy';
 import { ensureFont } from './theme/font';
 import { VERSION } from './version';

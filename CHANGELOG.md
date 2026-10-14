@@ -8,6 +8,73 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.8] - 2026-10-14
+
+### Added
+
+- **Acesso** on the room page, first of all blocks: a gate (`cover` of class gate, garage or door,
+  or with no class and named "portão"), a lock, or a pulse relay, button or script with the new
+  `gate` role. Opening or unlocking takes a slide to the end, so a pocket tap never opens the house:
+  a touch the phone takes away near the end, a second finger or a held arrow key does not fire, and
+  the slide waits while a command is on its way. Locking is a tap, and so is closing a gate known
+  to be open; a gate of unknown state offers only the slide, since many gates close and open on the
+  same pulse. It shows the request at once and says "Sem resposta" when nothing comes back in 3 s.
+- **Clima**: an air conditioner shows what it is doing, the target and the temperature now ("27°
+  agora"), with a power button; its sheet sets the temperature with − and +, the mode, the
+  ventilation, the swing and the preset, each only when the device has it. A fan switches with a tap
+  and opens its speeds with a long press.
+- **Cortinas**: a tap opens or closes a curtain, and stops it while it moves; a long press opens its
+  sheet with Abrir, Parar, Fechar and the position.
+- **Mídia**: a TV or a speaker shows what is playing, with play and pause and power; its sheet adds
+  the tracks, the volume, mute, the source, and Ligar or Desligar.
+- A device controlled by infrared says on its sheet that the state is the last command sent. A
+  device that is down shows only "Sem resposta" on its sheet, and one whose state is unknown is
+  shown off, with no English word.
+- The `gate` role ("Portão"), for `switch`, `button`, `input_button`, `script` and `cover`.
+- The editor names the new kinds (Ar-condicionado, Ventilador, Cortina, Mídia, Portão, Fechadura)
+  and offers Não mostrar for each; a curtain can become a gate, and go back.
+- An appliance says when it cannot take a command from the panel, read from its own connection and
+  remote control sensors (Electrolux `connectivityState` and `remoteControl`): the card reads "Sem
+  conexão", or "Controle remoto desligado" while it is stopped, and the sheet explains it and greys
+  out Iniciar, Pausar and the other commands.
+- **Segurança**, the third tab: the alarm (arming is a tap on Em casa, Ausente, Noite or Férias;
+  disarming asks for the code, or takes a slide when the alarm has none), the doors and windows open
+  now, every gate and lock of the house, and the cameras. The tab shows only when the house has any
+  of these. A camera image is taken once, when the tab opens, and a tap opens the live view in Home
+  Assistant's own window.
+- A red strip on every screen for smoke, gas, carbon monoxide, a leak or the alarm going off
+  ("Fumaça · Cozinha"); it vibrates once, leads to the room, and stays while the sensor is on.
+- A strip when the house is out of reach ("Sem conexão com a casa. Tentando de novo…"), with the
+  controls dimmed until it is back.
+- Room sensors: the temperature and the humidity under the room name ("24° · 61%"), "Ocupado" from
+  a motion or presence sensor (also on the room card), and what is open ("Janela aberta"), also as
+  a chip on the home.
+- Consumption: an outlet or equipment with a power sensor on its device says how much it draws
+  ("Ligada · 120 W"); a long press opens Consumo with Agora and Hoje. `entities.<id>.power` and
+  `.energy` name the sensors when the panel cannot match them.
+
+### Changed
+
+- The Segurança tab no longer shows dimmed as "Em breve": it is there when the house has something
+  for it, and gone when it has not. The `seguranca` view sits right after the scenes.
+- "Revisar o painel" now also counts, among what has not answered for more than a day, the
+  cameras, alarms and sensors the panel shows (a dead smoke sensor is worth a look).
+- The message for an unknown `role` lists `gate` too.
+- A command, choice or option of the appliance sheet that fails shows one line on the sheet
+  ("Lavadora não recebeu o comando.") instead of a toast of Home Assistant per tap, in English and
+  with the cloud's address. When the maker's cloud refused it (401, 403), administrators also read
+  that the integration lost its access and must be reloaded.
+- A switch named "portão" or "gate" is suggested as "Portão" on the review, unless its name says
+  it is a light ("Luz do portão", "Refletor portão").
+- A name drops the word that tied it to the room: "Ar da sala" in the Sala reads "Ar", "Luz do
+  quarto" in the Quarto reads "Luz".
+
+### Fixed
+
+- Saving from "Revisar o painel" or from the edit mode no longer throws you onto another screen
+  (the last room) when the change makes a room appear or go: every view keeps its place, with one
+  view per area of Home Assistant, empty rooms included.
+
 ## [2026.10.7] - 2026-10-13
 
 ### Added
@@ -214,7 +281,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.7...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.8...HEAD
+[2026.10.8]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.7...v2026.10.8
 [2026.10.7]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.6...v2026.10.7
 [2026.10.6]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.5...v2026.10.6
 [2026.10.5]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.4...v2026.10.5

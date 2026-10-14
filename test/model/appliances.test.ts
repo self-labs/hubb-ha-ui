@@ -187,3 +187,32 @@ describe('names, buttons and program', () => {
     ]);
   });
 });
+
+describe('Electrolux names after the translation keys (upstream PR #235)', () => {
+  it('still finds the state and the time left when only the translation key says what they are', () => {
+    const h = makeHass({
+      devices: [device('d_lav', 'terraco', 'Lavadora')],
+      entities: [
+        { entity_id: 'sensor.lavadora_estado', device_id: 'd_lav', state: 'Idle', translation_key: 'appliance_state' },
+        { entity_id: 'sensor.lavadora_conexao', device_id: 'd_lav', state: 'Connected', translation_key: 'connectivity_state' },
+        {
+          entity_id: 'sensor.lavadora_tempo',
+          device_id: 'd_lav',
+          state: '80',
+          translation_key: 'time_to_end',
+          attributes: { device_class: 'duration', unit_of_measurement: 'min' },
+        },
+        {
+          entity_id: 'sensor.lavadora_inicio',
+          device_id: 'd_lav',
+          state: '0',
+          translation_key: 'start_time',
+          attributes: { device_class: 'duration', unit_of_measurement: 'min' },
+        },
+      ],
+    });
+    expect(stateSensorOf(h, 'd_lav', true)).toBe('sensor.lavadora_estado');
+    const parts = findParts(h, 'd_lav', 'sensor.lavadora_estado');
+    expect(parts.remaining).toBe('sensor.lavadora_tempo');
+  });
+});

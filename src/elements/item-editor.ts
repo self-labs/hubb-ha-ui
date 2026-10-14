@@ -1,9 +1,10 @@
 import { mdiChevronLeft, mdiChevronRight } from '@mdi/js';
 import { LitElement, css, html, nothing } from 'lit';
 import type { HomeAssistant } from '../ha/types';
-import { roleFits, type Role } from '../model/config';
+import { coverIsGate } from '../model/classify';
+import { ROLES, roleFits, type ItemKind, type Role } from '../model/config';
 import type { EntityConfig } from '../model/types';
-import { EDIT, REVIEW, ROLE_LABELS } from '../strings';
+import { EDIT, KIND_LABELS, REVIEW } from '../strings';
 import { define } from './define';
 import { icon } from './icon';
 
@@ -12,7 +13,7 @@ export interface EditItem {
   entityId: string;
   name: string;
   /** How it shows now. */
-  kind: Role;
+  kind: ItemKind;
   /** The items of its block, in their order, to move it among them. */
   siblings: string[];
 }
@@ -25,6 +26,8 @@ export interface EditRequest {
   patch?: Partial<EntityConfig>;
   orders?: Record<string, number>;
 }
+
+const isRole = (kind: ItemKind): kind is Role => (ROLES as readonly string[]).includes(kind);
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
@@ -79,11 +82,13 @@ export class HubbItemEditor extends LitElement {
     this.#ask({ patch: { area: areaId }, message: EDIT.movedTo(item.name, this.hass?.areas[areaId]?.name ?? areaId) });
   };
 
-  #showAs(role: Role): void {
+  #showAs(kind: ItemKind): void {
     const item = this.item;
     if (!item) return;
-    const message = role === 'hidden' ? REVIEW.savedHidden(item.name) : REVIEW.savedAs(item.name, ROLE_LABELS[role]);
-    this.#ask({ patch: { role }, message });
+    const message = kind === 'hidden' ? REVIEW.savedHidden(item.name) : REVIEW.savedAs(item.name, KIND_LABELS[kind]);
+    // Cortina is no role: a cover is a curtain when nothing says otherwise.
+    if (kind === 'cover') this.#ask({ patch: { role: undefined }, message });
+    else if (isRole(kind)) this.#ask({ patch: { role: kind }, message });
   }
 
   #move(step: number): void {
@@ -97,11 +102,21 @@ export class HubbItemEditor extends LitElement {
     this.#ask({ orders: Object.fromEntries(ids.map((id, n) => [id, n + 1])), message: EDIT.moved(item.name) });
   }
 
-  #roles(hass: HomeAssistant, item: EditItem): Role[] {
-    const fitting =
-      item.kind === 'appliance'
-        ? (['appliance'] as Role[])
-        : (['light', 'outlet', 'equipment', 'action'] as Role[]).filter((r) => roleFits(hass, r, item.entityId));
+  /** What "Mostrar como" offers: what fits the type of the item, and always Não mostrar. */
+  #kinds(hass: HomeAssistant, item: EditItem): ItemKind[] {
+    switch (item.kind) {
+      case 'appliance':
+      case 'climate':
+      case 'fan':
+      case 'media':
+      case 'lock':
+        return [item.kind, 'hidden'];
+      case 'cover':
+        return ['cover', 'gate', 'hidden'];
+    }
+    // A curtain made a gate by hand can go back; one whose class or name says gate cannot.
+    if (item.kind === 'gate' && item.entityId.startsWith('cover.')) return coverIsGate(hass, item.entityId) ? ['gate', 'hidden'] : ['cover', 'gate', 'hidden'];
+    const fitting = (['light', 'outlet', 'equipment', 'action', 'gate'] as Role[]).filter((r) => roleFits(hass, r, item.entityId));
     return [...fitting, 'hidden'];
   }
 
@@ -134,10 +149,10 @@ export class HubbItemEditor extends LitElement {
       <div class="field">
         <span class="label">${EDIT.showAs}</span>
         <div class="row">
-          ${this.#roles(hass, item).map(
-            (role) =>
-              html`<button class="role ${role === item.kind ? 'current' : ''}" ?disabled=${role === item.kind} @click=${() => this.#showAs(role)}>
-                ${ROLE_LABELS[role]}
+          ${this.#kinds(hass, item).map(
+            (kind) =>
+              html`<button class="role ${kind === item.kind ? 'current' : ''}" ?disabled=${kind === item.kind} @click=${() => this.#showAs(kind)}>
+                ${KIND_LABELS[kind]}
               </button>`,
           )}
         </div>

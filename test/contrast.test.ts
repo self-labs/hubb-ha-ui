@@ -70,6 +70,10 @@ describe('contrast of text on its background, both themes (AA, 4.5:1)', () => {
     it(`the icon of a lit tile on the amber, ${theme}`, () => {
       expect(contrast(token('--hubb-amber-ink', theme), token('--hubb-amber', theme))).toBeGreaterThanOrEqual(4.5);
     });
+
+    it(`the words of the red alert strip, ${theme}`, () => {
+      expect(contrast(token('--hubb-alert-ink', theme), token('--hubb-alert-bg', theme))).toBeGreaterThanOrEqual(4.5);
+    });
   }
 
   it('lit labels and the toast action use the text tokens, not the fill amber', () => {

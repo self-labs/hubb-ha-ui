@@ -1,13 +1,22 @@
 import type { HomeAssistant } from '../ha/types';
 
-/** Removes `affix` (and the space next to it) from the start or the end of `name`, ignoring case. */
+/** The word that ties a name to what follows it: "Ar da sala", "Luz do quarto", "Pendente na varanda". */
+const TIE = /\s+(?:d[aeo]s?|n[ao]s?|em)$/i;
+
+/**
+ * Removes `affix` (and the space next to it) from the start or the end of `name`, ignoring case; at
+ * the end, the word that tied it goes too.
+ */
 function stripAffix(name: string, affix: string): string {
   const a = affix.trim();
   if (!a) return name;
   const lower = name.toLocaleLowerCase('pt-BR');
   const la = a.toLocaleLowerCase('pt-BR');
   if (lower.startsWith(`${la} `)) return name.slice(a.length + 1).trim();
-  if (lower.endsWith(` ${la}`)) return name.slice(0, name.length - a.length - 1).trim();
+  if (lower.endsWith(` ${la}`)) {
+    const rest = name.slice(0, name.length - a.length - 1).trim();
+    return rest.replace(TIE, '') || rest;
+  }
   return name;
 }
 

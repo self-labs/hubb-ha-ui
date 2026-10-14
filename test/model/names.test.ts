@@ -31,6 +31,19 @@ describe('displayName', () => {
     expect(displayName(hass, 'light.c', 'Sala')).toBe('led');
   });
 
+  it('drops the word that tied the room name to the end ("Ar da sala" is "Ar")', () => {
+    const hass = makeHass({
+      entities: [
+        { entity_id: 'climate.a', name: 'Ar da sala', state: 'off' },
+        { entity_id: 'light.b', name: 'Luz do Quarto', state: 'off' },
+        { entity_id: 'light.c', name: 'Pendente na Varanda', state: 'off' },
+      ],
+    });
+    expect(displayName(hass, 'climate.a', 'Sala')).toBe('Ar');
+    expect(displayName(hass, 'light.b', 'Quarto')).toBe('Luz');
+    expect(displayName(hass, 'light.c', 'Varanda')).toBe('Pendente');
+  });
+
   it('keeps a name that is only the room name', () => {
     const hass = makeHass({ entities: [{ entity_id: 'light.a', name: 'Cozinha', state: 'off' }] });
     expect(displayName(hass, 'light.a', 'Cozinha')).toBe('Cozinha');

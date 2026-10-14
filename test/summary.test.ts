@@ -98,8 +98,16 @@ const bareRoom = (over: Partial<Room>): Room => ({
   equipment: [],
   appliances: [],
   actions: [],
+  climate: [],
+  covers: [],
+  media: [],
+  access: [],
   scenes: [],
   hidden: [],
+  openings: [],
+  presence: [],
+  temperature: null,
+  humidity: null,
   ...over,
 });
 

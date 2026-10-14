@@ -1,24 +1,27 @@
 import { mdiCreationOutline, mdiHomeOutline, mdiShieldHomeOutline } from '@mdi/js';
-import { LitElement, css, html } from 'lit';
+import { LitElement, css, html, nothing } from 'lit';
 import { haptic } from '../actions/haptic';
 import { basePath, navigate } from '../actions/navigate';
 import { S } from '../strings';
 import { define } from './define';
 import { icon } from './icon';
 
-export type NavCurrent = 'home' | 'scenes';
+export type NavCurrent = 'home' | 'scenes' | 'seguranca';
 
 export class HubbNavBar extends LitElement {
-  static properties = { current: {}, homeLabel: { attribute: 'home-label' } };
+  static properties = { current: {}, homeLabel: { attribute: 'home-label' }, security: { type: Boolean } };
 
   declare current: NavCurrent;
   /** "Casa" for a home, "Início" for the other places. */
   declare homeLabel: string;
+  /** Whether the house has an alarm, a camera, a door or window sensor, a gate or a lock: the third tab. */
+  declare security: boolean;
 
   constructor() {
     super();
     this.current = 'home';
     this.homeLabel = S.home;
+    this.security = false;
   }
 
   #go(path: NavCurrent): void {
@@ -36,9 +39,7 @@ export class HubbNavBar extends LitElement {
   render() {
     return html`<nav aria-label=${S.navigation}>
       ${this.#item('home', this.homeLabel, mdiHomeOutline)} ${this.#item('scenes', S.scenes, mdiCreationOutline)}
-      <button class="soon" aria-disabled="true" title=${S.soon} @click=${(e: Event) => e.preventDefault()}>
-        ${icon(mdiShieldHomeOutline)}<span>${S.security}</span>
-      </button>
+      ${this.security ? this.#item('seguranca', S.security, mdiShieldHomeOutline) : nothing}
     </nav>`;
   }
 
@@ -86,10 +87,6 @@ export class HubbNavBar extends LitElement {
     }
     button.cur {
       color: var(--hubb-text);
-    }
-    button.soon {
-      opacity: 0.4;
-      cursor: default;
     }
   `;
 }

@@ -1,6 +1,6 @@
 import type { HomeAssistant } from '../ha/types';
-import { allLightIds, buildHouse } from '../model/build-house';
-import type { HubbConfig } from '../model/types';
+import { allLightIds, buildHouse, hasSecurity, newRoom } from '../model/build-house';
+import type { HubbConfig, Shared } from '../model/types';
 import { REVIEW, S } from '../strings';
 
 export interface LovelaceCardConfig {
@@ -21,12 +21,21 @@ export interface LovelaceConfig {
   views: LovelaceViewConfig[];
 }
 
-/** One panel view per screen; each screen card gets the slice of the house it draws. Never throws. */
+/**
+ * One panel view per screen; each screen card gets the slice of the house it draws. Never throws.
+ *
+ * The views keep their places whatever the panel shows: the fixed ones first, then one per area of
+ * Home Assistant, by area id, rooms with nothing on the panel included. Home Assistant keeps the
+ * index of the open view when an edit rebuilds the dashboard; a room appearing before it would
+ * otherwise send the installer to another screen.
+ */
 export function generateDashboard(config: HubbConfig, hass: HomeAssistant): LovelaceConfig {
   try {
     const house = buildHouse(hass, config);
     const lightIds = allLightIds(house);
     const { homeLabel } = house;
+    // One object for every screen: the alerts strip and the security tab are the same everywhere.
+    const shared: Shared = { alerts: house.alerts, security: hasSecurity(house) };
     // Only an administrator gets the review; for a resident its address falls back to the home.
     const review: LovelaceViewConfig[] = hass.user?.is_admin
       ? [
@@ -35,31 +44,42 @@ export function generateDashboard(config: HubbConfig, hass: HomeAssistant): Love
             path: 'revisar',
             type: 'panel',
             subview: true,
-            cards: [{ type: 'custom:hubb-review-screen', options: config, homeLabel }],
+            cards: [{ type: 'custom:hubb-review-screen', options: config, homeLabel, shared }],
           },
         ]
       : [];
     return {
       title: house.name,
       views: [
-        { title: homeLabel, path: 'home', type: 'panel', cards: [{ type: 'custom:hubb-home-screen', house, options: config }] },
+        { title: homeLabel, path: 'home', type: 'panel', cards: [{ type: 'custom:hubb-home-screen', house, options: config, shared }] },
         {
           title: S.scenes,
           path: 'scenes',
           type: 'panel',
           subview: true,
-          cards: [{ type: 'custom:hubb-scenes-screen', scenes: house.scenes, lightIds, homeLabel }],
+          cards: [{ type: 'custom:hubb-scenes-screen', scenes: house.scenes, lightIds, homeLabel, shared }],
         },
-        ...house.rooms.map(
-          (room): LovelaceViewConfig => ({
-            title: room.name,
-            path: room.path,
-            type: 'panel',
-            subview: true,
-            cards: [{ type: 'custom:hubb-room-screen', room, lightIds, homeLabel, options: config }],
-          }),
-        ),
+        {
+          title: S.security,
+          path: 'seguranca',
+          type: 'panel',
+          subview: true,
+          cards: [{ type: 'custom:hubb-security-screen', security: house.security, shared, homeLabel }],
+        },
         ...review,
+        ...Object.keys(hass.areas)
+          .sort()
+          .map((areaId): LovelaceViewConfig => {
+            const room =
+              house.rooms.find((r) => r.areaId === areaId) ?? house.sensorRooms.find((r) => r.areaId === areaId) ?? newRoom(hass, areaId, config);
+            return {
+              title: room.name,
+              path: room.path,
+              type: 'panel',
+              subview: true,
+              cards: [{ type: 'custom:hubb-room-screen', room, lightIds, homeLabel, options: config, shared }],
+            };
+          }),
       ],
     };
   } catch (err) {

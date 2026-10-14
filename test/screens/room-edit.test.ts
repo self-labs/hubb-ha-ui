@@ -100,9 +100,9 @@ describe('editing a room', () => {
     const el = await mountRoom(h, CASA2_CONFIG, 'escritorio');
     await openEditor(el, 'Teto');
     const roles = [...editor(el).shadowRoot!.querySelectorAll('.role')];
-    expect(roles.map((b) => b.textContent!.trim())).toEqual(['Luz', 'Tomada', 'Equipamento', 'Não mostrar']);
+    expect(roles.map((b) => b.textContent!.trim())).toEqual(['Luz', 'Tomada', 'Equipamento', 'Portão', 'Não mostrar']);
     expect(roles.filter((b) => b.classList.contains('current')).map((b) => b.textContent!.trim())).toEqual(['Luz']);
-    await tap(el, roles[3]);
+    await tap(el, roles[4]);
     expect((saves.at(-1)!.entities as Record<string, unknown>)['switch.escritorio_luz']).toEqual({ role: 'hidden' });
     expect(await toastText(el)).toContain('Teto não aparece mais no painel.');
   });

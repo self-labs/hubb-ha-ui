@@ -4,27 +4,36 @@ import { putBack, setEntity, setOrders, showEntity } from '../actions/dashboard-
 import { setLight } from '../actions/light';
 import { goBack } from '../actions/navigate';
 import { artStyles, roomArt } from '../art/render';
+import '../elements/access-tile';
 import '../elements/action-button';
 import '../elements/appliance-card';
 import '../elements/appliance-panel';
+import '../elements/climate-card';
+import '../elements/climate-panel';
 import '../elements/color-panel';
+import '../elements/cover-panel';
+import '../elements/cover-tile';
 import { define } from '../elements/define';
 import '../elements/dimmer-panel';
 import '../elements/equipment-tile';
+import '../elements/fan-tile';
 import '../elements/item-editor';
 import type { EditItem, EditRequest } from '../elements/item-editor';
 import { icon } from '../elements/icon';
 import '../elements/light-tile';
+import '../elements/media-card';
+import '../elements/media-panel';
 import '../elements/nav-bar';
 import '../elements/outlet-tile';
+import '../elements/power-panel';
 import '../elements/scene-button';
 import '../elements/sheet';
 import { isEditing, setEditing } from '../editing';
 import { normalizeRoom } from '../model/build-house';
-import type { Role } from '../model/config';
-import type { HiddenItem, HubbConfig, Room } from '../model/types';
-import { EDIT, ROLE_LABELS, roomTurnedOff, S } from '../strings';
-import { applianceSubheading, roomHeroStatus } from '../summary';
+import type { ItemKind } from '../model/config';
+import type { HiddenItem, HubbConfig, Room, Shared } from '../model/types';
+import { ACCESS, CLIMATE, COVER, EDIT, KIND_LABELS, MEDIA, POWER, roomTurnedOff, S, SENSE } from '../strings';
+import { applianceSubheading, occupied, openingWord, openNow, roomClimate, roomHeroStatus } from '../summary';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 
@@ -36,13 +45,20 @@ export interface RoomScreenConfig {
   homeLabel?: string;
   /** The dashboard configuration, for the editor; missing on frozen dashboards, which cannot be edited. */
   options?: HubbConfig;
+  /** Alerts and the security tab; missing on dashboards frozen before M4. */
+  shared?: Shared;
 }
+
+/** The sheets of a device (M3, and the consumption of M4), each named after the event that opens it (`hubb-open-climate`...). */
+const DEVICE_SHEETS = ['climate', 'cover', 'media', 'power'] as const;
+type DeviceSheet = (typeof DEVICE_SHEETS)[number];
 
 export class HubbRoomScreen extends HubbScreen {
   static properties = {
     config: { attribute: false },
     dimmer: { state: true },
     appliance: { state: true },
+    device: { state: true },
     editingItem: { state: true },
   };
 
@@ -50,6 +66,8 @@ export class HubbRoomScreen extends HubbScreen {
   declare dimmer: { entityId: string; name: string } | null;
   /** The device of the appliance whose sheet is open. */
   declare appliance: string | null;
+  /** The air conditioner, fan, curtain or player whose sheet is open. */
+  declare device: { sheet: DeviceSheet; entityId: string } | null;
   /** The item whose editor is open, in the edit mode. */
   declare editingItem: EditItem | null;
 
@@ -72,14 +90,21 @@ export class HubbRoomScreen extends HubbScreen {
     this.appliance = (e as CustomEvent<{ deviceId: string }>).detail.deviceId;
   };
 
+  #onOpenDevice = (e: Event): void => {
+    const sheet = e.type.slice('hubb-open-'.length) as DeviceSheet;
+    this.device = { sheet, entityId: (e as CustomEvent<{ entityId: string }>).detail.entityId };
+  };
+
   constructor() {
     super();
     this.config = undefined;
     this.dimmer = null;
     this.appliance = null;
+    this.device = null;
     this.editingItem = null;
     this.addEventListener('hubb-open-dimmer', this.#onOpenDimmer);
     this.addEventListener('hubb-open-appliance', this.#onOpenAppliance);
+    for (const sheet of DEVICE_SHEETS) this.addEventListener(`hubb-open-${sheet}`, this.#onOpenDevice);
   }
 
   setConfig(config: RoomScreenConfig): void {
@@ -98,14 +123,21 @@ export class HubbRoomScreen extends HubbScreen {
   }
 
   /** In the edit mode an item is a button that opens its editor; nothing switches by accident. */
-  #editTiles(items: readonly { entityId: string; name: string }[], kind: Role) {
+  #editTiles<T extends { entityId: string; name: string }>(items: readonly T[], kindOf: ItemKind | ((item: T) => ItemKind)) {
     const siblings = items.map((i) => i.entityId);
-    return items.map(
-      (i) => html`<button class="edit-tile" @click=${() => (this.editingItem = { entityId: i.entityId, name: i.name, kind, siblings })}>
+    return items.map((i) => {
+      const kind = typeof kindOf === 'function' ? kindOf(i) : kindOf;
+      return html`<button class="edit-tile" @click=${() => (this.editingItem = { entityId: i.entityId, name: i.name, kind, siblings })}>
         <span class="icon">${icon(mdiPencilOutline)}</span>
-        <span class="text"><span class="name">${i.name}</span><span class="kind">${ROLE_LABELS[kind]}</span></span>
-      </button>`,
-    );
+        <span class="text"><span class="name">${i.name}</span><span class="kind">${KIND_LABELS[kind]}</span></span>
+      </button>`;
+    });
+  }
+
+  /** The name of the device whose sheet is open, as its card shows it. */
+  #deviceName(room: Room, entityId: string): string {
+    const item = [...room.climate, ...room.covers, ...room.media, ...room.outlets, ...room.equipment].find((i) => i.entityId === entityId);
+    return item?.name ?? String(this.hass?.states[entityId]?.attributes.friendly_name ?? entityId);
   }
 
   #showItem(item: HiddenItem): void {
@@ -121,7 +153,11 @@ export class HubbRoomScreen extends HubbScreen {
     const onIds = room.lights.filter((l) => hass.states[l.entityId]?.state === 'on').map((l) => l.entityId);
     const status = roomHeroStatus(room, hass);
     const open = this.appliance ? (room.appliances.find((a) => a.deviceId === this.appliance) ?? null) : null;
-    return html`<header
+    const device = this.device;
+    const climate = roomClimate(hass, room);
+    const opened = openNow(hass, room.openings);
+    const facts = [...(occupied(hass, room) ? [SENSE.occupied] : []), ...(opened.length > 1 ? [SENSE.manyOpen(opened.length)] : opened.map(openingWord))];
+    return html`${this.strips(this.config?.shared)}<header
         class="hero ${room.photo ? 'photo' : ''} ${onIds.length ? 'lit' : ''}"
         style=${room.photo ? `--photo:url("${room.photo}")` : ''}
       >
@@ -130,6 +166,7 @@ export class HubbRoomScreen extends HubbScreen {
         <div>
           <h1>${room.name}</h1>
           ${status ? html`<p>${status}</p>` : nothing}
+          ${climate ? html`<p class="climate">${climate}</p>` : nothing}
         </div>
         ${editable
           ? html`<button class="edit ${editing ? 'on' : ''}" aria-label=${editing ? EDIT.done : EDIT.edit} @click=${() => setEditing(!editing)}>
@@ -138,6 +175,7 @@ export class HubbRoomScreen extends HubbScreen {
           : nothing}
       </header>
       <main>
+        ${facts.length ? html`<div class="facts">${facts.map((f) => html`<span class="fact">${f}</span>`)}</div>` : nothing}
         ${editing ? html`<p class="hint" role="status">${this.editNotice ?? EDIT.hintRoom}</p>` : nothing}
         ${!editing && (room.lights.length || room.scenes.length)
           ? html`<div class="actions">
@@ -155,12 +193,48 @@ export class HubbRoomScreen extends HubbScreen {
               ${room.scenes.map((s) => html`<hubb-scene-button variant="chip" .scene=${s}></hubb-scene-button>`)}
             </div>`
           : nothing}
+        ${room.access.length
+          ? html`<h2>${ACCESS.title}</h2>
+              <div class="grid">
+                ${editing
+                  ? this.#editTiles(room.access, (a) => (a.kind === 'lock' ? 'lock' : 'gate'))
+                  : room.access.map((a) => html`<hubb-access-tile .hass=${hass} .item=${a}></hubb-access-tile>`)}
+              </div>`
+          : nothing}
         ${room.lights.length
           ? html`<h2>${S.lights}</h2>
               <div class="grid">
                 ${editing
                   ? this.#editTiles(room.lights, 'light')
                   : room.lights.map((l) => html`<hubb-light-tile .hass=${hass} .item=${l}></hubb-light-tile>`)}
+              </div>`
+          : nothing}
+        ${room.climate.length
+          ? html`<h2>${CLIMATE.title}</h2>
+              <div class="grid">
+                ${editing
+                  ? this.#editTiles(room.climate, (c) => c.kind)
+                  : room.climate.map((c) =>
+                      c.kind === 'fan'
+                        ? html`<hubb-fan-tile .hass=${hass} .item=${c}></hubb-fan-tile>`
+                        : html`<hubb-climate-card .hass=${hass} .item=${c}></hubb-climate-card>`,
+                    )}
+              </div>`
+          : nothing}
+        ${room.covers.length
+          ? html`<h2>${COVER.title}</h2>
+              <div class="grid">
+                ${editing
+                  ? this.#editTiles(room.covers, 'cover')
+                  : room.covers.map((c) => html`<hubb-cover-tile .hass=${hass} .item=${c}></hubb-cover-tile>`)}
+              </div>`
+          : nothing}
+        ${room.media.length
+          ? html`<h2>${MEDIA.title}</h2>
+              <div class="grid">
+                ${editing
+                  ? this.#editTiles(room.media, 'media')
+                  : room.media.map((m) => html`<hubb-media-card .hass=${hass} .item=${m}></hubb-media-card>`)}
               </div>`
           : nothing}
         ${room.outlets.length || room.equipment.length
@@ -218,6 +292,18 @@ export class HubbRoomScreen extends HubbScreen {
         ${open ? html`<hubb-appliance-panel .hass=${hass} .item=${open}></hubb-appliance-panel>` : nothing}
       </hubb-sheet>
       <hubb-sheet
+        class="device"
+        ?open=${device !== null}
+        heading=${device ? this.#deviceName(room, device.entityId) : ''}
+        subheading=${device?.sheet === 'power' ? `${POWER.title} · ${room.name}` : room.name}
+        @hubb-close=${() => (this.device = null)}
+      >
+        ${device?.sheet === 'climate' ? html`<hubb-climate-panel .hass=${hass} .entityId=${device.entityId}></hubb-climate-panel>` : nothing}
+        ${device?.sheet === 'cover' ? html`<hubb-cover-panel .hass=${hass} .entityId=${device.entityId}></hubb-cover-panel>` : nothing}
+        ${device?.sheet === 'media' ? html`<hubb-media-panel .hass=${hass} .entityId=${device.entityId}></hubb-media-panel>` : nothing}
+        ${device?.sheet === 'power' ? html`<hubb-power-panel .hass=${hass} .item=${[...room.outlets, ...room.equipment].find((i) => i.entityId === device.entityId)}></hubb-power-panel>` : nothing}
+      </hubb-sheet>
+      <hubb-sheet
         class="item-sheet"
         ?open=${this.editingItem !== null}
         heading=${this.editingItem?.name ?? ''}
@@ -235,7 +321,11 @@ export class HubbRoomScreen extends HubbScreen {
           : nothing}
       </hubb-sheet>
       <hubb-toast></hubb-toast>
-      <hubb-nav-bar current="home" home-label=${this.config?.homeLabel ?? S.home}></hubb-nav-bar>`;
+      <hubb-nav-bar
+        current="home"
+        home-label=${this.config?.homeLabel ?? S.home}
+        ?security=${this.config?.shared?.security ?? false}
+      ></hubb-nav-bar>`;
   }
 
   static styles = [
@@ -316,6 +406,27 @@ export class HubbRoomScreen extends HubbScreen {
       main {
         padding-top: 8px;
       }
+      .hero p.climate {
+        color: var(--hubb-text);
+      }
+      /* What the sensors say: someone is in, something is open. Read only, so no button. */
+      .facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 0 0 10px;
+      }
+      .fact {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 14px;
+        background: var(--hubb-surface);
+        box-shadow: var(--hubb-card-shadow);
+        font-size: 12px;
+        font-weight: 700;
+      }
       .actions {
         display: flex;
         flex-wrap: wrap;
@@ -328,6 +439,12 @@ export class HubbRoomScreen extends HubbScreen {
       /* Wide: two of the three columns, so "Lavando · faltam 40 min" fits on one line. */
       hubb-appliance-card {
         grid-column: span 2;
+      }
+      /* Full rows: the slide needs the width, and a card with buttons needs room for its name and its line. */
+      hubb-access-tile,
+      hubb-climate-card,
+      hubb-media-card {
+        grid-column: 1 / -1;
       }
       .hero .edit {
         margin-left: auto;

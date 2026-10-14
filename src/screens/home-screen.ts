@@ -18,9 +18,18 @@ import { isEditing, setEditing } from '../editing';
 import { allLightIds, normalizeHouse } from '../model/build-house';
 import { pickFloor, roomsOn } from '../model/floors';
 import { reviewItems } from '../model/review';
-import type { House, HubbConfig } from '../model/types';
-import { EDIT, greeting, lightsCount, lightsTurnedOff, onCount, REVIEW, S } from '../strings';
-import { applianceChipText, applianceSubheading, busyAppliances, findAppliance, lightsOnByRoom, summarize } from '../summary';
+import type { House, HubbConfig, Shared } from '../model/types';
+import { EDIT, greeting, lightsCount, lightsTurnedOff, onCount, REVIEW, S, SENSE } from '../strings';
+import {
+  applianceChipText,
+  applianceSubheading,
+  busyAppliances,
+  findAppliance,
+  lightsOnByRoom,
+  openingWord,
+  openNow,
+  summarize,
+} from '../summary';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 
@@ -29,6 +38,8 @@ export interface HomeScreenConfig {
   house: House;
   /** The dashboard configuration, for the number on the review key; missing on frozen dashboards. */
   options?: HubbConfig;
+  /** Alerts and the security tab; missing on dashboards frozen before M4. */
+  shared?: Shared;
 }
 
 /** One object for a missing configuration, so the cached review keeps its key. */
@@ -200,7 +211,7 @@ export class HubbHomeScreen extends HubbScreen {
     const editing = admin && isEditing();
     const pending = admin ? reviewItems(hass, this.config?.options ?? NO_OPTIONS).length : 0;
     const shown = floor === null ? house.rooms : roomsOn(house.rooms, floor);
-    return html`<main>
+    return html`${this.strips(this.config?.shared)}<main>
         <header>
           <div>
             <h1>${greeting(new Date().getHours())}${firstName ? `, ${firstName}` : ''}</h1>
@@ -233,6 +244,12 @@ export class HubbHomeScreen extends HubbScreen {
                 ${busy.map(
                   (b) =>
                     html`<button class="chip on" @click=${() => (this.applianceId = b.item.deviceId)}>${applianceChipText(hass, b.item)}</button>`,
+                )}
+                ${openNow(hass, house.rooms.flatMap((r) => r.openings)).map(
+                  (o) =>
+                    html`<button class="chip open" @click=${() => navigate(`${basePath()}/${o.path}`)}>
+                      ${SENSE.openAt(openingWord(o), o.roomName!)}
+                    </button>`,
                 )}
               </div>
               ${house.scenes.length
@@ -270,7 +287,7 @@ export class HubbHomeScreen extends HubbScreen {
         ${open ? html`<hubb-appliance-panel .hass=${hass} .item=${open.item}></hubb-appliance-panel>` : nothing}
       </hubb-sheet>
       <hubb-toast></hubb-toast>
-      <hubb-nav-bar current="home" home-label=${house.homeLabel}></hubb-nav-bar>`;
+      <hubb-nav-bar current="home" home-label=${house.homeLabel} ?security=${this.config?.shared?.security ?? false}></hubb-nav-bar>`;
   }
 
   static styles = [

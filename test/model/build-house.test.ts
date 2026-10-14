@@ -134,8 +134,8 @@ describe('buildHouse', () => {
     const house = buildHouse(h);
     expect(names(house.rooms)).toEqual(['Lavanderia', 'Sala']);
     expect(house.rooms[0]!.lights).toEqual([]);
-    expect(house.rooms[0]!.outlets).toEqual([{ entityId: 'switch.secadora', name: 'Secadora' }]);
-    expect(house.rooms[1]!.outlets).toEqual([{ entityId: 'switch.tv', name: 'TV' }]);
+    expect(house.rooms[0]!.outlets).toEqual([{ entityId: 'switch.secadora', name: 'Secadora', power: null, energy: null }]);
+    expect(house.rooms[1]!.outlets).toEqual([{ entityId: 'switch.tv', name: 'TV', power: null, energy: null }]);
     expect(allLightIds(house)).toEqual(['light.sofa']);
   });
 
@@ -202,7 +202,7 @@ describe('buildHouse with roles, profiles and floors', () => {
       entities: { 'switch.bomba': { role: 'equipment', name: 'Bomba', icon: 'mdi:pool' }, 'button.reiniciar': { role: 'action' } },
     });
     expect(house.rooms.map((r) => r.name)).toEqual(['Área externa', 'Rack']);
-    expect(house.rooms[0]!.equipment).toEqual([{ entityId: 'switch.bomba', name: 'Bomba', icon: 'mdi:pool' }]);
+    expect(house.rooms[0]!.equipment).toEqual([{ entityId: 'switch.bomba', name: 'Bomba', icon: 'mdi:pool', power: null, energy: null }]);
     expect(house.rooms[1]!.actions).toEqual([{ entityId: 'button.reiniciar', name: 'Reiniciar roteador', icon: null }]);
   });
 

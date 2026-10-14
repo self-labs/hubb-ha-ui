@@ -44,7 +44,7 @@ describe('classify', () => {
     expect(at('light.oculta')).toEqual({ block: null, why: 'hidden', areaId: null });
     expect(at('switch.config')).toEqual({ block: null, why: 'category', areaId: null });
     expect(at('light.solta')).toEqual({ block: null, why: 'no-area', areaId: null });
-    expect(at('climate.ar')).toEqual({ block: null, why: 'unsupported', areaId: 'sala' });
+    expect(at('climate.ar')).toEqual({ block: 'climate', areaId: 'sala' });
     expect(at('button.reiniciar')).toEqual({ block: null, why: 'unsupported', areaId: 'sala' });
     expect(at('scene.sem_rotulo')).toEqual({ block: null, why: 'unsupported', areaId: 'sala' });
     expect(at('light.nao_existe')).toEqual({ block: null, why: 'hidden', areaId: null });

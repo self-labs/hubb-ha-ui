@@ -5,8 +5,11 @@ import { isProfileId, type ProfileId } from './profiles';
 import type { HubbConfig } from './types';
 
 /** The roles an entity can be given in `entities.<id>.role`. */
-export const ROLES = ['light', 'outlet', 'equipment', 'appliance', 'action', 'hidden'] as const;
+export const ROLES = ['light', 'outlet', 'equipment', 'appliance', 'action', 'gate', 'hidden'] as const;
 export type Role = (typeof ROLES)[number];
+
+/** How an item shows on its room page: a role, or a kind its type alone decides. */
+export type ItemKind = Role | 'climate' | 'fan' | 'cover' | 'media' | 'lock';
 
 /** The domains each role can be given to; `appliance` takes any entity with a device, `hidden` any entity. */
 export const ROLE_DOMAINS: Readonly<Record<Exclude<Role, 'hidden' | 'appliance'>, readonly string[]>> = {
@@ -14,6 +17,8 @@ export const ROLE_DOMAINS: Readonly<Record<Exclude<Role, 'hidden' | 'appliance'>
   outlet: ['switch'],
   equipment: ['switch'],
   action: ['button', 'input_button', 'script'],
+  /** A pulse relay, a button or a script that opens the gate, or a cover that does not say it is one. */
+  gate: ['switch', 'button', 'input_button', 'script', 'cover'],
 };
 
 export interface EntitySettings {
@@ -26,6 +31,9 @@ export interface EntitySettings {
   hide: string[];
   remaining?: string;
   progress?: string;
+  /** The power and energy sensors of an outlet or equipment, when the panel cannot match them. */
+  power?: string;
+  energy?: string;
   order?: number;
 }
 
@@ -124,6 +132,13 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
         add(`${at}.${key}`, entityId, CFG.applianceOnly(key));
         continue;
       }
+      if (typeof ref === 'string' && hass.states[ref]) s[key] = ref;
+      else add(`${at}.${key}`, entityId, CFG.missingEntity(String(ref)));
+    }
+    // The consumption of an outlet or equipment whose sensors the panel cannot match by itself.
+    for (const key of ['power', 'energy'] as const) {
+      const ref = v[key];
+      if (ref === undefined) continue;
       if (typeof ref === 'string' && hass.states[ref]) s[key] = ref;
       else add(`${at}.${key}`, entityId, CFG.missingEntity(String(ref)));
     }

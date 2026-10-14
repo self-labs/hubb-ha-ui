@@ -13,6 +13,10 @@ export interface LightItem {
 export interface OutletItem {
   entityId: string;
   name: string;
+  /** Its power sensor ("120 W"); missing on dashboards frozen before M4. */
+  power?: string | null;
+  /** Its energy sensor, for "Hoje" on the consumption sheet. */
+  energy?: string | null;
 }
 
 /** A `switch` with the equipment role: a pump, a fan, a heater. */
@@ -21,6 +25,33 @@ export interface EquipmentItem {
   name: string;
   /** An `mdi:*` icon from the configuration; null draws the power icon. */
   icon: string | null;
+  power?: string | null;
+  energy?: string | null;
+}
+
+/** An air conditioner (`climate`) or a fan, in the Clima block. */
+export interface ClimateItem {
+  entityId: string;
+  name: string;
+  kind: 'climate' | 'fan';
+}
+
+/** A curtain, a blind or an awning. */
+export interface CoverItem {
+  entityId: string;
+  name: string;
+}
+
+export interface MediaItem {
+  entityId: string;
+  name: string;
+}
+
+/** What opens the house: a gate (`cover`), a lock, or a pulse relay, button or script with the gate role. */
+export interface AccessItem {
+  entityId: string;
+  name: string;
+  kind: 'cover' | 'lock' | 'pulse';
 }
 
 /** A `button`, `input_button` or `script` with the action role. */
@@ -28,6 +59,60 @@ export interface ActionItem {
   entityId: string;
   name: string;
   icon: string | null;
+}
+
+/** A door, a window, a garage door or an opening sensor. */
+export type OpeningKind = 'door' | 'window' | 'garage_door' | 'opening';
+
+export interface OpeningItem {
+  entityId: string;
+  name: string;
+  kind: OpeningKind;
+  /** Null without a room: then only the security tab lists it. */
+  roomName: string | null;
+  path: string | null;
+}
+
+/** What lights the red strip: a smoke, gas, carbon monoxide or leak sensor, or an alarm going off. */
+export type AlertKind = 'smoke' | 'gas' | 'carbon_monoxide' | 'moisture' | 'alarm';
+
+export interface AlertItem {
+  entityId: string;
+  kind: AlertKind;
+  roomName: string | null;
+  /** The room page the strip leads to; null leads to the security tab. */
+  path: string | null;
+}
+
+export interface CameraItem {
+  entityId: string;
+  name: string;
+  roomName: string | null;
+}
+
+export interface AlarmItem {
+  entityId: string;
+  name: string;
+}
+
+/** A gate, lock or pulse relay of a room, listed again on the security tab. */
+export interface PlacedAccess extends AccessItem {
+  roomName: string;
+}
+
+/** What the security tab shows: the house as a whole. */
+export interface Security {
+  alarms: AlarmItem[];
+  cameras: CameraItem[];
+  openings: OpeningItem[];
+  access: PlacedAccess[];
+}
+
+/** What every screen gets from the strategy, whatever room it draws. */
+export interface Shared {
+  alerts: AlertItem[];
+  /** Whether the security tab has anything to show, so the bar offers it. */
+  security: boolean;
 }
 
 export interface SceneItem {
@@ -57,9 +142,20 @@ export interface Room {
   equipment: EquipmentItem[];
   appliances: ApplianceItem[];
   actions: ActionItem[];
+  climate: ClimateItem[];
+  covers: CoverItem[];
+  media: MediaItem[];
+  access: AccessItem[];
   scenes: SceneItem[];
   /** What the configuration hides here (the hidden role, hide_entities), for the editor to show again. */
   hidden: HiddenItem[];
+  /** Doors and windows of the room; "Janela aberta" while one is on. */
+  openings: OpeningItem[];
+  /** Motion, occupancy and presence sensors: "Ocupado" while one is on. */
+  presence: string[];
+  /** The thermometer and the hygrometer of the room, for "24° · 61%". */
+  temperature: string | null;
+  humidity: string | null;
 }
 
 export interface HiddenItem {
@@ -79,6 +175,10 @@ export interface House {
   hiddenRooms: { areaId: string; name: string }[];
   scenes: SceneItem[];
   weatherEntityId: string | null;
+  alerts: AlertItem[];
+  security: Security;
+  /** Rooms with only sensors: not on the home, but their page shows them when an alert leads there. */
+  sensorRooms: Room[];
 }
 
 export interface RoomOverride {
@@ -100,6 +200,9 @@ export interface EntityConfig {
   hide?: string[];
   remaining?: string;
   progress?: string;
+  /** The power and energy sensors of an outlet or equipment, when the panel cannot match them. */
+  power?: string;
+  energy?: string;
   /** Place inside its block: lower first; items with none come after, by name. */
   order?: number;
 }

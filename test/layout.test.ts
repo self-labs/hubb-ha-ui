@@ -85,8 +85,16 @@ describe('room card shading', () => {
     equipment: [],
     appliances: [],
     actions: [],
+    climate: [],
+    covers: [],
+    media: [],
+    access: [],
     scenes: [],
     hidden: [],
+    openings: [],
+    presence: [],
+    temperature: null,
+    humidity: null,
   });
 
   it('darkens the bottom only over a photo, so dark text on the plain Areia card stays readable', async () => {

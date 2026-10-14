@@ -19,7 +19,14 @@ export interface ApplianceParts {
   selects: string[];
   /** Options such as turbo, extra rinse or water reuse. */
   switches: string[];
+  /** Whether the appliance reaches the maker's cloud (Electrolux `connectivityState`). Missing on old dashboards. */
+  connection?: string | null;
+  /** Whether the appliance takes commands from afar (Electrolux `remoteControl`). Missing on old dashboards. */
+  remote?: string | null;
 }
+
+/** Whether a command from the panel can reach the appliance now. */
+export type Reach = 'ok' | 'offline' | 'remote-off';
 
 export interface ApplianceItem {
   deviceId: string;
@@ -49,6 +56,14 @@ const STRICT_STATE = ['appliance_state', 'appliancestate', 'run_state', 'runstat
 const LOOSE_STATE = ['current_state', 'currentstate', 'state'];
 const NOT_STATE = ['connectivity', 'network', 'link', 'remote'];
 const REMAINING = ['time_to_end', 'timetoend', 'remaining', 'remain'];
+const CONNECTION = ['connectivity_state', 'connectivitystate'];
+const REMOTE = ['remote_control', 'remotecontrol'];
+/**
+ * The values of `remoteControl` that refuse commands. From the capabilities Electrolux publishes for
+ * a washer: commands are disabled on DISABLED and NOT_SAFETY_RELEVANT_ENABLED; TEMPORARY_LOCKED says
+ * it in its name. Only ENABLED takes them.
+ */
+const REMOTE_OFF = new Set(['disabled', 'not_safety_relevant_enabled', 'temporary_locked']);
 const UNSEEN = new Set(['unavailable', 'unknown']);
 
 const domainOf = (entityId: string): string => entityId.slice(0, entityId.indexOf('.'));
@@ -118,7 +133,23 @@ export function findParts(hass: HomeAssistant, deviceId: string, marked: string,
     buttons: of('button').map((id) => ({ entityId: id, command: commandOf(hass, id) })),
     selects: of('select'),
     switches: of('switch'),
+    connection: sensors.find((id) => CONNECTION.some((w) => keyOf(hass, id).includes(w))) ?? null,
+    remote: sensors.find((id) => REMOTE.some((w) => keyOf(hass, id).includes(w))) ?? null,
   };
+}
+
+/** "Not Safety Relevant Enabled", "NOT_SAFETY_RELEVANT_ENABLED": one spelling to compare. */
+const valueOf = (hass: HomeAssistant, entityId: string | null | undefined): string =>
+  (entityId ? (hass.states[entityId]?.state ?? '') : '').toLowerCase().replace(/[\s-]+/g, '_');
+
+/**
+ * Whether a command can reach the appliance: out of reach when it says it is disconnected, refused
+ * when its remote control is off. A sensor that is missing, unknown or unavailable says nothing.
+ */
+export function applianceReach(hass: HomeAssistant, parts: ApplianceParts): Reach {
+  if (valueOf(hass, parts.connection) === 'disconnected') return 'offline';
+  if (REMOTE_OFF.has(valueOf(hass, parts.remote))) return 'remote-off';
+  return 'ok';
 }
 
 /** Minutes to the end, from a duration sensor in seconds, minutes or hours; null when unknown. */

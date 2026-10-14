@@ -9,6 +9,7 @@ describe('hubb-ha-ui entry', () => {
       'hubb-room-screen',
       'hubb-scenes-screen',
       'hubb-review-screen',
+      'hubb-security-screen',
       'hubb-light-card',
       'hubb-error-card',
     ]) {

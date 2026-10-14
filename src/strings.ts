@@ -10,6 +10,7 @@ export const S = {
   turningOn: 'Acendendo…',
   turningOff: 'Apagando…',
   noResponse: 'Sem resposta',
+  infrared: 'Controle por infravermelho: mostra o último comando enviado.',
   allOff: 'Tudo apagado.',
   restOff: 'O resto está apagado.',
   roomAllOff: 'Tudo apagado',
@@ -20,7 +21,6 @@ export const S = {
   rooms: 'Ambientes',
   lights: 'Luzes',
   security: 'Segurança',
-  soon: 'Em breve',
   lightsOnTitle: 'Luzes acesas',
   turnAllOff: 'Apagar todas',
   turnRoomOff: 'Apagar tudo',
@@ -106,6 +106,83 @@ export const COMMAND_LABELS = {
   stop: 'Parar',
 } as const;
 
+/** Whether an appliance can take a command from the panel, and what to say when one fails. */
+export const REACH = {
+  offline: 'Sem conexão',
+  remoteOff: 'Controle remoto desligado',
+  offlineHint: 'Sem conexão com a internet. Os comandos voltam quando a conexão voltar.',
+  remoteOffHint: 'Controle remoto desligado no aparelho. Para usar os comandos daqui, ative o controle remoto no painel do aparelho.',
+  failed: (name: string): string => `${name} não recebeu o comando.`,
+  /** For administrators only, when the maker's cloud refused the call (401, 403). */
+  lostAccess: 'A integração perdeu o acesso à conta do fabricante: recarregue a integração em Configurações, Dispositivos e serviços.',
+} as const;
+
+/** The strips at the top of every screen. Gender-neutral: "Fumaça · Cozinha", never "na Cozinha". */
+export const STRIP = {
+  offline: 'Sem conexão com a casa. Tentando de novo…',
+  kind: { smoke: 'Fumaça', gas: 'Gás', carbon_monoxide: 'Monóxido de carbono', moisture: 'Vazamento' } as Readonly<Record<string, string>>,
+  alarm: 'Alarme disparado',
+  /** Without a room; the participle agrees with the word ("Fumaça detectada", "Gás detectado"). */
+  detected: {
+    smoke: 'Fumaça detectada',
+    gas: 'Gás detectado',
+    carbon_monoxide: 'Monóxido de carbono detectado',
+    moisture: 'Vazamento detectado',
+  } as Readonly<Record<string, string>>,
+  at: (what: string, room: string): string => `${what} · ${room}`,
+  more: (first: string, n: number): string => `${first} e mais ${n}`,
+} as const;
+
+/** What the sensors of a room say. */
+export const SENSE = {
+  occupied: 'Ocupado',
+  open: { door: 'Porta aberta', window: 'Janela aberta', garage_door: 'Garagem aberta' } as Readonly<Record<string, string>>,
+  openNamed: (name: string): string => `Aberto: ${name}`,
+  manyOpen: (n: number): string => `${n} abertos`,
+  openAt: (what: string, room: string): string => `${what} · ${room}`,
+  occupiedLine: (line: string): string => (line ? `Ocupado · ${line}` : 'Ocupado'),
+} as const;
+
+/** The alarm panel. */
+export const ALARM = {
+  title: 'Alarme',
+  state: {
+    disarmed: 'Desarmado',
+    armed_home: 'Armado em casa',
+    armed_away: 'Armado ausente',
+    armed_night: 'Armado noite',
+    armed_vacation: 'Armado férias',
+    armed_custom_bypass: 'Armado',
+    arming: 'Armando…',
+    pending: 'Disparando em instantes',
+    triggered: 'Disparado',
+    disarming: 'Desarmando…',
+  } as Readonly<Record<string, string>>,
+  mode: { home: 'Em casa', away: 'Ausente', night: 'Noite', vacation: 'Férias' },
+  slideDisarm: 'Deslize para desarmar',
+  disarm: 'Desarmar',
+  code: 'Código',
+  enterCode: 'Digite o código',
+  erase: 'Apagar',
+  wrongCode: 'Código incorreto',
+} as const;
+
+/** The consumption of an outlet or equipment. */
+export const POWER = { title: 'Consumo', now: 'Agora', today: 'Hoje' } as const;
+
+/** The security tab. */
+export const SECURITY = {
+  openNow: 'Abertos agora',
+  allClosed: 'Tudo fechado',
+  access: 'Acesso',
+  cameras: 'Câmeras',
+  noImage: 'Sem imagem',
+  empty: 'Nenhum alarme, câmera, portão, fechadura ou sensor de porta e janela nesta casa.',
+  at: (what: string, room: string | null): string => (room ? `${what} · ${room}` : what),
+  /** A door or window that does not answer: it may be open. */
+  unread: (what: string): string => `${what} · sem leitura`,
+} as const;
+
 export function greeting(hour: number): string {
   if (hour >= 5 && hour < 12) return 'Bom dia';
   if (hour >= 12 && hour < 18) return 'Boa tarde';
@@ -117,7 +194,7 @@ export const CFG = {
   unknownProfile: (p: string): string => `profile: ${p} não existe; o painel usou home (Casa).`,
   missingEntity: (id: string): string => `${id} não existe no Home Assistant.`,
   badEntry: (id: string): string => `${id} está sem nada; escreva, por exemplo, ${id}: { role: light }.`,
-  unknownRole: (r: string): string => `role: ${r} não existe. Use light, outlet, equipment, appliance, action ou hidden.`,
+  unknownRole: (r: string): string => `role: ${r} não existe. Use light, outlet, equipment, appliance, action, gate ou hidden.`,
   roleDoesNotFit: (r: string, domain: string): string => `role: ${r} não serve para ${domain}.`,
   applianceNeedsDevice: (id: string): string => `${id} não tem dispositivo, então não pode ser role: appliance.`,
   categoryRole: (id: string): string => `${id} é uma entidade de configuração do Home Assistant e não vai para o painel.`,
@@ -168,7 +245,18 @@ export const ROLE_LABELS = {
   equipment: 'Equipamento',
   appliance: 'Aparelho',
   action: 'Ação',
+  gate: 'Portão',
   hidden: 'Não mostrar',
+} as const;
+
+/** What an item is, on its edit tile and in "Mostrar como": the roles plus the kinds of M3. */
+export const KIND_LABELS = {
+  ...ROLE_LABELS,
+  climate: 'Ar-condicionado',
+  fan: 'Ventilador',
+  cover: 'Cortina',
+  media: 'Mídia',
+  lock: 'Fechadura',
 } as const;
 
 /**
@@ -224,4 +312,112 @@ export const EDIT = {
   roomHidden: (name: string): string => `${name} não aparece mais na home.`,
   roomShown: (name: string): string => `${name} voltou para a home.`,
   itemShown: (name: string): string => `${name} voltou para o painel.`,
+} as const;
+
+/** Gates, doors and locks: the "Acesso" block. Opening always takes a slide. */
+export const ACCESS = {
+  title: 'Acesso',
+  slideOpen: 'Deslize para abrir',
+  slideUnlock: 'Deslize para destrancar',
+  slideTrigger: 'Deslize para acionar',
+  close: 'Fechar',
+  lock: 'Trancar',
+  cover: { closed: 'Fechado', open: 'Aberto', opening: 'Abrindo…', closing: 'Fechando…' } as Readonly<Record<string, string>>,
+  lockState: {
+    locked: 'Trancada',
+    unlocked: 'Destrancada',
+    locking: 'Trancando…',
+    unlocking: 'Destrancando…',
+    jammed: 'Emperrada',
+    open: 'Aberta',
+    opening: 'Abrindo…',
+  } as Readonly<Record<string, string>>,
+  pending: { open: 'Abrindo…', close: 'Fechando…', unlock: 'Destrancando…', lock: 'Trancando…' },
+} as const;
+
+/** Air conditioners and fans: the "Clima" block. */
+export const CLIMATE = {
+  title: 'Clima',
+  off: 'Desligado',
+  on: 'Ligado',
+  now: (t: number): string => `${t}° agora`,
+  target: 'Temperatura',
+  mode: 'Modo',
+  fan: 'Ventilação',
+  swing: 'Oscilação',
+  preset: 'Predefinição',
+  speed: 'Velocidade',
+  turnOn: 'Ligar',
+  turnOff: 'Desligar',
+  colder: 'Diminuir a temperatura',
+  warmer: 'Aumentar a temperatura',
+  modes: {
+    off: 'Desligado',
+    cool: 'Frio',
+    heat: 'Calor',
+    auto: 'Auto',
+    heat_cool: 'Auto',
+    dry: 'Seco',
+    fan_only: 'Ventilar',
+  } as Readonly<Record<string, string>>,
+  actions: {
+    cooling: 'Resfriando',
+    heating: 'Aquecendo',
+    drying: 'Desumidificando',
+    fan: 'Ventilando',
+    idle: 'Em espera',
+  } as Readonly<Record<string, string>>,
+  fanWords: {
+    auto: 'Auto',
+    min: 'Mínima',
+    low: 'Baixa',
+    low_mid: 'Média baixa',
+    medium: 'Média',
+    mid_high: 'Média alta',
+    high: 'Alta',
+    max: 'Máxima',
+    turbo: 'Turbo',
+    on: 'Ligada',
+    off: 'Desligada',
+    none: 'Nenhuma',
+    sleep: 'Dormir',
+    comfort: 'Conforto',
+  } as Readonly<Record<string, string>>,
+} as const;
+
+/** Curtains, blinds and awnings: the "Cortinas" block. */
+export const COVER = {
+  title: 'Cortinas',
+  open: 'Aberta',
+  closed: 'Fechada',
+  opening: 'Abrindo…',
+  closing: 'Fechando…',
+  openPct: (n: number): string => `${n}% aberta`,
+  doOpen: 'Abrir',
+  doStop: 'Parar',
+  doClose: 'Fechar',
+  position: 'Posição',
+} as const;
+
+/** TVs and sound: the "Mídia" block. */
+export const MEDIA = {
+  title: 'Mídia',
+  playing: 'Tocando',
+  paused: 'Pausado',
+  on: 'Ligado',
+  off: 'Desligado',
+  idle: 'Ligado',
+  volume: 'Volume',
+  mute: 'Mudo',
+  unmute: 'Com som',
+  source: 'Fonte',
+  play: 'Tocar',
+  pause: 'Pausar',
+  next: 'Próxima',
+  previous: 'Anterior',
+  louder: 'Aumentar o volume',
+  quieter: 'Diminuir o volume',
+  power: 'Ligar ou desligar',
+  turnOn: 'Ligar',
+  turnOff: 'Desligar',
 } as const;

@@ -28,6 +28,9 @@ export const tokens = css`
     --hubb-art-glow: #f2c98a;
     /* Focus rings: 3:1 or more on every surface of the theme (the Areia amber was not). */
     --hubb-focus: #f2c98a;
+    /* The alert strip and a triggered alarm: the one red of the panel. */
+    --hubb-alert-bg: #c62828;
+    --hubb-alert-ink: #ffffff;
     --hubb-radius: 16px;
     --hubb-radius-sheet: 24px;
     --hubb-motion: 200ms;
@@ -55,6 +58,8 @@ export const tokens = css`
     --hubb-card-shadow: 0 1px 3px rgba(41, 58, 68, 0.1);
     --hubb-art: rgba(41, 58, 68, 0.28);
     --hubb-focus: #8a5a12;
+    --hubb-alert-bg: #b71c1c;
+    --hubb-alert-ink: #ffffff;
   }
   @media (prefers-reduced-motion: reduce) {
     :host {

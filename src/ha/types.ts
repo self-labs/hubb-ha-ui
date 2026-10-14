@@ -63,9 +63,15 @@ export interface HomeAssistant {
     service: string,
     data?: Record<string, unknown>,
     target?: HassServiceTarget,
+    /** False keeps the frontend from showing its own toast when the call fails (default true). */
+    notifyOnError?: boolean,
   ): Promise<unknown>;
   /** The state as a person reads it, translated by the integration; the real frontend always has it. */
   formatEntityState?(stateObj: HassEntityState, state?: string): string;
+  /** An attribute value as a person reads it (a fan speed, a swing), translated when Home Assistant can. */
+  formatEntityAttributeValue?(stateObj: HassEntityState, attribute: string, value?: unknown): string;
   /** A WebSocket command; the real frontend always has it. Saving a dashboard needs an administrator. */
   callWS?<T = unknown>(msg: Record<string, unknown>): Promise<T>;
+  /** False while the frontend lost its connection to Home Assistant; the real frontend always has it. */
+  connected?: boolean;
 }

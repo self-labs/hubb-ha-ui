@@ -34,13 +34,16 @@ export interface StaticReview {
 export const SILENT_AFTER_MS = 24 * 60 * 60 * 1000;
 
 /** The roles a switch can take. */
-const SWITCH_ROLES: readonly Role[] = ['light', 'outlet', 'equipment', 'hidden'];
+const SWITCH_ROLES: readonly Role[] = ['light', 'outlet', 'equipment', 'gate', 'hidden'];
 
 export function suggestRole(name: string): Role {
   const n = name.toLocaleLowerCase('pt-BR');
   // The Echo and TV switches of the Alexa integration (announcements, communications) are not for the resident.
   if (/\bmode\b|display|do not disturb|não perturbe|announcements|communications|anúncios|comunicações/.test(n)) return 'hidden';
-  if (/\bluz\b|luzes|l[aâ]mpada|lumin[aá]ria|plafon|sanca|\bteto\b|spot|pendente|arandela|\bled\b|fita|lustre|abajur/.test(n)) return 'light';
+  // Lights first: "Luz do portão" lights the gate, it does not open it.
+  if (/\bluz\b|luzes|l[aâ]mpada|lumin[aá]ria|plafon|sanca|\bteto\b|spot|pendente|arandela|\bled\b|fita|lustre|abajur|refletor|holofote/.test(n)) return 'light';
+  // A gate is neither a light nor equipment: it opens with the slide to confirm.
+  if (/port[aã]o|\bgate\b/.test(n)) return 'gate';
   return 'equipment';
 }
 

@@ -46,9 +46,11 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
 | Screen          | What it shows                                                                                       |
 | :-------------- | :-------------------------------------------------------------------------------------------------- |
 | **Home**        | A greeting, the outside temperature, one sentence about the house, the first four scenes, the rooms |
-| **Room page**   | The area photo or a drawing of the room, "Apagar tudo", the room's scenes, one tile per light and per outlet |
+| **Room page**   | The area photo or a drawing of the room, its temperature and humidity ("24° · 61%"), "Ocupado" and what is open, "Apagar tudo", the room's scenes, then its blocks: Acesso, Luzes, Clima, Cortinas, Mídia, Tomadas e equipamentos, Aparelhos, Ações |
 | **Lights on**   | A sheet with every light that is on, grouped by room, and "Apagar todas"                            |
 | **Scenes**      | Every scene, with the rooms it touches                                                              |
+| **Segurança**   | The alarm, the doors and windows open now, every gate and lock, and the cameras. The tab shows only when the house has any of these |
+| **Every screen** | A red strip for smoke, gas, carbon monoxide, a leak or the alarm going off, and a strip when the house is out of reach |
 
 And the way it behaves:
 
@@ -58,6 +60,17 @@ And the way it behaves:
 | Tap a light that is down  | Says since when it stopped answering                                                               |
 | Long press a dimmer       | Opens the light sheet: drag the column or pick 25, 50, 75 and 100; a colour light adds up to 9 colours, a white-temperature light adds its whites and a slider |
 | Tap an outlet             | Switches it like a light; "Apagar tudo", "Apagar todas" and Desfazer never touch outlets          |
+| Outlet with a power sensor | Says how much it draws ("Ligada · 120 W"); a long press opens Consumo: Agora and Hoje             |
+| Arm or disarm the alarm   | Arming is a tap on Em casa, Ausente, Noite or Férias; disarming asks for the code, or takes a slide when the alarm has none |
+| Tap a camera              | Opens the live view in Home Assistant's own window. The still image is taken once, when the tab opens |
+| Alert strip               | Vibrates once, leads to the room; it stays while the sensor is on                                 |
+| House out of reach        | "Sem conexão com a casa. Tentando de novo…"; the controls dim and take no tap until it is back    |
+| Open a gate or a lock     | Slide to the end ("Deslize para abrir"); letting go earlier does nothing, and a tap never opens. Fechar and Trancar are a tap |
+| Tap an air conditioner    | Opens its sheet: − and + for the temperature, the mode, the ventilation, the swing and the preset it has; the round button turns it on and off |
+| Tap a fan                 | Switches it; a long press opens its speeds                                                         |
+| Tap a curtain             | Opens or closes it, and stops it while it moves; a long press opens Abrir, Parar, Fechar and the position |
+| Tap a TV or a speaker     | Opens its sheet: play and pause, the tracks, the volume, mute, the source, Ligar or Desligar        |
+| Infrared device           | Its sheet says the state is the last command sent, not what the device reports                    |
 | Bulk action or scene      | Runs at once and offers **Desfazer** for 5 s, even on another screen: the lights that changed go back, and a running script stops |
 | Theme                     | Ardósia (dark) or Areia (light), following the Home Assistant profile, AA contrast in both         |
 | Back                      | The in-app arrow and the Android back gesture stay in step                                         |
@@ -150,7 +163,10 @@ strategy:
 ### Roles
 
 Without a role, an entity reaches the panel by its type: `light.*` is a light, a `switch` shown as an
-outlet is an outlet, a scene or script labelled `hubb_cena` is a scene. A role puts it somewhere else:
+outlet is an outlet, a scene or script labelled `hubb_cena` is a scene, `climate` and `fan` go to
+Clima, a `cover` goes to Cortinas (to Acesso when its class is gate, garage or door, or when it has no
+class and its name says "portão"), a `lock` goes to Acesso and a `media_player` to Mídia (Browser Mod players stay out). A
+role puts it somewhere else:
 
 | Role        | Takes                                | Shows as                                                       |
 | :---------- | :----------------------------------- | :------------------------------------------------------------- |
@@ -159,6 +175,7 @@ outlet is an outlet, a scene or script labelled `hubb_cena` is a scene. A role p
 | `equipment` | `switch`                             | Equipment ("Ligado"/"Desligado"), with its `icon` or a power icon |
 | `appliance` | any entity with a device             | The device becomes an appliance card, with a full sheet        |
 | `action`    | `button`, `input_button`, `script`   | A button in "Ações" that says "Feito"                          |
+| `gate`      | `switch`, `button`, `input_button`, `script`, `cover` | A gate in "Acesso", opened with a slide ("Deslize para acionar" for a pulse relay) |
 | `hidden`    | anything                             | Left out                                                       |
 
 ```yaml
@@ -168,6 +185,7 @@ strategy:
     switch.luz_varanda: { role: light }
     switch.bomba_piscina: { role: equipment, name: Bomba, icon: mdi:pool }
     switch.jet_mode: { role: hidden }
+    switch.portao_social: { role: gate }
     button.reiniciar_roteador: { role: action }
     sensor.electrolux_lavadora_appliancestate:
       role: appliance
@@ -175,6 +193,36 @@ strategy:
 ```
 
 A `switch` with no class and no role stays out of the panel and waits on **Revisar o painel**.
+
+### Sensors, security and consumption
+
+These need no role; their class says where they go:
+
+| Entity | Shows as |
+| :----- | :------- |
+| `binary_sensor` `smoke`, `gas`, `carbon_monoxide`, `moisture` | The red strip on every screen, with or without a room |
+| `binary_sensor` `door`, `window`, `garage_door`, `opening` | "Janela aberta" on the room, a chip on the home, and the security tab |
+| `binary_sensor` `motion`, `occupancy`, `presence` with a room | "Ocupado" on the room and its card |
+| `sensor` `temperature`, `humidity` with a room | "24° · 61%" under the room name; a dedicated thermometer wins over the one inside an air conditioner |
+| `camera`, `alarm_control_panel` | The security tab, with or without a room |
+| `sensor` `power`, `energy` on the device of an outlet or equipment | The power on its tile and the consumption sheet |
+
+The class `problem` raises no alert: integrations use it for device faults. Only a sensor that reads
+`on` counts: one that is down or unknown says nothing. A multi-channel device matches each switch to
+the sensor with the same number at the end (`switch.x_1` with `sensor.x_power_1`); when its switches
+were renamed, name the sensors:
+
+```yaml
+strategy:
+  type: custom:hubb
+  entities:
+    switch.kitnet_banheiro: { power: sensor.sonoff_100155ace9_power_1, energy: sensor.sonoff_100155ace9_energy_1 }
+```
+
+"Hoje" reads the long-term statistics of the energy sensor, which every user of the dashboard may
+read. The camera image is taken once each time the security tab opens, never refreshed while it
+stays open, so a camera behind a tunnel does not eat its traffic; the live view runs only while its
+window is open.
 
 ### Places and floors
 
@@ -193,6 +241,13 @@ sense now, the program and level choices and the options; an option the program 
 disappears. Made with the [Electrolux integration](https://github.com/albaintor/homeassistant_electrolux_status)
 in mind, it reads any device that exposes its state, buttons, `select` and `switch` entities.
 
+When the device also has a connection sensor and a remote control sensor (Electrolux
+`connectivityState` and `remoteControl`), the card says "Sem conexão" or "Controle remoto desligado"
+and the sheet greys out the commands, with the reason. Only `Enabled` takes commands, the same rule
+Electrolux publishes for its appliances. A command that fails shows one line on the sheet instead of
+the toast of Home Assistant; administrators also read when the integration lost its access to the
+maker's cloud.
+
 ### Review the panel
 
 Administrators get a wrench at the top of the home. It opens **Revisar o painel**: the switches with no
@@ -209,7 +264,9 @@ Administrators also get a pencil, on the home and on each room page. In the edit
 - **On the home:** arrows under each room card change the order of the rooms, and **Esconder** takes a
   room off the home; the hidden rooms are listed at the bottom with **Mostrar**.
 - **On a room page:** a tap on an item opens its editor: the name on the panel, its room, how it shows
-  (Luz, Tomada, Equipamento, Aparelho, Ação or Não mostrar) and its place in its block. What the
+  (Luz, Tomada, Equipamento, Aparelho, Ação, Portão or Não mostrar; an air conditioner, a fan, a
+  curtain, a TV or a lock shows by its type and offers Não mostrar, and a curtain can become a
+  Portão) and its place in its block. What the
   configuration hides in that room is listed with **Mostrar**.
 
 Every change is saved into the dashboard configuration (the same keys as the YAML above, plus

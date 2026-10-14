@@ -9,7 +9,7 @@ import { icon } from '../elements/icon';
 import '../elements/nav-bar';
 import type { Role } from '../model/config';
 import { REVIEW_GROUPS, reviewItems, suggestedLines, yamlBlock, yamlLine, type ReviewItem } from '../model/review';
-import type { HubbConfig } from '../model/types';
+import type { HubbConfig, Shared } from '../model/types';
 import { REVIEW, ROLE_LABELS, S } from '../strings';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
@@ -19,6 +19,8 @@ export interface ReviewScreenConfig {
   /** The dashboard configuration, so the review reads the same roles the panel does. */
   options?: HubbConfig;
   homeLabel?: string;
+  /** Alerts and the security tab; missing on dashboards frozen before M4. */
+  shared?: Shared;
 }
 
 /** How long "Linha copiada" stays. */
@@ -129,7 +131,7 @@ export class HubbReviewScreen extends HubbScreen {
         .filter((i) => (i.group === 'role' || i.group === 'appliance') && i.entityId !== null && i.suggested !== null)
         .map((i) => [i.entityId!, i.suggested!]),
     );
-    return html`<header class="hero">
+    return html`${this.strips(this.config?.shared)}<header class="hero">
         <button class="back" aria-label=${S.back} @click=${() => goBack()}>${icon(mdiChevronLeft)}</button>
         <div>
           <h1>${REVIEW.title}</h1>
@@ -156,7 +158,11 @@ export class HubbReviewScreen extends HubbScreen {
         })}
       </main>
       <hubb-toast></hubb-toast>
-      <hubb-nav-bar current="home" home-label=${this.config?.homeLabel ?? S.home}></hubb-nav-bar>`;
+      <hubb-nav-bar
+        current="home"
+        home-label=${this.config?.homeLabel ?? S.home}
+        ?security=${this.config?.shared?.security ?? false}
+      ></hubb-nav-bar>`;
   }
 
   static styles = [

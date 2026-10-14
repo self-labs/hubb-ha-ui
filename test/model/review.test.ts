@@ -28,7 +28,7 @@ describe('suggestRole and the lines of YAML', () => {
   it('suggests hidden for modes and displays, light for light words, equipment for the rest', () => {
     expect(
       ['Jet mode', 'Display light', 'Não perturbe', 'Luz da varanda', 'Spot bancada', 'Fita LED', 'Lâmpada', 'Bomba', 'Portão'].map(suggestRole),
-    ).toEqual(['hidden', 'hidden', 'hidden', 'light', 'light', 'light', 'light', 'equipment', 'equipment']);
+    ).toEqual(['hidden', 'hidden', 'hidden', 'light', 'light', 'light', 'light', 'equipment', 'gate']);
   });
 
   it('writes the lines the installer pastes', () => {
@@ -45,7 +45,7 @@ describe('staticReview', () => {
     expect(r.items.map((i) => [i.group, i.entityId, i.name, i.areaName, i.suggested])).toEqual([
       ['role', 'switch.jet_mode', 'Jet mode', 'Escritório', 'hidden'],
     ]);
-    expect(r.items[0]!.roles).toEqual(['light', 'outlet', 'equipment', 'hidden']);
+    expect(r.items[0]!.roles).toEqual(['light', 'outlet', 'equipment', 'gate', 'hidden']);
     expect(r.watched).toEqual(['sensor.lavadora_appliancestate', 'switch.escritorio_luz', 'switch.varanda_luz']);
   });
 

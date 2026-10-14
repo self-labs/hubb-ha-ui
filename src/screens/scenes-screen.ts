@@ -2,7 +2,7 @@ import { css, html, nothing } from 'lit';
 import { define } from '../elements/define';
 import '../elements/nav-bar';
 import '../elements/scene-button';
-import type { SceneItem } from '../model/types';
+import type { SceneItem, Shared } from '../model/types';
 import { S } from '../strings';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
@@ -13,6 +13,8 @@ export interface ScenesScreenConfig {
   lightIds: string[];
   /** Name of the first tab of the bottom bar; "Casa" when missing. */
   homeLabel?: string;
+  /** Alerts and the security tab; missing on dashboards frozen before M4. */
+  shared?: Shared;
 }
 
 export class HubbScenesScreen extends HubbScreen {
@@ -38,7 +40,7 @@ export class HubbScenesScreen extends HubbScreen {
     const hass = this.hass;
     const scenes = this.config?.scenes;
     if (!hass || !scenes) return nothing;
-    return html`<main>
+    return html`${this.strips(this.config?.shared)}<main>
         <h1>${S.scenes}</h1>
         ${scenes.length
           ? html`<div class="list">${scenes.map((s) => html`<hubb-scene-button variant="row" .scene=${s}></hubb-scene-button>`)}</div>`
@@ -48,7 +50,11 @@ export class HubbScenesScreen extends HubbScreen {
             </div>`}
       </main>
       <hubb-toast></hubb-toast>
-      <hubb-nav-bar current="scenes" home-label=${this.config?.homeLabel ?? S.home}></hubb-nav-bar>`;
+      <hubb-nav-bar
+        current="scenes"
+        home-label=${this.config?.homeLabel ?? S.home}
+        ?security=${this.config?.shared?.security ?? false}
+      ></hubb-nav-bar>`;
   }
 
   static styles = [

@@ -1,6 +1,6 @@
 import type { HomeAssistant } from './ha/types';
-import { isShownOption, programOf, remainingMinutes, situation, stateText, type ApplianceItem } from './model/appliances';
-import type { House, Room } from './model/types';
+import { applianceReach, isShownOption, programOf, remainingMinutes, situation, stateText, type ApplianceItem } from './model/appliances';
+import type { House, OpeningItem, Room } from './model/types';
 import {
   applianceChip,
   devicesOnCount,
@@ -12,6 +12,8 @@ import {
   outletsOnCount,
   outletStatus,
   roomStatus,
+  REACH,
+  SENSE,
   roomWithLights,
   S,
 } from './strings';
@@ -69,6 +71,31 @@ export function devicesOnIn(room: Room, hass: HomeAssistant): number {
   return [...room.outlets, ...room.equipment].filter((d) => hass.states[d.entityId]?.state === 'on').length;
 }
 
+/** A sensor that reads a number now; null when it is down, unknown or empty. */
+function reading(hass: HomeAssistant, entityId: string | null): number | null {
+  const state = entityId ? hass.states[entityId]?.state : undefined;
+  const v = Number(state);
+  return state !== undefined && state !== '' && Number.isFinite(v) ? v : null;
+}
+
+/** "24° · 61%": what the thermometer and the hygrometer of the room read; null when they read nothing. */
+export function roomClimate(hass: HomeAssistant, room: Room): string | null {
+  const t = reading(hass, room.temperature);
+  const u = reading(hass, room.humidity);
+  const parts = [t !== null ? `${Math.round(t)}°` : null, u !== null ? `${Math.round(u)}%` : null].filter((p): p is string => p !== null);
+  return parts.length ? parts.join(' · ') : null;
+}
+
+/** The doors and windows open now: only `on` counts, a sensor that is down says nothing. */
+export const openNow = (hass: HomeAssistant, openings: readonly OpeningItem[]): OpeningItem[] =>
+  openings.filter((o) => hass.states[o.entityId]?.state === 'on');
+
+/** "Janela aberta", "Porta aberta"; an opening sensor of no known kind says its name. */
+export const openingWord = (o: OpeningItem): string => SENSE.open[o.kind] ?? SENSE.openNamed(o.name);
+
+/** Someone is in the room: a motion, occupancy or presence sensor is on. */
+export const occupied = (hass: HomeAssistant, room: Room): boolean => room.presence.some((id) => hass.states[id]?.state === 'on');
+
 /** The line under the room name on its page. */
 export function roomHeroStatus(room: Room, hass: HomeAssistant): string {
   if (room.lights.length) return roomStatus(lightsOnIn(room, hass), room.lights.length);
@@ -78,8 +105,14 @@ export function roomHeroStatus(room: Room, hass: HomeAssistant): string {
   return appliance ? applianceLine(hass, appliance) : '';
 }
 
-/** The line under a room card on the home: the lights first, then the outlets and the equipment. */
+/** The line under a room card on the home, after "Ocupado · " while someone is in it. */
 export function roomCardStatus(room: Room, hass: HomeAssistant): string {
+  const line = cardLine(room, hass);
+  return occupied(hass, room) ? SENSE.occupiedLine(line) : line;
+}
+
+/** The lights first, then the outlets and the equipment, then the appliance. */
+function cardLine(room: Room, hass: HomeAssistant): string {
   const on = lightsOnIn(room, hass);
   if (on) return onCount(on);
   const busy = busyAppliances([room], hass)[0];
@@ -99,10 +132,16 @@ export function roomCardStatus(room: Room, hass: HomeAssistant): string {
 
 /** The state line of an appliance: "Lavando · faltam 40 min" while it runs or waits paused, the state alone otherwise. */
 export function applianceLine(hass: HomeAssistant, item: ApplianceItem): string {
+  const reach = applianceReach(hass, item.parts);
+  // Out of reach, the state on screen is the last one it sent: it may be stale.
+  if (reach === 'offline') return REACH.offline;
+  const working = situation(hass, item.parts) !== 'stopped';
+  // While it works the time left matters more; stopped, what keeps it from starting from here.
+  if (reach === 'remote-off' && !working) return REACH.remoteOff;
   const text = stateText(hass, item.parts, item.name);
   if (text === null) return S.noState;
   const minutes = remainingMinutes(hass, item.parts);
-  return situation(hass, item.parts) !== 'stopped' && minutes !== null && minutes > 0 ? `${text} · ${minutesLeft(minutes)}` : text;
+  return working && minutes !== null && minutes > 0 ? `${text} · ${minutesLeft(minutes)}` : text;
 }
 
 export interface PlacedAppliance {

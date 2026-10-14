@@ -4,6 +4,7 @@ import { haptic } from '../actions/haptic';
 import { PendingTracker } from '../actions/pending';
 import type { HomeAssistant } from '../ha/types';
 import {
+  applianceReach,
   buttonsFor,
   isPoweredOff,
   isShownOption,
@@ -16,7 +17,7 @@ import {
   type Command,
 } from '../model/appliances';
 import { displayName } from '../model/names';
-import { COMMAND_LABELS, minutesToFinish, S } from '../strings';
+import { COMMAND_LABELS, minutesToFinish, REACH, S } from '../strings';
 import './action-button';
 import { define } from './define';
 import './equipment-tile';
@@ -32,24 +33,57 @@ const COMMAND_ICONS: Record<Command, string> = {
   other: mdiPlayCircleOutline,
 };
 
+/** The maker's cloud refused the call: the integration lost its login (Electrolux answers 401). */
+const LOST_ACCESS = /\b40[13]\b|unauthori[sz]ed|forbidden/i;
+
 /** The appliance sheet: how long is left, the commands that make sense now, the choices and the options. */
 export class HubbAppliancePanel extends LitElement {
   static properties = {
     hass: { attribute: false },
     item: { attribute: false },
+    failed: { state: true },
   };
 
   declare hass: HomeAssistant | undefined;
   declare item: ApplianceItem | undefined;
+  /** The last call from this sheet failed; `access` when the maker's cloud refused it. */
+  declare failed: 'plain' | 'access' | null;
 
   /** The choice asked for, until Home Assistant confirms it; the same 3 s wait as the tiles. */
   #tracker = new PendingTracker();
   #refresh: ReturnType<typeof setTimeout> | null = null;
+  #quiet: { from: HomeAssistant; to: HomeAssistant } | null = null;
 
   constructor() {
     super();
     this.hass = undefined;
     this.item = undefined;
+    this.failed = null;
+  }
+
+  /**
+   * The hass this sheet hands to its buttons and options: the same, except that a failed call shows
+   * one line here instead of a toast of Home Assistant per tap, in English and with the cloud's URL.
+   */
+  #quietHass(hass: HomeAssistant): HomeAssistant {
+    if (this.#quiet?.from === hass) return this.#quiet.to;
+    const to: HomeAssistant = {
+      ...hass,
+      callService: (domain, service, data, target) =>
+        hass.callService(domain, service, data, target, false).then(
+          (answer) => {
+            this.failed = null;
+            return answer;
+          },
+          (err: unknown) => {
+            const message = String((err as { message?: unknown } | null)?.message ?? err);
+            this.failed = LOST_ACCESS.test(message) ? 'access' : 'plain';
+            throw err;
+          },
+        ),
+    };
+    this.#quiet = { from: hass, to };
+    return to;
   }
 
   disconnectedCallback(): void {
@@ -75,15 +109,18 @@ export class HubbAppliancePanel extends LitElement {
     this.#tracker.start(entityId, option, option === st.state ? undefined : st);
     haptic('light');
     this.requestUpdate();
-    hass.callService('select', 'select_option', { option }, { entity_id: entityId }).catch(() => haptic('failure'));
+    this.#quietHass(hass)
+      .callService('select', 'select_option', { option }, { entity_id: entityId })
+      .catch(() => haptic('failure'));
   }
 
-  #command(hass: HomeAssistant, button: ApplianceButton) {
+  #command(hass: HomeAssistant, button: ApplianceButton, disabled: boolean) {
     const name = button.command === 'other' ? displayName(hass, button.entityId, null) : COMMAND_LABELS[button.command];
     return html`<hubb-action-button
-      .hass=${hass}
+      .hass=${this.#quietHass(hass)}
       .item=${{ entityId: button.entityId, name, icon: null }}
       .path=${COMMAND_ICONS[button.command]}
+      .disabled=${disabled}
     ></hubb-action-button>`;
   }
 
@@ -121,14 +158,22 @@ export class HubbAppliancePanel extends LitElement {
     const selects = parts.selects.filter((id) => isShownOption(hass, id));
     // An option the current program does not take comes as unavailable: it leaves the sheet.
     const switches = parts.switches.filter((id) => isShownOption(hass, id));
+    const reach = applianceReach(hass, parts);
+    const notice = reach === 'offline' ? REACH.offlineHint : reach === 'remote-off' ? REACH.remoteOffHint : null;
     return html`<div class="now">
         <strong>${timed ?? text ?? S.noState}</strong>
         ${timed && text ? html`<span>${text}</span>` : nothing}
         ${pct !== null ? html`<span class="bar"><span style="width:${pct}%"></span></span>` : nothing}
       </div>
+      ${notice ? html`<p class="notice" role="status">${notice}</p>` : nothing}
+      ${this.failed
+        ? html`<p class="failed" role="alert">
+            ${REACH.failed(item.name)} ${this.failed === 'access' && hass.user?.is_admin ? REACH.lostAccess : nothing}
+          </p>`
+        : nothing}
       ${commands.length
         ? html`<div class="commands" style="grid-template-columns: repeat(${Math.min(commands.length, 3)}, minmax(0, 1fr))">
-            ${commands.map((b) => this.#command(hass, b))}
+            ${commands.map((b) => this.#command(hass, b, reach !== 'ok'))}
           </div>`
         : nothing}
       ${selects.length ? html`<div class="choices">${selects.map((id) => this.#choice(hass, id))}</div>` : nothing}
@@ -137,7 +182,7 @@ export class HubbAppliancePanel extends LitElement {
             ${switches.map(
               (id) =>
                 html`<hubb-equipment-tile
-                  .hass=${hass}
+                  .hass=${this.#quietHass(hass)}
                   .item=${{ entityId: id, name: displayName(hass, id, null), icon: null }}
                 ></hubb-equipment-tile>`,
             )}
@@ -182,6 +227,20 @@ export class HubbAppliancePanel extends LitElement {
     .commands {
       display: grid;
       gap: 8px;
+    }
+    .notice,
+    .failed {
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--hubb-surface);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--hubb-text-2);
+    }
+    .failed {
+      color: var(--hubb-amber-text);
     }
     .choices {
       display: grid;

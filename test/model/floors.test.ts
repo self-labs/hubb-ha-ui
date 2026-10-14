@@ -16,8 +16,16 @@ const room = (areaId: string, floorId: string | null): Room => ({
   equipment: [],
   appliances: [],
   actions: [],
+  climate: [],
+  covers: [],
+  media: [],
+  access: [],
   scenes: [],
   hidden: [],
+  openings: [],
+  presence: [],
+  temperature: null,
+  humidity: null,
 });
 
 function hass() {
