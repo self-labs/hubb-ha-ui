@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hubb HA UI preview</title>
+<style>
+  body { margin: 0; }
+</style>
+<script type="module">
+  // Draws one screen of the real bundle over the fictional house of dev/mock-house.js.
+  //   view=home | scenes | seguranca | revisar | <area id>      (default home)
+  //   theme=light, admin=1, edit=1, alert=1, offline=1, code=1, alarm=<state>, remote=Disabled
+  //   sheet=light|climate|media|cover|power|appliance & id=<entity id>
+  //   nav=hide (no bottom bar, for full-page shots)
+  await import('/dist/hubb-ha-ui.js');
+  const { mockHouse } = await import('/dev/mock-house.js');
+  const q = new URLSearchParams(location.search);
+  const { hass, config } = mockHouse(q);
+  const strategy = customElements.get('ll-strategy-dashboard-hubb');
+  const dashboard = await strategy.generate(config, hass);
+  // Screens read their base path from the first segment of the address, like /hubb-casa/home.
+  history.replaceState(null, '', `/hubb-casa/${q.get('view') ?? 'home'}${location.search}`);
+  const view = dashboard.views.find((v) => v.path === (q.get('view') ?? 'home')) ?? dashboard.views[0];
+  const card = view.cards[0];
+  const el = document.createElement(card.type.replace('custom:', ''));
+  el.setConfig(card);
+  el.hass = hass;
+  document.body.appendChild(el);
+  await el.updateComplete;
+  if (q.get('edit') === '1') {
+    el.shadowRoot.querySelector('.edit')?.click();
+    await el.updateComplete;
+  }
+  const id = q.get('id');
+  const open = (type, detail) => el.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
+  switch (q.get('sheet')) {
+    case 'light': open('hubb-open-dimmer', { entityId: id, name: hass.states[id]?.attributes.friendly_name }); break;
+    case 'climate': open('hubb-open-climate', { entityId: id }); break;
+    case 'media': open('hubb-open-media', { entityId: id }); break;
+    case 'cover': open('hubb-open-cover', { entityId: id }); break;
+    case 'power': open('hubb-open-power', { entityId: id }); break;
+    case 'appliance': open('hubb-open-appliance', { deviceId: id }); break;
+  }
+  await el.updateComplete;
+  if (q.get('nav') === 'hide') el.shadowRoot.querySelector('hubb-nav-bar')?.style.setProperty('display', 'none');
+  window.previewReady = true;
+</script>
+</head>
+<body></body>
+</html>

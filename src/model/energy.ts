@@ -2,7 +2,7 @@ import type { HomeAssistant } from '../ha/types';
 import { deviceEntities } from './appliances';
 import type { EntitySettings } from './config';
 
-/** The channel number at the end of an id: `switch.bl_1` is 1, `switch.kitnet_banheiro` has none. */
+/** The channel number at the end of an id: `switch.bl_1` is 1, `switch.quarto_tomada` has none. */
 const channel = (entityId: string): string | null => /_(\d+)$/.exec(entityId)?.[1] ?? null;
 
 /**

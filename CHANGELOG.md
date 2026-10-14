@@ -8,6 +8,19 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Added
+
+- `npm run preview`: the real bundle over a made-up house (`dev/`), to see every screen in a
+  browser and to take the screenshots of the README.
+
+### Changed
+
+- The README opens with a tour of the panel, with new screenshots of the home, a room, the light and
+  air conditioner sheets, the gate, the security tab, the washer, the consumption, the review and
+  the edit mode.
+- The README says how to prepare a house for the device blocks, the sensors, the consumption and
+  the remote control of an appliance, and CLAUDE.md lists the release steps in order.
+
 ## [2026.10.8] - 2026-10-14
 
 ### Added

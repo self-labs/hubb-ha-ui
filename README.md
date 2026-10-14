@@ -2,29 +2,28 @@
 
 # 🏠 Hubb HA UI
 
-A home screen your clients actually enjoy opening. One dashboard strategy builds every screen of the
-house from the areas Home Assistant already knows: a sentence about the house, one card per room, the
-scenes, and lights that answer the moment they are touched.
-
-There is no card YAML per client, and the same file runs on every house, whatever board drives the
-lights.
+The panel a resident opens on the phone, built by Home Assistant itself. One dashboard strategy reads
+the areas, devices and entities of the house and draws every screen: a sentence about the house, one
+card per room, the lights, the air conditioning, the curtains, the TV, the gate, the washer, the alarm
+and the cameras. There is no card YAML per client: the same file runs on every house, whatever board
+drives the relays, and one HACS update reaches them all.
 
 <table>
   <tr>
-    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/home-dark.png" width="160" alt="Home screen, dark theme"></td>
-    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/home-light.png" width="160" alt="Home screen, light theme"></td>
-    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/room-dark.png" width="160" alt="Room page, dark theme"></td>
-    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/room-light.png" width="160" alt="Room page, light theme"></td>
-    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/sheet-dark.png" width="160" alt="Light sheet with colours, dark theme"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/home-dark.png" width="220" alt="Home screen: greeting, a sentence about the house, chips for the lights on, the washer and an open window, the scenes and the rooms"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/room-dark.png" width="220" alt="Living room page: lights, air conditioner, curtain and TV"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/security-dark.png" width="220" alt="Security tab: alarm with a slide to disarm, an open window, the gate and the lock, two cameras"></td>
   </tr>
   <tr>
-    <td align="center">Home, Ardósia</td>
-    <td align="center">Home, Areia</td>
-    <td align="center">Room, Ardósia</td>
-    <td align="center">Room, Areia</td>
-    <td align="center">Light sheet</td>
+    <td align="center"><b>Home</b><br>the house in one sentence</td>
+    <td align="center"><b>Room</b><br>everything in it, in blocks</td>
+    <td align="center"><b>Segurança</b><br>alarm, doors, gate, cameras</td>
   </tr>
 </table>
+
+> [!NOTE]
+> Every screenshot here comes from `npm run preview`, a made-up house drawn by the real bundle (see
+> [Development](#development)). The panel speaks Brazilian Portuguese: it is made for Hubb's clients.
 
 ## Why this exists
 
@@ -41,18 +40,124 @@ This takes a different route. A **dashboard strategy** (`custom:hubb`) reads the
 entities at load time and generates the screens. The cards only receive entity ids, so the house is
 described once, in Home Assistant itself, and one HACS update reaches every client.
 
-## What the resident gets
+## A tour of the panel
 
-| Screen          | What it shows                                                                                       |
-| :-------------- | :-------------------------------------------------------------------------------------------------- |
-| **Home**        | A greeting, the outside temperature, one sentence about the house, the first four scenes, the rooms |
-| **Room page**   | The area photo or a drawing of the room, its temperature and humidity ("24° · 61%"), "Ocupado" and what is open, "Apagar tudo", the room's scenes, then its blocks: Acesso, Luzes, Clima, Cortinas, Mídia, Tomadas e equipamentos, Aparelhos, Ações |
-| **Lights on**   | A sheet with every light that is on, grouped by room, and "Apagar todas"                            |
-| **Scenes**      | Every scene, with the rooms it touches                                                              |
-| **Segurança**   | The alarm, the doors and windows open now, every gate and lock, and the cameras. The tab shows only when the house has any of these |
-| **Every screen** | A red strip for smoke, gas, carbon monoxide, a leak or the alarm going off, and a strip when the house is out of reach |
+### Home
 
-And the way it behaves:
+<table>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/home-light.png" width="200" alt="Home screen in the light theme"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/alert-light.png" width="200" alt="Home screen with the red strip for smoke in the kitchen"></td>
+  </tr>
+  <tr>
+    <td align="center">Areia, the light theme</td>
+    <td align="center">An alert on every screen</td>
+  </tr>
+</table>
+
+- A greeting with the resident's name, the outside temperature and **one sentence about the house**
+  ("4 luzes acesas em 3 ambientes").
+- Chips for what needs attention: the lights on (a tap lists them and turns them all off), an
+  appliance running ("Lavadora · 40 min"), a window left open ("Janela aberta · Quarto").
+- The first four scenes, then one card per room with its photo or one of [59 drawings](docs/drawings.md),
+  lit while a light is on, with "Ocupado" when someone is in.
+- **Smoke, gas, carbon monoxide, a leak or the alarm going off** turn into a red strip on top of every
+  screen. It vibrates once, leads to the room and stays while the sensor is on. When the house is out
+  of reach, a grey strip says so and the controls dim.
+- Ardósia (dark) or Areia (light), following the Home Assistant profile, with AA contrast in both.
+
+### Room page
+
+<table>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/room-light.png" width="200" alt="Bedroom page with temperature, humidity, Ocupado and an open window"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/sheet-dark.png" width="200" alt="Light sheet with brightness, colours and white temperature"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/climate-dark.png" width="200" alt="Air conditioner sheet with target temperature, mode, ventilation and swing"></td>
+  </tr>
+  <tr>
+    <td align="center">Sensors of the room</td>
+    <td align="center">Light sheet</td>
+    <td align="center">Air conditioner</td>
+  </tr>
+</table>
+
+- The header reads the room: how many lights are on, **"24° · 61%"** from its thermometer, and chips
+  for "Ocupado" and "Janela aberta".
+- **Apagar tudo** and the room's scenes, then the blocks in a fixed order: Acesso, Luzes, Clima,
+  Cortinas, Mídia, Tomadas e equipamentos, Aparelhos, Ações. A block with nothing stays out.
+- **Lights** change at once and vibrate; with no answer in 3 s they say "Sem resposta". A long press
+  opens the sheet: brightness, 9 colours, the whites and their temperature, each only when the bulb
+  has it.
+- **Air conditioner:** what it is doing, the target and the temperature now; its sheet has − and +,
+  the mode, the ventilation, the swing and the preset it supports. An infrared one says its state is
+  the last command sent.
+- **Curtains** open, close and stop with a tap; **TV and sound** play, pause and turn off from the
+  card, with volume, mute and source on the sheet; **fans** switch and open their speeds.
+
+### Access and security
+
+<table>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/access-light.png" width="200" alt="Entrance page with the lock and the gate, each with a slide to open"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/security-dark.png" width="200" alt="Security tab"></td>
+  </tr>
+  <tr>
+    <td align="center">Slide to open</td>
+    <td align="center">The Segurança tab</td>
+  </tr>
+</table>
+
+- **A gate, a door or a lock never opens with a tap.** It takes a slide to the end ("Deslize para
+  abrir"); letting go earlier, a second finger or the phone taking the touch away does nothing.
+  Closing and locking are a tap.
+- The **Segurança** tab gathers the alarm (arming is a tap; disarming asks for the code, or takes a
+  slide when there is none), the doors and windows open now, every gate and lock of the house, and
+  the cameras.
+- **Cameras:** one still image each time the tab opens, never refreshed while it stays open, so a
+  camera behind a tunnel does not eat its traffic. A tap opens the live view in Home Assistant's own
+  window.
+
+### Appliances and consumption
+
+<table>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/appliance-dark.png" width="200" alt="Washer sheet with the time left, the commands, the program and the options"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/power-light.png" width="200" alt="Consumption sheet of an outlet: power now and energy today"></td>
+  </tr>
+  <tr>
+    <td align="center">Washer</td>
+    <td align="center">Consumption</td>
+  </tr>
+</table>
+
+- A **washer, dryer or dishwasher** becomes one card ("Lavando · faltam 40 min") and a timer chip on
+  the home. Its sheet has the time left, the commands that make sense now, the program, the level and
+  the options; it greys the commands out when the appliance is offline or its remote control is off.
+- An **outlet with a power sensor** says how much it draws ("Ligada · 120 W"); a long press opens
+  Consumo with **Agora** and **Hoje**.
+
+### For the installer
+
+<table>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/review-light.png" width="200" alt="Revisar o painel: switches waiting for a role and a light with no room"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/edit-dark.png" width="200" alt="Edit mode on a room page: every item opens its editor"></td>
+  </tr>
+  <tr>
+    <td align="center">Revisar o painel</td>
+    <td align="center">Edit mode</td>
+  </tr>
+</table>
+
+- **Revisar o painel** (the wrench, administrators only) lists what the panel cannot place by itself:
+  switches with no role, appliances found, what has no room, mistakes in the configuration and what
+  has not answered for a day. One tap saves the choice; "Aceitar todas as sugestões" saves them all.
+- **Edit mode** (the pencil): rename an item, move it to another room, change how it shows, reorder
+  it, hide a room. Every change goes into the dashboard configuration with **Desfazer** for 5 s.
+- Residents never see either: client accounts are not administrators.
+
+<details>
+<summary>Every interaction, in detail</summary>
 
 | Interaction               | Behaviour                                                                                         |
 | :------------------------ | :------------------------------------------------------------------------------------------------ |
@@ -72,9 +177,10 @@ And the way it behaves:
 | Tap a TV or a speaker     | Opens its sheet: play and pause, the tracks, the volume, mute, the source, Ligar or Desligar        |
 | Infrared device           | Its sheet says the state is the last command sent, not what the device reports                    |
 | Bulk action or scene      | Runs at once and offers **Desfazer** for 5 s, even on another screen: the lights that changed go back, and a running script stops |
-| Theme                     | Ardósia (dark) or Areia (light), following the Home Assistant profile, AA contrast in both         |
 | Back                      | The in-app arrow and the Android back gesture stay in step                                         |
 | Keyboard and readers      | A focus ring on every button; Escape closes the sheet; arrows, Page, Home and End set the brightness; right click or Shift+F10 opens the light sheet |
+
+</details>
 
 > [!NOTE]
 > Vibration comes from the Home Assistant Companion App, which turns the frontend's `haptic` event
@@ -140,13 +246,14 @@ strategy:
 | `rooms.<area>.hidden` | `false`                            | Leaves a room out                                          |
 | `rooms.<area>.floor`  | The floor of the area              | Moves a room to another floor without touching Home Assistant |
 | `profile`             | `home`                             | Kind of place: `home`, `clinic`, `restaurant`, `office`, `store`, `gym`, `salon` or `hotel`. See [Places and floors](#places-and-floors) |
-| `entities.<id>.role`  | From the entity type               | `light`, `outlet`, `equipment`, `appliance`, `action` or `hidden`. See [Roles](#roles) |
+| `entities.<id>.role`  | From the entity type               | `light`, `outlet`, `equipment`, `appliance`, `action`, `gate` or `hidden`. See [Roles](#roles) |
 | `entities.<id>.name`  | The entity name                    | Name on the panel                                          |
 | `entities.<id>.order` | By name                            | Place of the item inside its block, lower first            |
 | `entities.<id>.icon`  | The icon of the role               | An `mdi:` icon for equipment and actions                   |
 | `entities.<id>.area`  | The area of the entity, then of its device (an appliance: its device first) | Room of the entity on the panel |
 | `entities.<id>.hide`  | none                               | Appliance only: entities of its device left out of its sheet |
 | `entities.<id>.remaining`, `.progress` | Found on the device | Appliance only: the time left and the progress sensors, when the automatic pick is wrong |
+| `entities.<id>.power`, `.energy` | Found on the device | Outlet or equipment: its power and energy sensors, when the automatic match fails. See [Sensors, security and consumption](#sensors-security-and-consumption) |
 | `hide_entities`       | none                               | Lights and outlets left out even though they have an area (the fridge or the router plug) |
 
 ```yaml
@@ -216,7 +323,7 @@ were renamed, name the sensors:
 strategy:
   type: custom:hubb
   entities:
-    switch.kitnet_banheiro: { power: sensor.sonoff_100155ace9_power_1, energy: sensor.sonoff_100155ace9_energy_1 }
+    switch.quarto_tomada: { power: sensor.rele_duplo_power_1, energy: sensor.rele_duplo_energy_1 }
 ```
 
 "Hoje" reads the long-term statistics of the energy sensor, which every user of the dashboard may
@@ -285,6 +392,10 @@ The strategy shows what Home Assistant knows, so the work happens in Home Assist
 | **Short, client names**   | The tile shows the name as is                             | "Sofá", not "Saída 1". A room name at the start or the end is dropped ("LED Sala" in the Sala shows "LED") |
 | **Scenes labelled**       | Only labelled scenes and scripts reach the panel          | Label **`hubb_cena`** on a `scene.*` or `script.*`; give it an area to show it on that room too       |
 | **Area pictures** (optional) | Without one, the card shows a drawing picked from the area name or icon ([list](docs/drawings.md)) | The picture field of each area                                                  |
+| **Devices in an area**    | Air conditioners, fans, curtains, TVs, gates and locks show on the room page of their area | The area field. A gate `cover` needs the class gate, garage or door, or "portão" in its name; a pulse relay gets the [role](#roles) `gate` |
+| **Sensors with their class** | Doors, windows, motion, temperature and humidity show on their room; smoke, gas, leaks, cameras and the alarm work with or without an area | The area field, and the right class (entity settings, **Show as** Door, Window, Motion, Smoke, Moisture) |
+| **Consumption matched**   | The power of an outlet shows when its sensor sits on the same device | Nothing for a plug; a multi-channel relay whose switches were renamed needs `power` and `energy` in the [YAML](#sensors-security-and-consumption) |
+| **Remote control on**     | An Electrolux appliance refuses commands while its remote control is off | The remote control button on the appliance itself; the panel says when it is off |
 
 Hidden and diagnostic entities never show up on their own (an appliance still reads its diagnostic
 time left), and neither does anything without an area, which is why the per-browser screen lights
@@ -314,6 +425,19 @@ npm run check      # typecheck, tests, build
 
 The single artefact is `dist/hubb-ha-ui.js`. A `vYYYY.M.R` tag publishes it as a Release asset.
 Conventions for contributors and agents live in [CLAUDE.md](./CLAUDE.md).
+
+### Preview
+
+```bash
+npm run preview    # builds, then serves http://127.0.0.1:4173
+```
+
+Draws the real bundle over a made-up house ([`dev/mock-house.js`](dev/mock-house.js)): seven rooms,
+coloured lights, an air conditioner, a curtain, a TV, a gate and a lock, a washer, an alarm and two
+cameras. Pick the screen with the address: `?view=home`, `?view=sala`, `?view=seguranca`,
+`?view=revisar&admin=1`; add `theme=light`, `alert=1` (smoke in the kitchen), `offline=1`, `edit=1`,
+`code=1` (alarm with a keypad), or open a sheet with `sheet=light|climate|media|cover|power|appliance`
+and `id=<entity or device id>`. The screenshots of this README are taken from it at 390 × 844.
 
 ## License
 

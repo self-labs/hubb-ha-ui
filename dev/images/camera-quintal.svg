@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <!-- A made-up backyard at dusk, for the preview only. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f4a63"/>
+      <stop offset="1" stop-color="#d79a6b"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#sky)"/>
+  <circle cx="520" cy="110" r="30" fill="#f4d8a4" opacity="0.9"/>
+  <rect y="230" width="640" height="130" fill="#3f5a3a"/>
+  <path d="M0 230 q160 -40 320 0 t320 0 v10 h-640 z" fill="#4b6a44"/>
+  <rect x="90" y="150" width="18" height="100" fill="#4a3628"/>
+  <circle cx="99" cy="140" r="56" fill="#2f4a2c"/>
+  <circle cx="70" cy="160" r="36" fill="#365533"/>
+  <circle cx="130" cy="158" r="38" fill="#2b4429"/>
+  <rect x="260" y="250" width="200" height="16" rx="3" fill="#8a6a4c"/>
+  <rect x="270" y="266" width="10" height="40" fill="#6d523a"/>
+  <rect x="440" y="266" width="10" height="40" fill="#6d523a"/>
+  <g fill="#f6e3b0">
+    <circle cx="200" cy="222" r="5"/>
+    <circle cx="300" cy="214" r="5"/>
+    <circle cx="400" cy="214" r="5"/>
+    <circle cx="500" cy="222" r="5"/>
+  </g>
+  <path d="M180 220 Q340 196 520 220" fill="none" stroke="#1d2a23" stroke-width="2"/>
+  <rect x="12" y="12" width="168" height="24" rx="4" fill="#000" opacity="0.45"/>
+  <text x="22" y="29" fill="#fff" font-family="monospace" font-size="13">QUINTAL  14/10 19:42</text>
+</svg>
