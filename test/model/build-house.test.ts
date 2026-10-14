@@ -267,4 +267,40 @@ describe('buildHouse with roles, profiles and floors', () => {
     expect(names(room('sala').outlets)).toEqual(['Tomada']);
     expect(names(room('sala').lights)).toEqual(['Sala']);
   });
+
+  it('orders the items of a block by the order of the configuration, then by name', () => {
+    const h = makeHass({
+      areas: [area('sala', 'Sala')],
+      entities: [
+        { entity_id: 'light.a', area_id: 'sala', name: 'Abajur', state: 'off' },
+        { entity_id: 'light.b', area_id: 'sala', name: 'Teto', state: 'off' },
+        { entity_id: 'light.c', area_id: 'sala', name: 'Pendente', state: 'off' },
+      ],
+    });
+    const house = buildHouse(h, { entities: { 'light.c': { order: 1 }, 'light.b': { order: 2 } } });
+    expect(names(house.rooms[0]!.lights)).toEqual(['Pendente', 'Teto', 'Abajur']);
+  });
+
+  it('keeps what the configuration hides within reach of the editor, but not what Home Assistant hides', () => {
+    const h = makeHass({
+      areas: [area('sala', 'Sala'), area('quarto', 'Quarto')],
+      entities: [
+        { entity_id: 'light.sofa', area_id: 'sala', name: 'Sofá', state: 'off' },
+        { entity_id: 'light.mesa', area_id: 'sala', name: 'Mesa', state: 'off' },
+        { entity_id: 'switch.jet', area_id: 'sala', name: 'Jet', state: 'off' },
+        { entity_id: 'switch.original', area_id: 'sala', name: 'Original', state: 'off', hidden: true },
+        { entity_id: 'light.cama', area_id: 'quarto', name: 'Cama', state: 'off' },
+      ],
+    });
+    const house = buildHouse(h, {
+      hide_entities: ['light.mesa'],
+      entities: { 'switch.jet': { role: 'hidden' } },
+      rooms: { quarto: { hidden: true } },
+    });
+    expect(house.rooms.find((r) => r.areaId === 'sala')!.hidden).toEqual([
+      { entityId: 'switch.jet', name: 'Jet' },
+      { entityId: 'light.mesa', name: 'Mesa' },
+    ]);
+    expect(house.hiddenRooms).toEqual([{ areaId: 'quarto', name: 'Quarto' }]);
+  });
 });

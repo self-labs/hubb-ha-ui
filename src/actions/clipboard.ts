@@ -19,7 +19,9 @@ export async function copyText(text: string): Promise<boolean> {
     area.style.position = 'fixed';
     area.style.opacity = '0';
     document.body.appendChild(area);
+    area.style.fontSize = '16px';
     area.select();
+    area.setSelectionRange(0, text.length);
     const ok = typeof document.execCommand === 'function' && document.execCommand('copy');
     area.remove();
     return ok;

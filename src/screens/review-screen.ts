@@ -1,11 +1,13 @@
 import { mdiChevronLeft } from '@mdi/js';
 import { css, html, nothing } from 'lit';
 import { copyText } from '../actions/clipboard';
+import { putBack, setRoles } from '../actions/dashboard-config';
 import { haptic } from '../actions/haptic';
 import { goBack } from '../actions/navigate';
 import { define } from '../elements/define';
 import { icon } from '../elements/icon';
 import '../elements/nav-bar';
+import type { Role } from '../model/config';
 import { REVIEW_GROUPS, reviewItems, suggestedLines, yamlBlock, yamlLine, type ReviewItem } from '../model/review';
 import type { HubbConfig } from '../model/types';
 import { REVIEW, ROLE_LABELS, S } from '../strings';
@@ -73,6 +75,23 @@ export class HubbReviewScreen extends HubbScreen {
     }, NOTICE_MS);
   }
 
+  /**
+   * Saves the roles into the dashboard configuration; Home Assistant rebuilds the dashboard by itself,
+   * and Desfazer puts the entries back. When it cannot save (a dashboard frozen with "Take control",
+   * an account that is not an administrator, an error), the YAML goes to the clipboard as before.
+   */
+  async #apply(roles: Readonly<Record<string, Role>>, saved: string, text: string, copied: string): Promise<void> {
+    // `saved` says what changed, in the words of the screen ("Jet mode não aparece mais no painel.").
+    const ok = await this.saveChange(saved, async (hass, urlPath) => {
+      const before = await setRoles(hass, urlPath, roles);
+      return (h) => putBack(h, urlPath, before);
+    });
+    if (ok) {
+      this.manual = null;
+      this.notice = null;
+    } else await this.#copy(text, copied);
+  }
+
   #item(item: ReviewItem) {
     const where = [item.areaName, item.group === 'config' ? null : item.entityId].filter(Boolean).join(' · ');
     const entityId = item.entityId;
@@ -84,7 +103,13 @@ export class HubbReviewScreen extends HubbScreen {
         ? html`<div class="roles">
             ${item.roles.map(
               (role) =>
-                html`<button class="role ${role === item.suggested ? 'suggested' : ''}" @click=${() => void this.#copy(yamlLine(entityId, role), REVIEW.copied)}>
+                html`<button class="role ${role === item.suggested ? 'suggested' : ''}" @click=${() =>
+                    void this.#apply(
+                      { [entityId]: role },
+                      role === 'hidden' ? REVIEW.savedHidden(item.name) : REVIEW.savedAs(item.name, ROLE_LABELS[role]),
+                      yamlLine(entityId, role),
+                      REVIEW.copiedInstead,
+                    )}>
                   ${ROLE_LABELS[role]}
                 </button>`,
             )}
@@ -99,6 +124,11 @@ export class HubbReviewScreen extends HubbScreen {
     const admin = !!hass.user?.is_admin;
     const items = admin ? reviewItems(hass, this.config?.options ?? NO_OPTIONS) : [];
     const lines = suggestedLines(items);
+    const suggested: Record<string, Role> = Object.fromEntries(
+      items
+        .filter((i) => (i.group === 'role' || i.group === 'appliance') && i.entityId !== null && i.suggested !== null)
+        .map((i) => [i.entityId!, i.suggested!]),
+    );
     return html`<header class="hero">
         <button class="back" aria-label=${S.back} @click=${() => goBack()}>${icon(mdiChevronLeft)}</button>
         <div>
@@ -111,7 +141,9 @@ export class HubbReviewScreen extends HubbScreen {
         ${this.manual ? html`<pre class="manual">${this.manual}</pre>` : nothing}
         ${admin && items.length === 0 ? html`<div class="empty"><strong>${REVIEW.nothing}</strong></div>` : nothing}
         ${lines.length
-          ? html`<button class="primary wide" @click=${() => void this.#copy(yamlBlock(lines), REVIEW.copiedAll)}>${REVIEW.copyAll}</button>`
+          ? html`<button class="primary wide" @click=${() => void this.#apply(suggested, REVIEW.savedAll(Object.keys(suggested).length), yamlBlock(lines), REVIEW.copiedAllInstead)}>
+              ${REVIEW.applyAll}
+            </button>`
           : nothing}
         ${REVIEW_GROUPS.map((group) => {
           const mine = items.filter((i) => i.group === group);
@@ -123,6 +155,7 @@ export class HubbReviewScreen extends HubbScreen {
             : nothing;
         })}
       </main>
+      <hubb-toast></hubb-toast>
       <hubb-nav-bar current="home" home-label=${this.config?.homeLabel ?? S.home}></hubb-nav-bar>`;
   }
 

@@ -129,8 +129,9 @@ strategy:
 | `profile`             | `home`                             | Kind of place: `home`, `clinic`, `restaurant`, `office`, `store`, `gym`, `salon` or `hotel`. See [Places and floors](#places-and-floors) |
 | `entities.<id>.role`  | From the entity type               | `light`, `outlet`, `equipment`, `appliance`, `action` or `hidden`. See [Roles](#roles) |
 | `entities.<id>.name`  | The entity name                    | Name on the panel                                          |
+| `entities.<id>.order` | By name                            | Place of the item inside its block, lower first            |
 | `entities.<id>.icon`  | The icon of the role               | An `mdi:` icon for equipment and actions                   |
-| `entities.<id>.area`  | The area of the entity, then of its device | Room of the entity on the panel                    |
+| `entities.<id>.area`  | The area of the entity, then of its device (an appliance: its device first) | Room of the entity on the panel |
 | `entities.<id>.hide`  | none                               | Appliance only: entities of its device left out of its sheet |
 | `entities.<id>.remaining`, `.progress` | Found on the device | Appliance only: the time left and the progress sensors, when the automatic pick is wrong |
 | `hide_entities`       | none                               | Lights and outlets left out even though they have an area (the fridge or the router plug) |
@@ -196,7 +197,24 @@ in mind, it reads any device that exposes its state, buttons, `select` and `swit
 
 Administrators get a wrench at the top of the home. It opens **Revisar o painel**: the switches with no
 role, the appliances found, what has no room, the problems of the configuration and what has not
-answered for more than a day. A tap copies the line of YAML to paste under `strategy:`.
+answered for more than a day. A tap on a role saves it into the dashboard configuration, the same
+`entities:` keys as above, and Home Assistant rebuilds the panel at once; "Desfazer" takes it back
+for 5 seconds. "Aplicar sugestões" saves every suggested role together. On a dashboard frozen with
+"Take control" it copies the line of YAML instead, to paste under `strategy:` by hand.
+
+### Edit the panel
+
+Administrators also get a pencil, on the home and on each room page. In the edit mode:
+
+- **On the home:** arrows under each room card change the order of the rooms, and **Esconder** takes a
+  room off the home; the hidden rooms are listed at the bottom with **Mostrar**.
+- **On a room page:** a tap on an item opens its editor: the name on the panel, its room, how it shows
+  (Luz, Tomada, Equipamento, Aparelho, Ação or Não mostrar) and its place in its block. What the
+  configuration hides in that room is listed with **Mostrar**.
+
+Every change is saved into the dashboard configuration (the same keys as the YAML above, plus
+`entities.<id>.order` for the place of an item) and Home Assistant rebuilds the panel at once;
+"Desfazer" takes it back for 5 seconds. A dashboard frozen with "Take control" shows no pencil.
 
 ## Prepare the house
 
@@ -211,8 +229,9 @@ The strategy shows what Home Assistant knows, so the work happens in Home Assist
 | **Scenes labelled**       | Only labelled scenes and scripts reach the panel          | Label **`hubb_cena`** on a `scene.*` or `script.*`; give it an area to show it on that room too       |
 | **Area pictures** (optional) | Without one, the card shows a drawing picked from the area name or icon ([list](docs/drawings.md)) | The picture field of each area                                                  |
 
-Hidden and diagnostic entities never show up, and neither does anything without an area, which is
-why the per-browser screen lights that Browser Mod creates stay out by themselves.
+Hidden and diagnostic entities never show up on their own (an appliance still reads its diagnostic
+time left), and neither does anything without an area, which is why the per-browser screen lights
+that Browser Mod creates stay out by themselves.
 
 ## Compatibility
 

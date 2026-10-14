@@ -17,6 +17,7 @@ const room = (areaId: string, floorId: string | null): Room => ({
   appliances: [],
   actions: [],
   scenes: [],
+  hidden: [],
 });
 
 function hass() {

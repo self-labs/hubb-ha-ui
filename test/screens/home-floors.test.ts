@@ -70,7 +70,7 @@ describe('the home, one floor at a time', () => {
   });
 
   it('opens on the first tab when the browser keeps no storage', async () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+    vi.spyOn(window.localStorage, 'getItem').mockImplementation(() => {
       throw new Error('denied');
     });
     const el = await mountHome(clinicHass(), CLINIC_CONFIG);
@@ -87,5 +87,11 @@ describe('the home, one floor at a time', () => {
   it('names the first tab of the bottom bar after the place', async () => {
     const el = await mountHome(clinicHass(), CLINIC_CONFIG);
     expect((el.shadowRoot!.querySelector('hubb-nav-bar') as HubbNavBar).homeLabel).toBe('Início');
+  });
+
+  it('does not read the device storage in a house with no floors', async () => {
+    const read = vi.spyOn(window.localStorage, 'getItem');
+    await mountHome(sampleHouseHass(), {});
+    expect(read).not.toHaveBeenCalled();
   });
 });

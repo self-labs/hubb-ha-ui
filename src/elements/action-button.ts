@@ -77,13 +77,15 @@ export class HubbActionButton extends LitElement {
     return html`<button class="action ${this.result ?? ''} ${down ? 'na' : ''}" @click=${this.#press}>
       <span class="icon">${item.icon ? html`<ha-icon .icon=${item.icon}></ha-icon>` : icon(this.path ?? mdiPlayCircleOutline)}</span>
       <span class="name">${item.name}</span>
-      ${said ? html`<span class="result" role="status">${said}</span>` : nothing}
+      <!-- Always there, empty or not: "Feito" appearing must not move the buttons beside it. -->
+      <span class="result" role="status">${said ?? ''}</span>
     </button>`;
   }
 
   static styles = css`
     :host {
       display: block;
+      height: 100%;
     }
     .action {
       all: unset;
@@ -93,6 +95,7 @@ export class HubbActionButton extends LitElement {
       justify-content: space-between;
       gap: 8px;
       width: 100%;
+      height: 100%;
       min-height: 72px;
       padding: 12px;
       border-radius: var(--hubb-radius, 16px);
@@ -130,6 +133,7 @@ export class HubbActionButton extends LitElement {
       line-height: 1.25;
     }
     .result {
+      min-height: 14px;
       font-size: 11px;
       font-weight: 600;
       color: var(--hubb-text-2);

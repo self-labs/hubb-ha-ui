@@ -56,7 +56,7 @@ export function generateDashboard(config: HubbConfig, hass: HomeAssistant): Love
             path: room.path,
             type: 'panel',
             subview: true,
-            cards: [{ type: 'custom:hubb-room-screen', room, lightIds, homeLabel }],
+            cards: [{ type: 'custom:hubb-room-screen', room, lightIds, homeLabel, options: config }],
           }),
         ),
         ...review,

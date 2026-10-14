@@ -1,10 +1,13 @@
 import { LitElement, css, type PropertyDeclarations, type PropertyValues } from 'lit';
+import { dashboardPath } from '../actions/dashboard-config';
+import { haptic } from '../actions/haptic';
 import { runScene } from '../actions/light';
 import { sceneLights, withUndo, type ServiceCall } from '../actions/undo';
 import type { HubbToast } from '../elements/toast';
 import type { HomeAssistant } from '../ha/types';
 import type { SceneItem } from '../model/types';
-import { sceneRan } from '../strings';
+import { onEditingChange } from '../editing';
+import { EDIT, sceneRan } from '../strings';
 import '../elements/toast';
 
 /** The newest hass any screen received: the one on screen keeps getting updates, a hidden one does not. */
@@ -16,10 +19,15 @@ export abstract class HubbScreen extends LitElement {
   static properties: PropertyDeclarations = {
     hass: { attribute: false },
     theme: { reflect: true },
+    editNotice: { state: true },
   };
 
   declare hass: HomeAssistant | undefined;
   declare theme: 'dark' | 'light';
+  /** Said in place of the edit hint when a save failed. */
+  declare editNotice: string | null;
+
+  #unwatch: (() => void) | null = null;
 
   static baseStyles = css`
     :host {
@@ -106,7 +114,51 @@ export abstract class HubbScreen extends LitElement {
     super();
     this.hass = undefined;
     this.theme = 'dark';
+    this.editNotice = null;
     this.addEventListener('hubb-run-scene', this.#onRunScene);
+  }
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    this.#unwatch = onEditingChange(() => this.requestUpdate());
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.#unwatch?.();
+    this.#unwatch = null;
+  }
+
+  /**
+   * Whether this person may edit this dashboard: an administrator, on a dashboard whose strategy
+   * handed its configuration over (one frozen with "Take control" has none).
+   */
+  protected canEdit(options: unknown): boolean {
+    return !!this.hass?.user?.is_admin && options !== undefined;
+  }
+
+  /**
+   * Saves a change of the dashboard configuration; Home Assistant rebuilds the dashboard by itself.
+   * `change` returns its undo, offered as Desfazer. False when it could not save.
+   */
+  protected async saveChange(
+    message: string,
+    change: (hass: HomeAssistant, urlPath: string | null) => Promise<(hass: HomeAssistant) => Promise<unknown>>,
+  ): Promise<boolean> {
+    const hass = this.hass;
+    if (!hass) return false;
+    const urlPath = dashboardPath();
+    try {
+      const undo = await change(hass, urlPath);
+      haptic('success');
+      this.editNotice = null;
+      this.toast()?.show(message, () => void undo(latest ?? hass).catch(() => haptic('failure')));
+      return true;
+    } catch {
+      haptic('failure');
+      this.editNotice = EDIT.failed;
+      return false;
+    }
   }
 
   /** Light ids whose state an action on this screen may change, for the undo snapshot. */

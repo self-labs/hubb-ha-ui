@@ -21,6 +21,7 @@ const SALA: Room = {
   appliances: [],
   actions: [],
   scenes: [],
+  hidden: [],
 };
 
 async function mount(hass: FakeHass, room: Room = SALA): Promise<HubbRoomCard> {

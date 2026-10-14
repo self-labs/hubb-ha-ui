@@ -1,4 +1,4 @@
-import { mdiWrenchOutline } from '@mdi/js';
+import { mdiCheck, mdiChevronLeft, mdiChevronRight, mdiPencilOutline, mdiWrenchOutline } from '@mdi/js';
 import { css, html, nothing } from 'lit';
 import { haptic } from '../actions/haptic';
 import { setLight } from '../actions/light';
@@ -13,11 +13,13 @@ import '../elements/room-card';
 import '../elements/scene-button';
 import '../elements/sheet';
 import type { HomeAssistant } from '../ha/types';
+import { putBackRooms, setRooms } from '../actions/dashboard-config';
+import { isEditing, setEditing } from '../editing';
 import { allLightIds, normalizeHouse } from '../model/build-house';
 import { pickFloor, roomsOn } from '../model/floors';
 import { reviewItems } from '../model/review';
 import type { House, HubbConfig } from '../model/types';
-import { greeting, lightsCount, lightsTurnedOff, onCount, REVIEW, S } from '../strings';
+import { EDIT, greeting, lightsCount, lightsTurnedOff, onCount, REVIEW, S } from '../strings';
 import { applianceChipText, applianceSubheading, busyAppliances, findAppliance, lightsOnByRoom, summarize } from '../summary';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
@@ -113,6 +115,56 @@ export class HubbHomeScreen extends HubbScreen {
     navigate(`${basePath()}/revisar`, { back: true });
   }
 
+  /** The forecast is Home Assistant's own: its more-info dialog of the weather entity. */
+  #openWeather(entityId: string): void {
+    haptic('selection');
+    this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId }, bubbles: true, composed: true }));
+  }
+
+  /** Moves a room one place in the order of the home and saves the order of every room. */
+  #moveRoom(house: House, areaId: string, name: string, step: number): void {
+    const ids = house.rooms.map((r) => r.areaId);
+    const i = ids.indexOf(areaId);
+    const j = i + step;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j]!, ids[i]!];
+    const patches = Object.fromEntries(ids.map((id, n) => [id, { order: n + 1 }]));
+    void this.saveChange(EDIT.moved(name), async (hass, urlPath) => {
+      const before = await setRooms(hass, urlPath, patches);
+      return (h) => putBackRooms(h, urlPath, before);
+    });
+  }
+
+  #setRoomHidden(areaId: string, hidden: boolean, message: string): void {
+    void this.saveChange(message, async (hass, urlPath) => {
+      const before = await setRooms(hass, urlPath, { [areaId]: { hidden: hidden ? true : undefined } });
+      return (h) => putBackRooms(h, urlPath, before);
+    });
+  }
+
+  #roomInEdit(hass: HomeAssistant, house: House, room: House['rooms'][number]) {
+    const at = house.rooms.indexOf(room);
+    return html`<div class="room-edit" data-name=${room.name}>
+      <hubb-room-card .hass=${hass} .room=${room}></hubb-room-card>
+      <div class="room-tools">
+        <button class="tool before" aria-label=${`${room.name}: ${EDIT.before}`} ?disabled=${at <= 0} @click=${() => this.#moveRoom(house, room.areaId, room.name, -1)}>
+          ${icon(mdiChevronLeft)}
+        </button>
+        <button
+          class="tool after"
+          aria-label=${`${room.name}: ${EDIT.after}`}
+          ?disabled=${at >= house.rooms.length - 1}
+          @click=${() => this.#moveRoom(house, room.areaId, room.name, 1)}
+        >
+          ${icon(mdiChevronRight)}
+        </button>
+        <button class="tool hide" @click=${() => this.#setRoomHidden(room.areaId, true, EDIT.roomHidden(room.name))}>
+          ${EDIT.hideRoom}
+        </button>
+      </div>
+    </div>`;
+  }
+
   #empty(hass: HomeAssistant) {
     return html`<div class="empty">
       <strong>${S.emptyHouse}</strong>
@@ -141,10 +193,11 @@ export class HubbHomeScreen extends HubbScreen {
     const ids = this.sheetIds;
     const busy = busyAppliances(house.rooms, hass);
     const open = this.applianceId ? findAppliance(house.rooms, this.applianceId) : null;
-    const floor = pickFloor(house.floors, this.floor, this.floor ? null : rememberedFloor());
+    const floor = pickFloor(house.floors, this.floor, this.floor || !house.floors.length ? null : rememberedFloor());
     // The strategy hands the configuration to the home exactly when it creates the review view for an
     // administrator; a dashboard frozen before the review has neither, and its key would lead nowhere.
-    const admin = !!hass.user?.is_admin && this.config?.options !== undefined;
+    const admin = this.canEdit(this.config?.options);
+    const editing = admin && isEditing();
     const pending = admin ? reviewItems(hass, this.config?.options ?? NO_OPTIONS).length : 0;
     const shown = floor === null ? house.rooms : roomsOn(house.rooms, floor);
     return html`<main>
@@ -154,14 +207,22 @@ export class HubbHomeScreen extends HubbScreen {
             <p class="house">${house.name}</p>
           </div>
           <div class="tools">
-            ${temp !== null ? html`<span class="weather">${temp}°</span>` : nothing}
+            ${temp !== null && house.weatherEntityId
+              ? html`<button class="weather" aria-label=${S.weather} @click=${() => this.#openWeather(house.weatherEntityId!)}>${temp}°</button>`
+              : nothing}
             ${admin
               ? html`<button class="key" aria-label=${REVIEW.key(pending)} @click=${() => this.#openReview()}>
                   ${icon(mdiWrenchOutline)}${pending ? html`<span class="badge">${pending}</span>` : nothing}
                 </button>`
               : nothing}
+            ${admin
+              ? html`<button class="edit ${editing ? 'on' : ''}" aria-label=${editing ? EDIT.done : EDIT.edit} @click=${() => setEditing(!editing)}>
+                  ${icon(editing ? mdiCheck : mdiPencilOutline)}
+                </button>`
+              : nothing}
           </div>
         </header>
+        ${editing ? html`<p class="hint" role="status">${this.editNotice ?? EDIT.hintHome}</p>` : nothing}
         ${house.rooms.length === 0
           ? this.#empty(hass)
           : html`<p class="headline">${summary.headline} ${summary.detail ? html`<span>${summary.detail}</span>` : nothing}</p>
@@ -181,7 +242,20 @@ export class HubbHomeScreen extends HubbScreen {
               ${floor === null
                 ? html`<h2>${S.rooms}</h2>`
                 : html`<hubb-floor-tabs .hass=${hass} .floors=${house.floors} .rooms=${house.rooms} .current=${floor}></hubb-floor-tabs>`}
-              <div class="rooms">${shown.map((r) => html`<hubb-room-card .hass=${hass} .room=${r}></hubb-room-card>`)}</div>`}
+              <div class="rooms">
+                ${shown.map((r) => (editing ? this.#roomInEdit(hass, house, r) : html`<hubb-room-card .hass=${hass} .room=${r}></hubb-room-card>`))}
+              </div>
+              ${editing && house.hiddenRooms.length
+                ? html`<div class="hidden-rooms">
+                    <h2>${EDIT.hiddenRooms}</h2>
+                    ${house.hiddenRooms.map(
+                      (r) => html`<div class="hidden-row">
+                        <span>${r.name}</span>
+                        <button class="show" @click=${() => this.#setRoomHidden(r.areaId, false, EDIT.roomShown(r.name))}>${EDIT.show}</button>
+                      </div>`,
+                    )}
+                  </div>`
+                : nothing}`}
       </main>
       <hubb-sheet ?open=${ids !== null} heading=${S.lightsOnTitle} subheading=${ids ? lightsCount(ids.length) : ''} @hubb-close=${() => (this.sheetIds = null)}>
         ${ids ? this.#sheetContent(house, hass, ids) : nothing}
@@ -262,12 +336,26 @@ export class HubbHomeScreen extends HubbScreen {
         line-height: 18px;
         text-align: center;
       }
+      /* The same size as the review key beside it, and a touch target too. */
       .weather {
-        padding: 6px 10px;
+        all: unset;
+        box-sizing: border-box;
+        height: 44px;
+        min-width: 44px;
+        padding: 0 10px;
+        display: grid;
+        place-items: center;
         border-radius: 12px;
         background: var(--hubb-surface);
+        color: var(--hubb-text);
+        font-family: var(--hubb-font);
         font-size: 12px;
         font-weight: 700;
+        cursor: pointer;
+      }
+      .weather:focus-visible {
+        outline: 2px solid var(--hubb-focus);
+        outline-offset: 2px;
       }
       /* Reserved height, so the cards below stay put when the sentence grows or the chip shows. */
       .headline {
@@ -324,6 +412,92 @@ export class HubbHomeScreen extends HubbScreen {
       }
       hubb-floor-tabs {
         margin: 18px 0 10px;
+      }
+      .edit {
+        all: unset;
+        box-sizing: border-box;
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        background: var(--hubb-surface);
+        color: var(--hubb-text-2);
+        cursor: pointer;
+      }
+      .edit.on {
+        background: var(--hubb-primary-bg);
+        color: var(--hubb-primary-ink);
+      }
+      .edit:focus-visible,
+      .tool:focus-visible,
+      .show:focus-visible {
+        outline: 2px solid var(--hubb-focus);
+        outline-offset: 2px;
+      }
+      .edit svg,
+      .tool svg {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
+      }
+      .hint {
+        margin: 12px 2px 0;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: var(--hubb-surface);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--hubb-text-2);
+      }
+      .room-edit {
+        display: grid;
+        gap: 6px;
+        min-width: 0;
+      }
+      /* Two arrows and Esconder fit under a half-width card on a phone. */
+      .room-tools {
+        display: grid;
+        grid-template-columns: 40px 40px minmax(0, 1fr);
+        gap: 6px;
+      }
+      .tool,
+      .show {
+        all: unset;
+        box-sizing: border-box;
+        min-width: 44px;
+        min-height: 40px;
+        padding: 0 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        border-radius: 12px;
+        background: var(--hubb-surface);
+        color: var(--hubb-text);
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .tool {
+        min-width: 0;
+        padding: 0 6px;
+      }
+      .tool[disabled] {
+        opacity: 0.4;
+        cursor: default;
+      }
+      .hidden-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 52px;
+        padding: 0 4px 0 12px;
+        border-radius: 14px;
+        background: var(--hubb-surface);
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 6px;
       }
     `,
   ];

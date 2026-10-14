@@ -156,4 +156,34 @@ describe('names, buttons and program', () => {
     const h = washer();
     expect(programOf(findParts(h, 'd_lavadora', 'sensor.lavadora_appliancestate'))).toBe('select.lavadora_programid');
   });
+
+  it('applies hide to the state sensor it finds by itself', () => {
+    const h = washer();
+    expect(findParts(h, 'd_lavadora', 'switch.lavadora_rinse', { hide: ['sensor.lavadora_appliancestate'] }).state).toBeNull();
+  });
+
+  it('keeps a clear state sensor even when the device name has a word like link', () => {
+    const h = makeHass({
+      devices: [device('d_link', 'sala', 'Link')],
+      entities: [{ entity_id: 'sensor.link_appliancestate', device_id: 'd_link', state: 'Idle' }],
+    });
+    expect(stateSensorOf(h, 'd_link', true)).toBe('sensor.link_appliancestate');
+  });
+
+  it('puts a second button for the same command among the others, under its own name', () => {
+    const h = makeHass({
+      devices: [device('d_lavadora', 'terraco', 'Lavadora')],
+      entities: [
+        ...washerEntities(),
+        { entity_id: 'button.lavadora_luz_ligar', device_id: 'd_lavadora', state: 'unknown', attributes: { friendly_name: 'Lavadora Luz ligar' } },
+      ],
+    });
+    const p = findParts(h, 'd_lavadora', 'sensor.lavadora_appliancestate');
+    const { main, more } = buttonsFor(p, 'stopped', true);
+    expect(main.map((b) => b.entityId)).toEqual(['button.lavadora_executecommand_2', 'button.lavadora_executecommand_5']);
+    expect(more.map((b) => [b.entityId, b.command])).toEqual([
+      ['button.lavadora_executecommand_6', 'stop'],
+      ['button.lavadora_luz_ligar', 'other'],
+    ]);
+  });
 });

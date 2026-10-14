@@ -58,6 +58,13 @@ export interface Room {
   appliances: ApplianceItem[];
   actions: ActionItem[];
   scenes: SceneItem[];
+  /** What the configuration hides here (the hidden role, hide_entities), for the editor to show again. */
+  hidden: HiddenItem[];
+}
+
+export interface HiddenItem {
+  entityId: string;
+  name: string;
 }
 
 export interface House {
@@ -68,6 +75,8 @@ export interface House {
   /** The floor tabs; empty unless the rooms shown sit on two or more floors. */
   floors: FloorItem[];
   rooms: Room[];
+  /** Rooms hidden with rooms.<area>.hidden, for the editor to show again. */
+  hiddenRooms: { areaId: string; name: string }[];
   scenes: SceneItem[];
   weatherEntityId: string | null;
 }
@@ -91,6 +100,8 @@ export interface EntityConfig {
   hide?: string[];
   remaining?: string;
   progress?: string;
+  /** Place inside its block: lower first; items with none come after, by name. */
+  order?: number;
 }
 
 export interface HubbConfig {

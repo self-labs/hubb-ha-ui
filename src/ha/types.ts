@@ -66,4 +66,6 @@ export interface HomeAssistant {
   ): Promise<unknown>;
   /** The state as a person reads it, translated by the integration; the real frontend always has it. */
   formatEntityState?(stateObj: HassEntityState, state?: string): string;
+  /** A WebSocket command; the real frontend always has it. Saving a dashboard needs an administrator. */
+  callWS?<T = unknown>(msg: Record<string, unknown>): Promise<T>;
 }

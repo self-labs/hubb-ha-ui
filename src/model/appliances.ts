@@ -62,13 +62,21 @@ export function deviceEntities(hass: HomeAssistant, deviceId: string): string[] 
     .sort();
 }
 
-/** The appliance state sensor of a device; `strict` keeps only names that clearly say so. */
-export function stateSensorOf(hass: HomeAssistant, deviceId: string, strict = false): string | null {
-  const sensors = deviceEntities(hass, deviceId).filter(
-    (id) => domainOf(id) === 'sensor' && !NOT_STATE.some((w) => keyOf(hass, id).includes(w)),
-  );
-  for (const pattern of strict ? STRICT_STATE : [...STRICT_STATE, ...LOOSE_STATE]) {
+/**
+ * The appliance state sensor of a device; `strict` keeps only names that clearly say so. A clear name
+ * ("appliancestate") always counts; the words of NOT_STATE only rule out the loose matches
+ * ("connectivitystate"), so a device called "Link" keeps its state sensor. `hide` is left out.
+ */
+export function stateSensorOf(hass: HomeAssistant, deviceId: string, strict = false, hide: ReadonlySet<string> = new Set()): string | null {
+  const sensors = deviceEntities(hass, deviceId).filter((id) => domainOf(id) === 'sensor' && !hide.has(id));
+  for (const pattern of STRICT_STATE) {
     const found = sensors.find((id) => keyOf(hass, id).includes(pattern));
+    if (found) return found;
+  }
+  if (strict) return null;
+  const loose = sensors.filter((id) => !NOT_STATE.some((w) => keyOf(hass, id).includes(w)));
+  for (const pattern of LOOSE_STATE) {
+    const found = loose.find((id) => keyOf(hass, id).includes(pattern));
     if (found) return found;
   }
   return null;
@@ -98,7 +106,7 @@ export function findParts(hass: HomeAssistant, deviceId: string, marked: string,
   const sensors = of('sensor');
   const durations = sensors.filter((id) => hass.states[id]?.attributes.device_class === 'duration');
   return {
-    state: domainOf(marked) === 'sensor' && !hide.has(marked) ? marked : stateSensorOf(hass, deviceId),
+    state: domainOf(marked) === 'sensor' && !hide.has(marked) ? marked : stateSensorOf(hass, deviceId, false, hide),
     remaining:
       s?.remaining ??
       durations.find((id) => REMAINING.some((w) => keyOf(hass, id).includes(w))) ??
@@ -189,7 +197,12 @@ export function buttonsFor(
   const main = wanted[now]
     .map((c) => parts.buttons.find((b) => b.command === c))
     .filter((b): b is ApplianceButton => !!b);
-  const more = parts.buttons.filter((b) => b.command === 'stop' || b.command === 'other');
+  // A second button for a command already shown ("Luz ligar" beside "Ligar") stays, under its own name.
+  const chosen = new Set(main.map((b) => b.entityId));
+  const more = parts.buttons.flatMap((b): ApplianceButton[] => {
+    if (b.command === 'stop' || b.command === 'other') return [b];
+    return !chosen.has(b.entityId) && main.some((m) => m.command === b.command) ? [{ ...b, command: 'other' }] : [];
+  });
   return { main, more };
 }
 

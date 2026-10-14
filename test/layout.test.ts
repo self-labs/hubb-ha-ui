@@ -86,6 +86,7 @@ describe('room card shading', () => {
     appliances: [],
     actions: [],
     scenes: [],
+    hidden: [],
   });
 
   it('darkens the bottom only over a photo, so dark text on the plain Areia card stays readable', async () => {
@@ -112,5 +113,10 @@ describe('appliances fit on a phone', () => {
   it('lays the options of the appliance sheet in two columns, so their names fit', async () => {
     const { HubbAppliancePanel } = await import('../src/elements/appliance-panel');
     expect(cssOf(HubbAppliancePanel.styles)).toMatch(/\.options\s*\{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  });
+
+  it('fits the arrows and Esconder under a half-width room card in the edit mode', async () => {
+    const { HubbHomeScreen: Home } = await import('../src/screens/home-screen');
+    expect(cssOf(Home.styles)).toMatch(/\.room-tools\s*\{[^}]*grid-template-columns: 40px 40px minmax\(0, 1fr\)/);
   });
 });

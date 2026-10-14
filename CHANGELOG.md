@@ -8,6 +8,47 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.7] - 2026-10-13
+
+### Added
+
+- The edit mode, for administrators: a pencil on the home and on each room page. On the home, arrows
+  change the order of the rooms and "Esconder" takes a room off the home (hidden rooms come back
+  with "Mostrar"). On a room page a tap on an item opens its editor: name on the panel, room, how it
+  shows (Luz, Tomada, Equipamento, Aparelho, Ação or Não mostrar) and its place in its block; what
+  the configuration hides there is listed with "Mostrar". Every change is saved into the dashboard
+  configuration, the panel rebuilds itself, and "Desfazer" takes it back for 5 seconds.
+- `entities.<id>.order`: the place of an item inside its block.
+
+### Changed
+
+- "Revisar o painel" saves what you tap: a role goes straight into the dashboard configuration
+  and the panel rebuilds itself, with "Desfazer" for 5 seconds; "Aplicar sugestões" (it was
+  "Copiar tudo") saves every suggested role at once. Only on a dashboard frozen with "Take control",
+  or when Home Assistant refuses the save, it still copies the line of YAML.
+- The temperature at the top of the home has the size of the review key beside it, and a tap opens
+  the weather of Home Assistant.
+- Plainer words on "Revisar o painel": "Escolha como mostrar" (it was "Sem papel"), "Não mostrar"
+  (it was "Ocultar"), "Aparelhos encontrados", "Erros no YAML do painel", and a notice that says what
+  changed ("Jet mode agora aparece como Luz."). The YAML errors name the key that is wrong
+  ("role: ligth não existe. Use light, outlet..."). The resume command of an appliance reads
+  "Continuar", like the washer itself.
+- "Luminária", "plafon", "sanca" and "teto" in a name suggest the light role.
+
+### Fixed
+
+- The review no longer lists or watches what sits in a room hidden with `rooms.<area>.hidden`.
+- An appliance keeps its state sensor when its device name holds a word like "Link", and `hide`
+  also applies to the state sensor the panel finds by itself.
+- A second button for a command already on the appliance sheet ("Luz ligar" beside "Ligar") shows
+  among the smaller ones under its own name instead of disappearing.
+- The YAML reader says so for an entry written as a list, a `name` that is not text, `hide`,
+  `remaining` or `progress` on anything but an appliance, and `rooms` that is not a list of areas.
+- Copying on plain `http://` also works on iOS (the text is selected the way Safari needs).
+- A house with no floors no longer reads the device storage on every update.
+- "Feito" under one command of the appliance sheet (or under an action) no longer makes that
+  button taller than the ones beside it: the line is always reserved.
+
 ## [2026.10.6] - 2026-10-13
 
 ### Changed
@@ -173,7 +214,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.6...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.7...HEAD
+[2026.10.7]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.6...v2026.10.7
 [2026.10.6]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.5...v2026.10.6
 [2026.10.5]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.4...v2026.10.5
 [2026.10.4]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.3...v2026.10.4

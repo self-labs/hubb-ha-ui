@@ -106,11 +106,11 @@ describe('staticReview', () => {
     });
     const r = staticReview(h, { profile: 'clinica', entities: { 'button.forno_ligar': { role: 'appliance' } } });
     expect(r.items.map((i) => [i.group, i.name, i.reason])).toEqual([
-      ['config', 'profile', 'Perfil "clinica" não existe; vale Casa.'],
+      ['config', 'profile', 'profile: clinica não existe; o painel usou home (Casa).'],
       [
         'config',
         'entities.button.forno_ligar',
-        '"button.forno_ligar": aparelho sem estado reconhecido; use remaining ou progress, ou marque o sensor de estado.',
+        'Não achei o estado do aparelho de button.forno_ligar. Marque com role: appliance o sensor de estado dele.',
       ],
     ]);
   });
@@ -151,5 +151,15 @@ describe('cachedStaticReview', () => {
       ['role', 'switch.jet_mode', 'hidden'],
       ['silent', 'switch.varanda_luz', null],
     ]);
+  });
+
+  it('leaves out what sits in a room the configuration hides', () => {
+    const r = staticReview(casa2Hass(), { ...CASA2_CONFIG, rooms: { escritorio: { hidden: true } } });
+    expect(r.items.some((i) => i.entityId === 'switch.jet_mode')).toBe(false);
+    expect(r.watched).not.toContain('switch.escritorio_luz');
+  });
+
+  it('suggests light for the lamp words of a house', () => {
+    expect(['Luminária', 'Plafon', 'Sanca', 'Teto'].map(suggestRole)).toEqual(['light', 'light', 'light', 'light']);
   });
 });

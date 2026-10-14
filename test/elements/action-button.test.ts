@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '../../src/elements/action-button';
-import type { HubbActionButton } from '../../src/elements/action-button';
+import { HubbActionButton } from '../../src/elements/action-button';
 import type { ActionItem } from '../../src/model/types';
 import { makeHass, type FakeHass } from '../helpers/fake-hass';
 
@@ -19,7 +19,9 @@ async function press(el: HubbActionButton): Promise<void> {
   await el.updateComplete;
 }
 
-const result = (el: HubbActionButton) => el.shadowRoot!.querySelector('.result')?.textContent ?? null;
+const result = (el: HubbActionButton) => el.shadowRoot!.querySelector('.result')?.textContent || null;
+const cssOf = (styles: unknown): string =>
+  ([] as unknown[]).concat(styles).map((s) => (s as { cssText: string }).cssText).join('\n');
 
 describe('hubb-action-button', () => {
   beforeEach(() => {
@@ -73,5 +75,15 @@ describe('hubb-action-button', () => {
     const h = makeHass({ entities: [{ entity_id: 'button.reiniciar', state: 'unknown' }] });
     const el = await mount(h, { entityId: 'button.reiniciar', name: 'Reiniciar roteador', icon: 'mdi:router' });
     expect((el.shadowRoot!.querySelector('ha-icon') as HTMLElement & { icon?: string }).icon).toBe('mdi:router');
+  });
+
+  it('keeps the line of the result and the full height of its row, so a press moves nothing around it', async () => {
+    const h = makeHass({ entities: [{ entity_id: 'button.reiniciar', state: 'unknown' }] });
+    const el = await mount(h, { entityId: 'button.reiniciar', name: 'Reiniciar roteador', icon: null });
+    expect(el.shadowRoot!.querySelector('.result')).not.toBeNull();
+    expect(result(el)).toBeNull();
+    const css = cssOf(HubbActionButton.styles);
+    expect(css).toMatch(/:host\s*\{[^}]*height: 100%/);
+    expect(css).toMatch(/\.action\s*\{[^}]*height: 100%/);
   });
 });

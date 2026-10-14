@@ -26,11 +26,13 @@ src/
   summary.ts           the home headline
   strings.ts           every resident string
   actions/             light (by domain), colour, switch, action, scene, pending (3 s window),
-                       undo (5 s), clipboard, haptic, navigate
+                       undo (5 s), clipboard, dashboard-config (the review saves roles), haptic,
+                       navigate
   theme/               CSS tokens (screens only) and the embedded Manrope font
   art/                 the 59 room drawings, the name/icon resolver, the render helper
+  editing.ts           the edit mode (module state: it survives the view rebuild after a save)
   elements/            toggle tile (light, outlet, equipment), action button, appliance card and
-                       panel, floor tabs, sheet, dimmer and colour panels, toast, nav bar, room card,
+                       panel, floor tabs, item editor, sheet, dimmer and colour panels, toast, nav bar, room card,
                        scene button
   screens/             home, room, scenes, review (each is a Lovelace card filling a panel view)
   cards/               standalone light card, error card

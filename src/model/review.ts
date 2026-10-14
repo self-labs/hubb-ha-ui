@@ -40,7 +40,7 @@ export function suggestRole(name: string): Role {
   const n = name.toLocaleLowerCase('pt-BR');
   // The Echo and TV switches of the Alexa integration (announcements, communications) are not for the resident.
   if (/\bmode\b|display|do not disturb|não perturbe|announcements|communications|anúncios|comunicações/.test(n)) return 'hidden';
-  if (/\bluz\b|luzes|l[aâ]mpada|spot|pendente|arandela|\bled\b|fita|lustre|abajur/.test(n)) return 'light';
+  if (/\bluz\b|luzes|l[aâ]mpada|lumin[aá]ria|plafon|sanca|\bteto\b|spot|pendente|arandela|\bled\b|fita|lustre|abajur/.test(n)) return 'light';
   return 'equipment';
 }
 
@@ -97,8 +97,12 @@ export function staticReview(hass: HomeAssistant, config: HubbConfig): StaticRev
   }));
   const watched: string[] = [];
   const devices = new Set<string>();
+  // A room hidden by the configuration is not on the panel: nothing in it is reviewed or watched.
+  const rooms = config.rooms && typeof config.rooms === 'object' && !Array.isArray(config.rooms) ? config.rooms : {};
+  const hiddenRooms = new Set(Object.keys(rooms).filter((a) => rooms[a]?.hidden));
   for (const entityId of Object.keys(hass.entities).sort()) {
     const placed = classify(hass, entityId, ctx);
+    if (placed.areaId && hiddenRooms.has(placed.areaId)) continue;
     const reg = hass.entities[entityId]!;
     if (placed.block === 'appliance') {
       const deviceId = reg.device_id!;

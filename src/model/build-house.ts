@@ -9,7 +9,7 @@ import { floorTabs, roomFloor } from './floors';
 import { displayName } from './names';
 import { roomPath } from './paths';
 import { isProfileId, PROFILES } from './profiles';
-import type { House, HubbConfig, Room, SceneItem } from './types';
+import type { House, HubbConfig, Room, RoomOverride, SceneItem } from './types';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 const LAST = Number.MAX_SAFE_INTEGER;
@@ -52,7 +52,8 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
   const cfg = readConfig(hass, config);
   const profile = PROFILES[cfg.profile];
   const ctx = classifyContext(hass, cfg, config.hide_entities);
-  const overrides = config.rooms ?? {};
+  const overrides: Record<string, RoomOverride> =
+    config.rooms && typeof config.rooms === 'object' && !Array.isArray(config.rooms) ? config.rooms : {};
   const rooms = new Map<string, Room>();
   const scenes: SceneItem[] = [];
   const placedDevices = new Set<string>();
@@ -80,6 +81,7 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
       appliances: [],
       actions: [],
       scenes: [],
+      hidden: [],
     };
     rooms.set(areaId, room);
     return room;
@@ -91,7 +93,16 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
       continue;
     }
     const placed = classify(hass, entityId, ctx);
-    if (placed.block === null) continue;
+    if (placed.block === null) {
+      // Hidden by the configuration (not by Home Assistant): the editor lists it to show it again.
+      const reg = hass.entities[entityId];
+      const byConfig = ctx.hidden.has(entityId) || cfg.entities[entityId]?.role === 'hidden';
+      if (placed.why === 'hidden' && byConfig && reg && !reg.hidden) {
+        const room = roomFor(areaOf(hass, entityId, cfg.entities[entityId]?.area));
+        if (room) room.hidden.push({ entityId, name: cfg.entities[entityId]?.name ?? displayName(hass, entityId, room.name) });
+      }
+      continue;
+    }
     const s = cfg.entities[entityId];
     if (placed.block === 'scene') {
       scenes.push({
@@ -132,15 +143,19 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
 
   const shown = [...rooms.values()].filter(hasContent);
   const named = (id: string): boolean => !!cfg.entities[id]?.name;
+  const rankOf = (id: string): number => cfg.entities[id]?.order ?? LAST;
+  const byOrder = (a: { entityId: string; name: string }, b: { entityId: string; name: string }): number =>
+    rankOf(a.entityId) - rankOf(b.entityId) || byName(a, b);
   for (const room of shown) {
     plainNames(room.lights, room.name, S.lightWord, named);
     plainNames(room.outlets, room.name, S.outletWord, named);
     plainNames(room.equipment, room.name, S.equipmentWord, named);
-    room.lights.sort(byName);
-    room.outlets.sort(byName);
-    room.equipment.sort(byName);
-    room.appliances.sort(byName);
-    room.actions.sort(byName);
+    room.lights.sort(byOrder);
+    room.outlets.sort(byOrder);
+    room.equipment.sort(byOrder);
+    room.appliances.sort(byOrder);
+    room.actions.sort(byOrder);
+    room.hidden.sort(byName);
     room.scenes = scenes.filter((s) => s.areaId === room.areaId);
   }
   shown.sort((a, b) => (overrides[a.areaId]?.order ?? LAST) - (overrides[b.areaId]?.order ?? LAST) || byName(a, b));
@@ -151,6 +166,10 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     homeLabel: profile.homeLabel,
     floors: floorTabs(hass, shown),
     rooms: shown,
+    hiddenRooms: Object.keys(overrides)
+      .filter((areaId) => overrides[areaId]?.hidden && hass.areas[areaId])
+      .map((areaId) => ({ areaId, name: hass.areas[areaId]!.name }))
+      .sort(byName),
     scenes,
     weatherEntityId,
   };
@@ -175,6 +194,7 @@ export function normalizeRoom(room: Room): Room {
     equipment: list(room.equipment),
     appliances: list(room.appliances),
     actions: list(room.actions),
+    hidden: list(room.hidden),
   };
 }
 
@@ -185,6 +205,7 @@ export function normalizeHouse(house: House): House {
     profile: isProfileId(house.profile) ? house.profile : 'home',
     homeLabel: typeof house.homeLabel === 'string' && house.homeLabel ? house.homeLabel : S.home,
     floors: list(house.floors),
+    hiddenRooms: list(house.hiddenRooms),
     rooms: house.rooms.map(normalizeRoom),
   };
 }

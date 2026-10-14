@@ -47,6 +47,7 @@ export const S = {
   done: 'Feito',
   appliances: 'Aparelhos',
   lightWord: 'Luz',
+  weather: 'Previsão do tempo',
   outletWord: 'Tomada',
   equipmentWord: 'Equipamento',
   noState: 'Sem estado',
@@ -101,7 +102,7 @@ export const COMMAND_LABELS = {
   off: 'Desligar',
   start: 'Iniciar',
   pause: 'Pausar',
-  resume: 'Retomar',
+  resume: 'Continuar',
   stop: 'Parar',
 } as const;
 
@@ -113,19 +114,23 @@ export function greeting(hour: number): string {
 
 /** Problems of the panel configuration, shown on "Revisar o painel". */
 export const CFG = {
-  unknownProfile: (p: string): string => `Perfil "${p}" não existe; vale Casa.`,
-  missingEntity: (id: string): string => `"${id}" não existe no Home Assistant.`,
-  badEntry: 'Entrada sem campos; use, por exemplo, { role: light }.',
-  unknownRole: (r: string): string => `Papel "${r}" não existe.`,
-  roleDoesNotFit: (r: string, domain: string): string => `Papel "${r}" não serve para "${domain}".`,
-  applianceNeedsDevice: (id: string): string => `"${id}" não tem dispositivo; o papel "appliance" precisa de um.`,
-  categoryRole: (id: string): string => `"${id}" é de configuração ou diagnóstico e fica fora do painel.`,
+  unknownProfile: (p: string): string => `profile: ${p} não existe; o painel usou home (Casa).`,
+  missingEntity: (id: string): string => `${id} não existe no Home Assistant.`,
+  badEntry: (id: string): string => `${id} está sem nada; escreva, por exemplo, ${id}: { role: light }.`,
+  unknownRole: (r: string): string => `role: ${r} não existe. Use light, outlet, equipment, appliance, action ou hidden.`,
+  roleDoesNotFit: (r: string, domain: string): string => `role: ${r} não serve para ${domain}.`,
+  applianceNeedsDevice: (id: string): string => `${id} não tem dispositivo, então não pode ser role: appliance.`,
+  categoryRole: (id: string): string => `${id} é uma entidade de configuração do Home Assistant e não vai para o painel.`,
   applianceNoState: (id: string): string =>
-    `"${id}": aparelho sem estado reconhecido; use remaining ou progress, ou marque o sensor de estado.`,
-  badIcon: (i: string): string => `Ícone "${i}" precisa começar com "mdi:".`,
-  unknownArea: (a: string): string => `Área "${a}" não existe no Home Assistant.`,
-  unknownArt: (a: string): string => `Desenho "${a}" não existe.`,
-  unknownFloor: (f: string): string => `Andar "${f}" não existe no Home Assistant.`,
+    `Não achei o estado do aparelho de ${id}. Marque com role: appliance o sensor de estado dele.`,
+  badName: (id: string): string => `name de ${id} precisa ser um texto.`,
+  applianceOnly: (key: string): string => `${key} só vale junto com role: appliance.`,
+  badRooms: 'rooms precisa listar áreas, por exemplo rooms: { sala: { order: 1 } }.',
+  badOrder: (id: string): string => `order de ${id} precisa ser um número.`,
+  badIcon: (i: string): string => `icon: ${i} precisa começar com mdi: (por exemplo, mdi:pool).`,
+  unknownArea: (a: string): string => `A área ${a} não existe no Home Assistant.`,
+  unknownArt: (a: string): string => `art: ${a} não é um desenho conhecido.`,
+  unknownFloor: (f: string): string => `floor: ${f} não existe no Home Assistant.`,
 } as const;
 
 /** The screen "Revisar o painel", for the installer. */
@@ -134,20 +139,23 @@ export const REVIEW = {
   onlyYou: 'Só você vê esta tela.',
   adminOnly: 'Só administradores veem esta tela.',
   nothing: 'Nada para revisar.',
-  copyAll: 'Copiar tudo',
-  copied: 'Linha copiada',
-  copiedAll: 'Linhas copiadas',
-  copyFailed: 'Copie a linha',
+  applyAll: 'Aceitar todas as sugestões',
+  savedAs: (name: string, label: string): string => `${name} agora aparece como ${label}.`,
+  savedHidden: (name: string): string => `${name} não aparece mais no painel.`,
+  savedAll: (n: number): string => (n === 1 ? '1 item salvo.' : `${n} itens salvos.`),
+  copiedInstead: 'Não deu para salvar aqui. A linha foi copiada: cole no YAML do painel.',
+  copiedAllInstead: 'Não deu para salvar aqui. As linhas foram copiadas: cole no YAML do painel.',
+  copyFailed: 'Não deu para salvar nem copiar. Copie a linha abaixo e cole no YAML do painel.',
   groups: {
-    role: 'Sem papel',
-    appliance: 'Aparelhos sugeridos',
+    role: 'Escolha como mostrar',
+    appliance: 'Aparelhos encontrados',
     area: 'Sem cômodo',
-    config: 'Configuração com problema',
+    config: 'Erros no YAML do painel',
     silent: 'Sem resposta há mais de um dia',
   },
-  noClass: 'switch sem classe: o morador não vê. Toque num papel para copiar a linha.',
-  applianceFound: 'Aparelho achado: toque para copiar a linha que marca o sensor de estado.',
-  noArea: 'Sem área: não aparece em nenhum ambiente. Ponha uma área no Home Assistant ou use area.',
+  noClass: 'Não aparece no painel até você escolher como mostrar.',
+  applianceFound: 'Toque em Aparelho para mostrar no painel.',
+  noArea: 'Não aparece no painel porque não está em nenhuma área. Ponha numa área em Configurações > Áreas.',
   silentSince: (when: string): string => `Sem resposta desde ${when}.`,
   key: (n: number): string =>
     n === 0 ? 'Revisar o painel' : n === 1 ? 'Revisar o painel: 1 pendência' : `Revisar o painel: ${n} pendências`,
@@ -160,7 +168,7 @@ export const ROLE_LABELS = {
   equipment: 'Equipamento',
   appliance: 'Aparelho',
   action: 'Ação',
-  hidden: 'Ocultar',
+  hidden: 'Não mostrar',
 } as const;
 
 /**
@@ -189,3 +197,31 @@ export function applianceStatePt(raw: string, kind: ApplianceKind): string | nul
   const key = raw.trim().toLowerCase().replace(/_/g, ' ');
   return key === 'running' ? RUNNING[kind] : (APPLIANCE_STATES[key] ?? null);
 }
+
+/** The edit mode of the panel, for the installer. */
+export const EDIT = {
+  edit: 'Editar',
+  done: 'Pronto',
+  hintHome: 'Modo edição: use as setas para mudar a ordem dos cômodos. Toque num cômodo para editar os itens dele.',
+  hintRoom: 'Modo edição: toque num item para mudar o nome, o cômodo, como ele aparece ou o lugar dele.',
+  failed: 'Não deu para salvar. Só um administrador pode mudar o painel.',
+  before: 'Antes',
+  after: 'Depois',
+  hideRoom: 'Esconder',
+  hiddenRooms: 'Cômodos escondidos',
+  hiddenItems: 'Escondidos neste cômodo',
+  show: 'Mostrar',
+  name: 'Nome no painel',
+  saveName: 'Salvar nome',
+  haName: 'Usar o nome do Home Assistant',
+  room: 'Cômodo',
+  showAs: 'Mostrar como',
+  place: 'Lugar no bloco',
+  moved: (name: string): string => `${name} mudou de lugar.`,
+  renamed: (name: string): string => `Agora se chama ${name}.`,
+  nameBack: 'Voltou ao nome do Home Assistant.',
+  movedTo: (name: string, room: string): string => `${name} foi para ${room}.`,
+  roomHidden: (name: string): string => `${name} não aparece mais na home.`,
+  roomShown: (name: string): string => `${name} voltou para a home.`,
+  itemShown: (name: string): string => `${name} voltou para o painel.`,
+} as const;

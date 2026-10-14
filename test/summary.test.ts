@@ -99,6 +99,7 @@ const bareRoom = (over: Partial<Room>): Room => ({
   appliances: [],
   actions: [],
   scenes: [],
+  hidden: [],
   ...over,
 });
 

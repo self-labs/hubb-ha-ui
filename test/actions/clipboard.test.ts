@@ -28,4 +28,12 @@ describe('copyText', () => {
     Object.defineProperty(document, 'execCommand', { value: () => false, configurable: true });
     expect(await copyText('a: b')).toBe(false);
   });
+
+  it('selects the whole text, as iOS needs, before the old command copies it', async () => {
+    stub(false);
+    Object.defineProperty(document, 'execCommand', { value: () => true, configurable: true });
+    const select = vi.spyOn(HTMLTextAreaElement.prototype, 'setSelectionRange');
+    expect(await copyText('a: b')).toBe(true);
+    expect(select).toHaveBeenCalledWith(0, 4);
+  });
 });
