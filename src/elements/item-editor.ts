@@ -5,10 +5,13 @@ import type { HomeAssistant } from '../ha/types';
 import { coverIsGate } from '../model/classify';
 import { CLIMATE_CONTROLS, ROLES, roleFits, type ItemKind, type Role } from '../model/config';
 import { originOf } from '../model/origin';
-import type { EntityConfig } from '../model/types';
+import type { ClimateExtra, EntityConfig } from '../model/types';
+import { hiddenForList } from '../model/visibility';
 import { CLIMATE, EDIT, KIND_LABELS, REVIEW } from '../strings';
 import { define } from './define';
 import { icon } from './icon';
+import './people-picker';
+import type { PeopleChange } from './people-picker';
 
 /** The item the editor is open for. */
 export interface EditItem {
@@ -29,6 +32,13 @@ export interface EditRequest {
   orders?: Record<string, number>;
 }
 
+/** What the sheet of an air conditioner shows: modes, settings and the functions of its device, by id. */
+interface Choices {
+  modes: string[];
+  controls: string[];
+  extras: string[];
+}
+
 const isRole = (kind: ItemKind): kind is Role => (ROLES as readonly string[]).includes(kind);
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
@@ -44,6 +54,7 @@ export class HubbItemEditor extends LitElement {
     roomAreaId: { attribute: false },
     named: { attribute: false },
     settings: { attribute: false },
+    extras: { attribute: false },
     chosen: { state: true },
   };
 
@@ -54,8 +65,10 @@ export class HubbItemEditor extends LitElement {
   declare named: boolean;
   /** What the YAML says about the item, for the choices of an air conditioner. */
   declare settings: Partial<EntityConfig> | undefined;
-  /** An air conditioner: the modes and settings ticked, until "Salvar escolhas". */
-  declare chosen: { modes: string[]; controls: string[] } | null;
+  /** An air conditioner: the functions of its device (Iluminação, Modo dormir), to keep or leave out. */
+  declare extras: ClimateExtra[];
+  /** An air conditioner: the modes, settings and functions ticked, until "Salvar escolhas". */
+  declare chosen: Choices | null;
 
   constructor() {
     super();
@@ -64,11 +77,12 @@ export class HubbItemEditor extends LitElement {
     this.roomAreaId = '';
     this.named = false;
     this.settings = undefined;
+    this.extras = [];
     this.chosen = null;
   }
 
   protected willUpdate(changed: PropertyValues<this>): void {
-    if (changed.has('item') || changed.has('settings')) this.chosen = null;
+    if (changed.has('item') || changed.has('settings') || changed.has('extras')) this.chosen = null;
   }
 
   /**
@@ -76,7 +90,7 @@ export class HubbItemEditor extends LitElement {
    * only when the sheet would show it, with two or more values that have a name: a toggle for one it
    * never shows would do nothing.
    */
-  #climateOptions(hass: HomeAssistant, entityId: string): { modes: string[]; controls: string[] } {
+  #climateOptions(hass: HomeAssistant, entityId: string): Choices {
     const st = hass.states[entityId];
     const list = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
     const modes = list(st?.attributes.hvac_modes).filter((m) => m !== 'off');
@@ -84,35 +98,41 @@ export class HubbItemEditor extends LitElement {
       const feature = { fan: CLIMATE_FEATURE.fan, swing: CLIMATE_FEATURE.swing, preset: CLIMATE_FEATURE.preset }[c];
       return !!st && has(st, feature) && namedValues(hass, st, `${c}_mode`, list(st.attributes[`${c}_modes`])).length > 1;
     });
-    return { modes, controls };
+    return { modes, controls, extras: this.extras.map((x) => x.entityId) };
   }
 
-  #toggle(kind: 'modes' | 'controls', value: string, all: { modes: string[]; controls: string[] }, now: { modes: string[]; controls: string[] }): void {
+  #toggle(kind: keyof Choices, value: string, all: Choices, now: Choices): void {
     const list = now[kind].includes(value) ? now[kind].filter((v) => v !== value) : [...now[kind], value];
     // In the order the device gives them, whatever the order of the taps.
     this.chosen = { ...now, [kind]: all[kind].filter((v) => list.includes(v)) };
   }
 
-  #saveChoices(all: { modes: string[]; controls: string[] }, now: { modes: string[]; controls: string[] }): void {
+  #saveChoices(all: Choices, now: Choices): void {
     const item = this.item;
     if (!item) return;
     // Everything ticked is the default: the YAML keeps no list for it.
     const same = (a: string[], b: string[]): boolean => a.length === b.length && a.every((v) => b.includes(v));
     this.#ask({
-      patch: { modes: same(now.modes, all.modes) ? undefined : now.modes, controls: same(now.controls, all.controls) ? undefined : now.controls },
+      patch: {
+        modes: same(now.modes, all.modes) ? undefined : now.modes,
+        controls: same(now.controls, all.controls) ? undefined : now.controls,
+        // The functions left out, so one the device gains later shows by itself.
+        hide: same(now.extras, all.extras) ? undefined : all.extras.filter((id) => !now.extras.includes(id)),
+      },
       message: CLIMATE.choicesSaved(item.name),
     });
   }
 
   #climateChoices(hass: HomeAssistant, item: EditItem) {
     const all = this.#climateOptions(hass, item.entityId);
-    if (all.modes.length + all.controls.length === 0) return nothing;
+    if (all.modes.length + all.controls.length + all.extras.length === 0) return nothing;
     const now = this.chosen ?? {
       modes: all.modes.filter((m) => !this.settings?.modes || this.settings.modes.includes(m)),
       controls: all.controls.filter((c) => !this.settings?.controls || this.settings.controls.includes(c)),
+      extras: all.extras.filter((id) => !this.settings?.hide?.includes(id)),
     };
     const words: Record<string, string> = { fan: CLIMATE.fan, swing: CLIMATE.swing, preset: CLIMATE.preset };
-    const toggle = (kind: 'modes' | 'controls', value: string, label: string) => {
+    const toggle = (kind: keyof Choices, value: string, label: string) => {
       const on = now[kind].includes(value);
       return html`<button class="panel-choice ${on ? 'current' : ''}" aria-pressed=${on ? 'true' : 'false'} @click=${() => this.#toggle(kind, value, all, now)}>
         ${label}
@@ -122,10 +142,21 @@ export class HubbItemEditor extends LitElement {
       <span class="label">${CLIMATE.onPanel}</span>
       <div class="row">
         ${all.modes.map((m) => toggle('modes', m, CLIMATE.modes[m] ?? m))} ${all.controls.map((c) => toggle('controls', c, words[c] ?? c))}
+        ${this.extras.map((x) => toggle('extras', x.entityId, x.name))}
       </div>
       <button class="save-choices" @click=${() => this.#saveChoices(all, now)}>${CLIMATE.saveChoices}</button>
     </div>`;
   }
+
+  #onPeople = (e: Event): void => {
+    const change = (e as CustomEvent<PeopleChange>).detail;
+    const item = this.item;
+    if (!item) return;
+    this.#ask({
+      patch: { hidden_for: change.hiddenFor.length ? change.hiddenFor : undefined },
+      message: change.sees ? EDIT.nowShownFor(item.name, change.person) : EDIT.nowHiddenFor(item.name, change.person),
+    });
+  };
 
   #ask(request: Omit<EditRequest, 'entityId'>): void {
     const item = this.item;
@@ -238,6 +269,10 @@ export class HubbItemEditor extends LitElement {
               </button>`,
           )}
         </div>
+      </div>
+      <div class="field">
+        <span class="label">${EDIT.whoSeesItem}</span>
+        <hubb-people-picker .hass=${hass} .hiddenFor=${hiddenForList(this.settings?.hidden_for)} @hubb-people=${this.#onPeople}></hubb-people-picker>
       </div>
       ${item.kind === 'climate' && item.entityId.startsWith('climate.') ? this.#climateChoices(hass, item) : nothing}
       ${item.siblings.length > 1

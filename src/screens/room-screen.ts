@@ -24,6 +24,7 @@ import '../elements/light-tile';
 import '../elements/media-card';
 import '../elements/media-panel';
 import '../elements/nav-bar';
+import '../elements/people-picker';
 import '../elements/outlet-tile';
 import '../elements/power-panel';
 import '../elements/sensor-tile';
@@ -31,6 +32,7 @@ import '../elements/scene-button';
 import '../elements/sheet';
 import { isEditing, setEditing } from '../editing';
 import { normalizeRoom } from '../model/build-house';
+import { hiddenForList } from '../model/visibility';
 import { originOf } from '../model/origin';
 import type { ItemKind } from '../model/config';
 import type { HiddenItem, HubbConfig, Room, Shared } from '../model/types';
@@ -138,7 +140,10 @@ export class HubbRoomScreen extends HubbScreen {
         <span class="text"
           ><span class="name">${i.name}</span><span class="kind">${KIND_LABELS[kind]}</span>${origin
             ? html`<span class="origin">${origin}</span>`
-            : nothing}</span
+            : nothing}<hubb-hidden-tag
+            .hass=${this.hass}
+            .ids=${hiddenForList(this.config?.options?.entities?.[i.entityId]?.hidden_for)}
+          ></hubb-hidden-tag></span
         >
       </button>`;
     });
@@ -338,6 +343,7 @@ export class HubbRoomScreen extends HubbScreen {
               .roomAreaId=${room.areaId}
               .named=${!!this.config?.options?.entities?.[this.editingItem.entityId]?.name}
               .settings=${this.config?.options?.entities?.[this.editingItem.entityId]}
+              .extras=${room.climate.find((c) => c.entityId === this.editingItem?.entityId)?.extras ?? []}
               @hubb-edit=${this.#onEdit}
             ></hubb-item-editor>`
           : nothing}

@@ -92,8 +92,11 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
   has it.
 - **Air conditioner:** what it is doing, the target and the temperature now. Its sheet is compact:
   − and + with the power button, the modes in one row, and ventilation, swing and preset closed under
-  **Mais ajustes**. A value no one translated ("MiddleTop1") stays out, and the installer picks which
-  modes and settings show. An infrared one says its state is the last command sent.
+  **Mais ajustes**, together with the functions its device keeps in entities of its own (Iluminação,
+  Economia de energia, Modo dormir, the timers to turn on and off): each model shows what it has. A
+  value no one translated ("MiddleTop1") stays out, and the installer picks which modes, settings and
+  functions show. The target moves by whole degrees, like a remote control. An infrared one says its
+  state is the last command sent.
 - **Curtains** open, close and stop with a tap; **TV and sound** play, pause and turn off from the
   card, with volume, mute and source on the sheet; **fans** switch and open their speeds.
 
@@ -162,6 +165,8 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
   Rename an item, move it to another room, change how it shows, reorder it, hide a room or a sensor,
   pick the modes of an air conditioner. Every change goes into the dashboard configuration with
   **Desfazer** for 5 s.
+- **Who sees what:** a room or an item can be hidden for chosen users (**Quem vê**), see
+  [Who sees what](#who-sees-what).
 - Residents never see either: client accounts are not administrators.
 
 <details>
@@ -259,7 +264,9 @@ strategy:
 | `entities.<id>.order` | By name                            | Place of the item inside its block, lower first            |
 | `entities.<id>.icon`  | The icon of the role               | An `mdi:` icon for equipment and actions                   |
 | `entities.<id>.area`  | The area of the entity, then of its device (an appliance: its device first) | Room of the entity on the panel |
-| `entities.<id>.hide`  | none                               | Appliance only: entities of its device left out of its sheet |
+| `entities.<id>.hide`  | none                               | Appliance or air conditioner: entities of its device left out of its sheet |
+| `rooms.<area>.hidden_for` | none | User ids of Home Assistant the room is hidden for (not administrators). See [Who sees what](#who-sees-what) |
+| `entities.<id>.hidden_for` | none | User ids the item is hidden for; danger alerts still show |
 | `entities.<id>.remaining`, `.progress` | Found on the device | Appliance only: the time left and the progress sensors, when the automatic pick is wrong |
 | `entities.<id>.power`, `.energy` | Found on the device | Outlet or equipment: its power and energy sensors, when the automatic match fails. See [Sensors, security and consumption](#sensors-security-and-consumption) |
 | `entities.<id>.modes` | Every mode it has | Air conditioner (`climate.*`) only: the modes its sheet offers, for example `[cool, dry]`; turning on without `turn_on` picks among them |
@@ -389,6 +396,33 @@ Administrators also get a pencil, on the home and on each room page. In the edit
 Every change is saved into the dashboard configuration (the same keys as the YAML above, plus
 `entities.<id>.order` for the place of an item) and Home Assistant rebuilds the panel at once;
 "Desfazer" takes it back for 5 seconds. A dashboard frozen with "Take control" shows no pencil.
+
+### Who sees what
+
+A room or an item can be hidden for chosen users of Home Assistant: on the home in edit mode, a room
+card has **Quem vê**; the item editor has **Quem vê este item**. A room hidden for someone disappears
+for them with everything in it (its page, scenes, sensors, cameras, doors and access on the security
+tab); an item hidden for someone disappears alone. Administrators always see everything, and the edit
+mode tags what is hidden ("Oculto para Lia"). Smoke, gas, carbon monoxide, water leaks and the
+alarm still reach everyone. "Revisar o painel" lists the rooms and items hidden for users that no longer exist,
+with **Limpar**.
+
+```yaml
+strategy:
+  type: custom:hubb
+  rooms:
+    kitnet:
+      hidden_for: [8f3c0d2a1b9e4f7a]   # user id in Home Assistant
+  entities:
+    camera.portao:
+      hidden_for: [8f3c0d2a1b9e4f7a]
+```
+
+> [!IMPORTANT]
+> This is a filter of the panel, not a permission: Home Assistant has no per-entity permission, so a
+> user who opens another dashboard still sees the device there, and the user ids are in the dashboard
+> configuration every user reads. Set the other dashboards to "Admin only". A dashboard frozen with
+> "Take control" keeps the house of whoever froze it: `hidden_for` no longer applies there.
 
 ## Prepare the house
 

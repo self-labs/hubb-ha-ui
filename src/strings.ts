@@ -208,6 +208,7 @@ export const CFG = {
   badOrder: (id: string): string => `order de ${id} precisa ser um número.`,
   badList: (key: string, example: string): string => `${key} precisa ser uma lista, por exemplo [${example}].`,
   climateOnly: (key: string): string => `${key} só vale para ar-condicionado (climate).`,
+  hideOnly: 'hide só vale para um aparelho (role: appliance) ou um ar-condicionado.',
   badControls: (value: string): string => `controls: ${value} não existe. Use fan, swing ou preset.`,
   badIcon: (i: string): string => `icon: ${i} precisa começar com mdi: (por exemplo, mdi:pool).`,
   unknownArea: (a: string): string => `A área ${a} não existe no Home Assistant.`,
@@ -217,6 +218,10 @@ export const CFG = {
 
 /** The screen "Revisar o painel", for the installer. */
 export const REVIEW = {
+  stalePeople: 'Pessoas que não existem mais',
+  staleReason: 'Oculto para alguém que não existe mais no Home Assistant.',
+  clean: 'Limpar',
+  cleaned: (name: string): string => `${name}: lista de quem vê atualizada.`,
   title: 'Revisar o painel',
   onlyYou: 'Só você vê esta tela.',
   adminOnly: 'Só administradores veem esta tela.',
@@ -344,6 +349,15 @@ export function applianceStatePt(raw: string, kind: ApplianceKind): string | nul
 
 /** The edit mode of the panel, for the installer. */
 export const EDIT = {
+  whoSees: 'Quem vê',
+  whoSeesRoom: 'Quem vê este cômodo',
+  whoSeesItem: 'Quem vê este item',
+  onlyAdmins: 'Nesta casa só há administradores, e eles sempre veem tudo.',
+  usersFailed: 'Não deu para ler os usuários do Home Assistant. Feche e abra de novo.',
+  hiddenForOne: (name: string): string => `Oculto para ${name}`,
+  hiddenForMany: (n: number): string => (n === 1 ? 'Oculto para 1 pessoa' : `Oculto para ${n} pessoas`),
+  nowHiddenFor: (item: string, person: string): string => `${item} não aparece mais para ${person}.`,
+  nowShownFor: (item: string, person: string): string => `${item} voltou a aparecer para ${person}.`,
   edit: 'Editar',
   done: 'Pronto',
   hintHome: 'Modo edição: use as setas para mudar a ordem dos cômodos. Toque num cômodo para editar os itens dele.',
@@ -409,6 +423,27 @@ export const CLIMATE = {
   turnOff: 'Desligar',
   colder: 'Diminuir a temperatura',
   more: 'Mais ajustes',
+  decrease: (name: string): string => `Diminuir ${name}`,
+  increase: (name: string): string => `Aumentar ${name}`,
+  /** A timer at zero, or one the device does not report: nothing is scheduled. */
+  timerOff: 'Desligado',
+  /**
+   * Names of the functions an integration leaves in English, by translation key or by name. LG ThinQ
+   * translates Iluminação and Economia de energia but not its timers; SmartThinQ translates nothing.
+   */
+  extraWords: {
+    sleep_timer_relative_hour_to_stop: 'Modo dormir',
+    relative_hour_to_start: 'Ligar daqui a',
+    relative_hour_to_stop: 'Desligar daqui a',
+    'sleep timer': 'Modo dormir',
+    'schedule turn-on': 'Ligar daqui a',
+    'schedule turn-off': 'Desligar daqui a',
+    'jet mode': 'Modo Jet',
+    'display light': 'Luz do display',
+    'energy saving': 'Economia de energia',
+  } as Readonly<Record<string, string>>,
+  /** A command the device or its cloud refused ("Fail device control"); administrators also read why. */
+  refused: 'O aparelho não aceitou o comando.',
   /** A setting on a value nobody can name: the select says so instead of showing its first choice. */
   otherValue: 'Outra opção',
   onPanel: 'No painel',

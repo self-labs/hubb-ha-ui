@@ -96,6 +96,7 @@ describe('room card shading', () => {
     temperature: null,
     humidity: null,
     sensors: [],
+    hiddenFor: [],
   });
 
   it('darkens the bottom only over a photo, so dark text on the plain Areia card stays readable', async () => {

@@ -1,5 +1,6 @@
 import type { HomeAssistant } from '../ha/types';
 import { allLightIds, buildHouse, hasSecurity, newRoom } from '../model/build-house';
+import { viewerOf } from '../model/visibility';
 import type { HubbConfig, Shared } from '../model/types';
 import { REVIEW, S } from '../strings';
 
@@ -33,6 +34,7 @@ export function generateDashboard(config: HubbConfig, hass: HomeAssistant): Love
   try {
     const house = buildHouse(hass, config);
     const lightIds = allLightIds(house);
+    const viewer = viewerOf(hass);
     const { homeLabel } = house;
     // One object for every screen: the alerts strip and the security tab are the same everywhere.
     const shared: Shared = { alerts: house.alerts, security: hasSecurity(house) };
@@ -69,9 +71,15 @@ export function generateDashboard(config: HubbConfig, hass: HomeAssistant): Love
         ...review,
         ...Object.keys(hass.areas)
           .sort()
-          .map((areaId): LovelaceViewConfig => {
-            const room =
-              house.rooms.find((r) => r.areaId === areaId) ?? house.sensorRooms.find((r) => r.areaId === areaId) ?? newRoom(hass, areaId, config);
+          .map((areaId, n): LovelaceViewConfig => {
+            const reached = house.rooms.find((r) => r.areaId === areaId) ?? house.sensorRooms.find((r) => r.areaId === areaId);
+            // A resident gets nothing of a room hidden for them, or emptied by hidden items (spec,
+            // Section 5): no name, no data, a card that sends them home. The view itself stays, so
+            // the index of every other one does not move. Administrators keep every page to edit it.
+            if (!reached && viewer !== null) {
+              return { title: '', path: `vazio-${n + 1}`, type: 'panel', subview: true, cards: [{ type: 'custom:hubb-redirect-card' }] };
+            }
+            const room = reached ?? newRoom(hass, areaId, config);
             return {
               title: room.name,
               path: room.path,

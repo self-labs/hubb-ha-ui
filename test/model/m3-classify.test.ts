@@ -47,7 +47,7 @@ describe('the kinds of M3', () => {
     const sala = built.rooms.find((r) => r.areaId === 'sala')!;
     const entrada = built.rooms.find((r) => r.areaId === 'entrada')!;
     expect(sala.climate).toEqual([
-      { entityId: 'climate.ar', name: 'Ar', kind: 'climate' },
+      { entityId: 'climate.ar', name: 'Ar', kind: 'climate', extras: [] },
       { entityId: 'fan.teto', name: 'Ventilador', kind: 'fan' },
     ]);
     expect(sala.covers.map((c) => c.name)).toEqual(['Cortina', 'Persiana']);

@@ -116,6 +116,7 @@ const bareRoom = (over: Partial<Room>): Room => ({
   temperature: null,
   humidity: null,
   sensors: [],
+  hiddenFor: [],
   ...over,
 });
 

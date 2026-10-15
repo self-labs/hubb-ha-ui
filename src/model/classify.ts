@@ -47,7 +47,9 @@ export type Exclusion =
   /** A switch with no class and no role: the installer decides on "Revisar o painel". */
   | 'review'
   /** A type the later modules handle (climate, cover, media, sensors, loose buttons). */
-  | 'unsupported';
+  | 'unsupported'
+  /** Hidden for the resident looking (`hidden_for`); administrators see it. */
+  | 'viewer';
 
 export type Placement =
   | { block: Block; areaId: string | null }
@@ -58,15 +60,52 @@ export interface ClassifyContext {
   hidden: ReadonlySet<string>;
   /** Devices with an entity whose role is appliance. */
   applianceDevices: ReadonlySet<string>;
+  /** Devices with an air conditioner on the panel: their switches, selects and numbers are its functions. */
+  climateDevices: ReadonlySet<string>;
+  /** Entities hidden for the resident looking; empty for an administrator. */
+  viewerHidden: ReadonlySet<string>;
 }
 
-export function classifyContext(hass: HomeAssistant, cfg: PanelConfig, hideEntities: readonly string[] = []): ClassifyContext {
+/** The domains of the functions of an air conditioner kept in entities of their own. */
+export const CLIMATE_PART_DOMAINS: ReadonlySet<string> = new Set(['switch', 'select', 'number']);
+
+/** Integrations whose device is the air conditioner itself: all its switches, selects and numbers are its own. */
+const CLIMATE_PLATFORMS: ReadonlySet<string> = new Set(['lg_thinq', 'smartthinq_sensors', 'electrolux_status', 'tasmota_ir']);
+
+/**
+ * Whether an entity is a function of the air conditioner on its device (Iluminação, Modo dormir). A
+ * board that drives an air conditioner and relays (ESPHome, a KinCony) keeps its relays and outlets:
+ * there only what the integration marks as a setting counts.
+ */
+export function isClimatePart(hass: HomeAssistant, entityId: string, climateDevices: ReadonlySet<string>): boolean {
+  const reg = hass.entities[entityId];
+  if (!reg?.device_id || !climateDevices.has(reg.device_id)) return false;
+  if (!CLIMATE_PART_DOMAINS.has(entityId.slice(0, entityId.indexOf('.')))) return false;
+  if (hass.states[entityId]?.attributes.device_class === 'outlet') return false;
+  return reg.entity_category === 'config' || CLIMATE_PLATFORMS.has(reg.platform ?? '');
+}
+
+export function classifyContext(
+  hass: HomeAssistant,
+  cfg: PanelConfig,
+  hideEntities: readonly string[] = [],
+  viewerHidden: ReadonlySet<string> = new Set(),
+): ClassifyContext {
   const applianceDevices = new Set<string>();
   for (const [entityId, s] of Object.entries(cfg.entities)) {
     const deviceId = hass.entities[entityId]?.device_id;
     if (s.role === 'appliance' && deviceId) applianceDevices.add(deviceId);
   }
-  return { cfg, hidden: new Set(hideEntities), applianceDevices };
+  const hidden = new Set(hideEntities);
+  // Only an air conditioner that is on the panel (a room, not hidden) has functions to show.
+  const climateDevices = new Set<string>();
+  for (const reg of Object.values(hass.entities)) {
+    if (!reg.entity_id.startsWith('climate.') || !reg.device_id || reg.hidden || hidden.has(reg.entity_id)) continue;
+    if (cfg.entities[reg.entity_id]?.role === 'hidden' || viewerHidden.has(reg.entity_id)) continue;
+    if (!areaOf(hass, reg.entity_id, cfg.entities[reg.entity_id]?.area)) continue;
+    climateDevices.add(reg.device_id);
+  }
+  return { cfg, hidden, applianceDevices, climateDevices, viewerHidden };
 }
 
 /** The room of an entity: the `area` of the configuration, else its own area, else its device's. */
@@ -101,10 +140,16 @@ export function coverIsGate(hass: HomeAssistant, entityId: string): boolean {
   return GATE_WORDS.test(name);
 }
 
+/** Smoke, gas, carbon monoxide or a water leak: what reaches every resident (decision B). */
+const isDanger = (hass: HomeAssistant, entityId: string): boolean =>
+  entityId.startsWith('binary_sensor.') && ALERT_CLASSES.has(String(hass.states[entityId]?.attributes.device_class ?? ''));
+
 /** Where an entity goes on the panel, or why it stays off. The one rule every screen uses. */
 export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyContext): Placement {
   const reg = hass.entities[entityId];
   if (!reg) return { block: null, why: 'hidden', areaId: null };
+  // Decision B: a danger alert reaches everyone, whatever hidden_for says.
+  if (ctx.viewerHidden.has(entityId) && !isDanger(hass, entityId)) return { block: null, why: 'viewer', areaId: null };
   const s = ctx.cfg.entities[entityId];
   const role = s?.role;
   if (reg.hidden || ctx.hidden.has(entityId) || role === 'hidden') return { block: null, why: 'hidden', areaId: null };
@@ -117,8 +162,10 @@ export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyCon
     return areaId ? { block: role, areaId } : roomless;
   }
   if (reg.device_id && ctx.applianceDevices.has(reg.device_id)) return { block: null, why: 'part', areaId: null };
-  if (reg.entity_category) return { block: null, why: 'category', areaId: null };
   const domain = domainOf(entityId);
+  // Iluminação, Economia de energia, Modo dormir: functions on the sheet of its air conditioner.
+  if (isClimatePart(hass, entityId, ctx.climateDevices)) return { block: null, why: 'part', areaId: null };
+  if (reg.entity_category) return { block: null, why: 'category', areaId: null };
   const areaId = areaOf(hass, entityId, s?.area);
   if ((domain === 'scene' || domain === 'script') && reg.labels.includes(SCENE_LABEL)) return { block: 'scene', areaId };
   if (domain === 'light') return areaId ? { block: 'light', areaId } : roomless;

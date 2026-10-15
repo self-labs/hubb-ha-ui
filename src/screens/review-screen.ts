@@ -1,8 +1,9 @@
 import { mdiChevronLeft } from '@mdi/js';
-import { css, html, nothing } from 'lit';
+import { css, html, nothing, type PropertyValues } from 'lit';
 import { copyText } from '../actions/clipboard';
-import { putBack, setRoles } from '../actions/dashboard-config';
+import { putBack, putBackRooms, setEntity, setRoles, setRooms } from '../actions/dashboard-config';
 import { haptic } from '../actions/haptic';
+import { loadUsers, type HaUser } from '../actions/people';
 import { goBack } from '../actions/navigate';
 import { define } from '../elements/define';
 import { icon } from '../elements/icon';
@@ -10,6 +11,7 @@ import '../elements/nav-bar';
 import type { Role } from '../model/config';
 import { REVIEW_GROUPS, reviewItems, suggestedLines, yamlBlock, yamlLine, type ReviewItem } from '../model/review';
 import type { HubbConfig, Shared } from '../model/types';
+import { staleEntries, type StaleEntry } from '../model/visibility';
 import { REVIEW, ROLE_LABELS, S } from '../strings';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
@@ -34,12 +36,17 @@ export class HubbReviewScreen extends HubbScreen {
     config: { attribute: false },
     notice: { state: true },
     manual: { state: true },
+    users: { state: true },
   };
 
   declare config: ReviewScreenConfig | undefined;
   declare notice: string | null;
   /** The text to copy by hand, when the device copies nothing. */
   declare manual: string | null;
+  /** Every user of Home Assistant, to find the ids of `hidden_for` that are gone; null until read. */
+  declare users: HaUser[] | null;
+
+  #loadingUsers = false;
 
   #timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -48,6 +55,7 @@ export class HubbReviewScreen extends HubbScreen {
     this.config = undefined;
     this.notice = null;
     this.manual = null;
+    this.users = null;
   }
 
   setConfig(config: ReviewScreenConfig): void {
@@ -57,6 +65,39 @@ export class HubbReviewScreen extends HubbScreen {
 
   protected scope(): string[] {
     return [];
+  }
+
+  protected willUpdate(changed: PropertyValues<this>): void {
+    super.willUpdate(changed);
+    if (this.hass?.user?.is_admin && this.users === null && !this.#loadingUsers) {
+      this.#loadingUsers = true;
+      void loadUsers(this.hass).then((users) => (this.users = users ?? []));
+    }
+  }
+
+  async #clean(entry: StaleEntry, name: string): Promise<void> {
+    const hiddenFor = entry.keep.length ? entry.keep : undefined;
+    await this.saveChange(REVIEW.cleaned(name), async (hass, urlPath) => {
+      if (entry.section === 'rooms') {
+        const before = await setRooms(hass, urlPath, { [entry.key]: { hidden_for: hiddenFor } });
+        return (h) => putBackRooms(h, urlPath, before);
+      }
+      const before = await setEntity(hass, urlPath, entry.key, { hidden_for: hiddenFor });
+      return (h) => putBack(h, urlPath, before);
+    });
+  }
+
+  #stale(entry: StaleEntry) {
+    const hass = this.hass!;
+    const name =
+      entry.section === 'rooms'
+        ? (hass.areas[entry.key]?.name ?? entry.key)
+        : String(hass.states[entry.key]?.attributes.friendly_name ?? entry.key);
+    return html`<li class="item">
+      <strong>${name}</strong>
+      <span class="why">${REVIEW.staleReason}</span>
+      <div class="roles"><button class="role clean" @click=${() => void this.#clean(entry, name)}>${REVIEW.clean}</button></div>
+    </li>`;
   }
 
   disconnectedCallback(): void {
@@ -125,6 +166,8 @@ export class HubbReviewScreen extends HubbScreen {
     if (!hass) return nothing;
     const admin = !!hass.user?.is_admin;
     const items = admin ? reviewItems(hass, this.config?.options ?? NO_OPTIONS) : [];
+    // An empty list means the users could not be read (an administrator always exists): nothing is stale then.
+    const stale = admin && this.users?.length ? staleEntries(this.config?.options ?? NO_OPTIONS, new Set(this.users.map((u) => u.id))) : [];
     const lines = suggestedLines(items);
     const suggested: Record<string, Role> = Object.fromEntries(
       items
@@ -141,7 +184,7 @@ export class HubbReviewScreen extends HubbScreen {
       <main>
         <p class="notice" role="status">${this.notice ?? ''}</p>
         ${this.manual ? html`<pre class="manual">${this.manual}</pre>` : nothing}
-        ${admin && items.length === 0 ? html`<div class="empty"><strong>${REVIEW.nothing}</strong></div>` : nothing}
+        ${admin && items.length === 0 && stale.length === 0 ? html`<div class="empty"><strong>${REVIEW.nothing}</strong></div>` : nothing}
         ${lines.length
           ? html`<button class="primary wide" @click=${() => void this.#apply(suggested, REVIEW.savedAll(Object.keys(suggested).length), yamlBlock(lines), REVIEW.copiedAllInstead)}>
               ${REVIEW.applyAll}
@@ -156,6 +199,12 @@ export class HubbReviewScreen extends HubbScreen {
                 </ul>`
             : nothing;
         })}
+        ${stale.length
+          ? html`<h2>${REVIEW.stalePeople} (${stale.length})</h2>
+              <ul>
+                ${stale.map((s) => this.#stale(s))}
+              </ul>`
+          : nothing}
       </main>
       <hubb-toast></hubb-toast>
       <hubb-nav-bar

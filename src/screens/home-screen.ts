@@ -1,5 +1,5 @@
 import { mdiCheck, mdiChevronLeft, mdiChevronRight, mdiPencilOutline, mdiWrenchOutline } from '@mdi/js';
-import { css, html, nothing } from 'lit';
+import { css, html, nothing, type PropertyValues } from 'lit';
 import { haptic } from '../actions/haptic';
 import { setLight } from '../actions/light';
 import { basePath, navigate } from '../actions/navigate';
@@ -9,6 +9,10 @@ import '../elements/appliance-panel';
 import '../elements/floor-tabs';
 import '../elements/light-tile';
 import '../elements/nav-bar';
+import '../elements/people-picker';
+import type { PeopleChange } from '../elements/people-picker';
+import { loadUsers, type HaUser } from '../actions/people';
+import { staleEntries } from '../model/visibility';
 import '../elements/room-card';
 import { sensorIcon } from '../elements/sensor-tile';
 import '../elements/scene-button';
@@ -19,7 +23,7 @@ import { isEditing, setEditing } from '../editing';
 import { allLightIds, normalizeHouse } from '../model/build-house';
 import { pickFloor, roomsOn } from '../model/floors';
 import { reviewItems } from '../model/review';
-import type { House, HubbConfig, Shared } from '../model/types';
+import type { House, HubbConfig, Room, Shared } from '../model/types';
 import { EDIT, greeting, lightsCount, lightsTurnedOff, onCount, REVIEW, S, SENSE } from '../strings';
 import {
   applianceChipText,
@@ -75,6 +79,8 @@ export class HubbHomeScreen extends HubbScreen {
     sheetIds: { state: true },
     applianceId: { state: true },
     floor: { state: true },
+    peopleRoom: { state: true },
+    users: { state: true },
   };
 
   declare config: HomeScreenConfig | undefined;
@@ -84,6 +90,12 @@ export class HubbHomeScreen extends HubbScreen {
   declare applianceId: string | null;
   /** The floor tab picked on this screen; null until the resident picks one. */
   declare floor: string | null;
+  /** The room whose "Quem vê" sheet is open, by area id. */
+  declare peopleRoom: string | null;
+  /** Every user of Home Assistant, for the key of the review (administrators only); null until read. */
+  declare users: HaUser[] | null;
+
+  #loadingUsers = false;
 
   #onFloor = (e: Event): void => {
     const floorId = (e as CustomEvent<{ floorId: string }>).detail.floorId;
@@ -97,6 +109,8 @@ export class HubbHomeScreen extends HubbScreen {
     this.sheetIds = null;
     this.applianceId = null;
     this.floor = null;
+    this.peopleRoom = null;
+    this.users = null;
     this.addEventListener('hubb-floor', this.#onFloor);
   }
 
@@ -154,6 +168,25 @@ export class HubbHomeScreen extends HubbScreen {
     });
   }
 
+  protected willUpdate(changed: PropertyValues<this>): void {
+    super.willUpdate(changed);
+    if (this.hass && this.canEdit(this.config?.options) && this.users === null && !this.#loadingUsers) {
+      this.#loadingUsers = true;
+      void loadUsers(this.hass).then((users) => (this.users = users ?? []));
+    }
+  }
+
+  #setRoomPeople(room: Room, change: PeopleChange): void {
+    const message = change.sees ? EDIT.nowShownFor(room.name, change.person) : EDIT.nowHiddenFor(room.name, change.person);
+    void this.saveChange(message, async (hass, urlPath) => {
+      const before = await setRooms(hass, urlPath, { [room.areaId]: { hidden_for: change.hiddenFor.length ? change.hiddenFor : undefined } });
+      return (h) => putBackRooms(h, urlPath, before);
+    }).then((saved) => {
+      // Not saved: the sheet closes, so the notice behind it can be read and the buttons start over.
+      if (!saved) this.peopleRoom = null;
+    });
+  }
+
   #roomInEdit(hass: HomeAssistant, house: House, room: House['rooms'][number]) {
     const at = house.rooms.indexOf(room);
     return html`<div class="room-edit" data-name=${room.name}>
@@ -173,7 +206,9 @@ export class HubbHomeScreen extends HubbScreen {
         <button class="tool hide" @click=${() => this.#setRoomHidden(room.areaId, true, EDIT.roomHidden(room.name))}>
           ${EDIT.hideRoom}
         </button>
+        <button class="tool people" @click=${() => (this.peopleRoom = room.areaId)}>${EDIT.whoSees}</button>
       </div>
+      <hubb-hidden-tag .hass=${hass} .ids=${room.hiddenFor}></hubb-hidden-tag>
     </div>`;
   }
 
@@ -205,12 +240,16 @@ export class HubbHomeScreen extends HubbScreen {
     const ids = this.sheetIds;
     const busy = busyAppliances(house.rooms, hass);
     const open = this.applianceId ? findAppliance(house.rooms, this.applianceId) : null;
+    const peopleRoom = house.rooms.find((r) => r.areaId === this.peopleRoom) ?? null;
     const floor = pickFloor(house.floors, this.floor, this.floor || !house.floors.length ? null : rememberedFloor());
     // The strategy hands the configuration to the home exactly when it creates the review view for an
     // administrator; a dashboard frozen before the review has neither, and its key would lead nowhere.
     const admin = this.canEdit(this.config?.options);
     const editing = admin && isEditing();
-    const pending = admin ? reviewItems(hass, this.config?.options ?? NO_OPTIONS).length : 0;
+    // The people who no longer exist count too, once the users are read (an empty list was not read).
+    const options = this.config?.options ?? NO_OPTIONS;
+    const stale = admin && this.users?.length ? staleEntries(options, new Set(this.users.map((u) => u.id))).length : 0;
+    const pending = admin ? reviewItems(hass, options).length + stale : 0;
     const shown = floor === null ? house.rooms : roomsOn(house.rooms, floor);
     return html`${this.strips(this.config?.shared)}<main>
         <header>
@@ -286,6 +325,21 @@ export class HubbHomeScreen extends HubbScreen {
         @hubb-close=${() => (this.applianceId = null)}
       >
         ${open ? html`<hubb-appliance-panel .hass=${hass} .item=${open.item}></hubb-appliance-panel>` : nothing}
+      </hubb-sheet>
+      <hubb-sheet
+        class="people"
+        ?open=${peopleRoom !== null}
+        heading=${EDIT.whoSeesRoom}
+        subheading=${peopleRoom?.name ?? ''}
+        @hubb-close=${() => (this.peopleRoom = null)}
+      >
+        ${peopleRoom
+          ? html`<hubb-people-picker
+              .hass=${hass}
+              .hiddenFor=${peopleRoom.hiddenFor}
+              @hubb-people=${(e: CustomEvent<PeopleChange>) => this.#setRoomPeople(peopleRoom, e.detail)}
+            ></hubb-people-picker>`
+          : nothing}
       </hubb-sheet>
       <hubb-toast></hubb-toast>
       <hubb-nav-bar current="home" home-label=${house.homeLabel} ?security=${this.config?.shared?.security ?? false}></hubb-nav-bar>`;
@@ -489,6 +543,10 @@ export class HubbHomeScreen extends HubbScreen {
         display: grid;
         grid-template-columns: 40px 40px minmax(0, 1fr);
         gap: 6px;
+      }
+      .tool.people {
+        grid-column: 1 / -1;
+        justify-content: center;
       }
       .tool,
       .show {

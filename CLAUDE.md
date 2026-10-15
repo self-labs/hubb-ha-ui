@@ -130,6 +130,15 @@ operation.
   reach the sheet (`knownWord`, `namedValues`); add a word there before showing a new value. Ours
   come first: they agree with the feminine headings ("Ventilação", "Oscilação"), Home Assistant's
   are masculine. The item editor offers a setting only when the sheet would show it.
+- The switches, selects and numbers of a device with an air conditioner on the panel are its
+  functions (`classify` gives them `part`): `climateExtras` in `build-house.ts` puts them on its sheet,
+  leaving out the power switch (`isPowerTwin`), diagnostics and entities with a role. Names an
+  integration leaves in English get a word in `CLIMATE.extraWords`.
+- Who sees what is decided in the model, never in a screen: `viewerOf` (`src/model/visibility.ts`)
+  is null for an administrator, so nothing is filtered for them; `buildHouse` drops rooms and items
+  for the resident looking, `classify` returns `viewer`, `generateDashboard` skips the view. Danger
+  alerts always pass. `config/auth/list` is admin only: only the edit mode, the item editor and the
+  review call it (`loadUsers`).
 - happy-dom miscounts the options Lit renders in a `<select>` (`selectedIndex` lands on the wrong
   one): tests read the `selected` attribute instead.
 - Block order on a room page is fixed (Acesso, Luzes, Clima, Cortinas, Mídia, Tomadas e

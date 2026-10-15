@@ -31,6 +31,7 @@ const SALA: Room = {
   temperature: null,
   humidity: null,
   sensors: [],
+  hiddenFor: [],
 };
 
 async function mount(hass: FakeHass, room: Room = SALA): Promise<HubbRoomCard> {

@@ -96,7 +96,7 @@ describe('readConfig', () => {
     expect(cfg.problems.map((p) => [p.key, p.message])).toEqual([
       ['entities.switch.bomba', 'switch.bomba está sem nada; escreva, por exemplo, switch.bomba: { role: light }.'],
       ['entities.light.sofa.name', 'name de light.sofa precisa ser um texto.'],
-      ['entities.button.reiniciar.hide', 'hide só vale junto com role: appliance.'],
+      ['entities.button.reiniciar.hide', 'hide só vale para um aparelho (role: appliance) ou um ar-condicionado.'],
       ['entities.button.reiniciar.remaining', 'remaining só vale junto com role: appliance.'],
       ['rooms', 'rooms precisa listar áreas, por exemplo rooms: { sala: { order: 1 } }.'],
     ]);

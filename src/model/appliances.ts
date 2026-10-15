@@ -70,6 +70,13 @@ const domainOf = (entityId: string): string => entityId.slice(0, entityId.indexO
 const keyOf = (hass: HomeAssistant, entityId: string): string =>
   `${entityId} ${hass.entities[entityId]?.translation_key ?? ''}`.toLowerCase();
 
+/** A switch that only turns its device on and off (LG ThinQ `operation_power`): the sheet has that button. */
+export function isPowerTwin(hass: HomeAssistant, entityId: string): boolean {
+  if (!entityId.startsWith('switch.')) return false;
+  const key = hass.entities[entityId]?.translation_key ?? '';
+  return key === 'operation_power' || key === 'power' || /_power$/.test(entityId);
+}
+
 /** Entities of a device, by id, leaving out the ones hidden in Home Assistant. */
 export function deviceEntities(hass: HomeAssistant, deviceId: string): string[] {
   return Object.keys(hass.entities)

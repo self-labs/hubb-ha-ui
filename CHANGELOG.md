@@ -8,6 +8,38 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Added
+
+- Who sees what: a room or an item can be hidden for chosen users of Home Assistant (`hidden_for`),
+  picked on the panel (**Quem vê** on a room card in edit mode, **Quem vê este item** in the item
+  editor). A hidden room disappears with everything in it; administrators always see everything and
+  the edit mode tags it; danger alerts and the alarm still reach everyone. An appliance marked by two
+  entities hides as one. "Revisar o painel" cleans users that no longer exist, and its key on the home
+  counts them. A filter of the panel, not a permission.
+- "Mais ajustes" of an air conditioner gathers the functions its device keeps in entities of their
+  own, whatever the model: switches (Iluminação, Economia de energia), choices (Volume) and timers
+  with − and + (Modo dormir, Ligar daqui a, Desligar daqui a). A board that also drives relays
+  (ESPHome, KinCony) keeps them: there only settings count. The power switch, sensors and
+  diagnostics stay out, and so does a function the device does not answer for. They leave the room
+  and the review, since they belong to the sheet. The editor of the air conditioner picks them too
+  (`entities.<id>.hide`).
+
+### Changed
+
+- The target of an air conditioner moves by whole degrees in every mode, like a remote control, even
+  when the integration allows half degrees (an LG in Auto takes 18,5 and keeps 18, tested on a real
+  unit); a half degree set elsewhere goes to the next whole one. − and + never move the wrong way, as
+  when the device sits below the lowest target Home Assistant allows.
+
+### Fixed
+
+- The sheet of an air conditioner no longer sends a target after the mode changed to one that takes
+  none: picking Ventilar right after − or + made LG answer "Command not supported in FAN". A blink of
+  the device (a moment unavailable) keeps the taps, which still go out.
+- A command the device refuses shows one line on the sheet ("O aparelho não aceitou o comando.",
+  with the answer of Home Assistant for administrators) instead of the toast of Home Assistant in
+  English, and a refused target goes back to the one the device keeps.
+
 ## [2026.10.9] - 2026-10-14
 
 ### Added

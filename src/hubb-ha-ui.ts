@@ -1,5 +1,6 @@
 import './cards/error-card';
 import './cards/light-card';
+import './cards/redirect-card';
 import './screens/home-screen';
 import './screens/review-screen';
 import './screens/room-screen';

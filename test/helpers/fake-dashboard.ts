@@ -27,3 +27,25 @@ export function admin(h: FakeHass): FakeHass {
 }
 
 export const flush = (): Promise<unknown> => new Promise((resolve) => setTimeout(resolve, 0));
+
+/** Gives `h` the users of `config/auth/list` on top of whatever callWS answers already; `fail` refuses. */
+export function withUsers(h: FakeHass, users: Record<string, unknown>[], fail = false): void {
+  const before = h.callWS;
+  h.callWS = vi.fn(async (msg: Record<string, unknown>) => {
+    if (msg.type === 'config/auth/list') {
+      if (fail) throw new Error('Unauthorized');
+      return structuredClone(users);
+    }
+    if (before) return before(msg);
+    throw new Error(`unexpected ${String(msg.type)}`);
+  }) as FakeHass['callWS'];
+}
+
+/** The users of a house: the installer, two residents, one disabled and one of the system. */
+export const USERS = [
+  { id: 'u_gustavo', name: 'Gustavo', is_active: true, system_generated: false, group_ids: ['system-admin'] },
+  { id: 'u_lia', name: 'Lia', is_active: true, system_generated: false, group_ids: ['system-users'] },
+  { id: 'u_ana', name: 'Ana', is_active: true, system_generated: false, group_ids: ['system-users'] },
+  { id: 'u_antiga', name: 'Antiga', is_active: false, system_generated: false, group_ids: ['system-users'] },
+  { id: 'u_super', name: 'Supervisor', is_active: true, system_generated: true, group_ids: ['system-admin'] },
+];

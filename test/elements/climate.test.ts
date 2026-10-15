@@ -92,7 +92,7 @@ describe('hubb-climate-panel', () => {
     document.body.replaceChildren();
   });
 
-  it('raises the target by its step and sends it once, after a pause', async () => {
+  it('raises the target a whole degree per tap, even with a step of 0,5, and sends it once, after a pause', async () => {
     vi.useFakeTimers();
     const h = ar();
     const el = await panel(h);
@@ -100,10 +100,10 @@ describe('hubb-climate-panel', () => {
     plus.click();
     plus.click();
     await el.updateComplete;
-    expect(text(el, '.target')).toBe('24°');
+    expect(text(el, '.target')).toBe('25°');
     expect(h.calls).toEqual([]);
     await vi.advanceTimersByTimeAsync(900);
-    expect(services(h)).toEqual([['climate.set_temperature', { temperature: 24 }]]);
+    expect(services(h)).toEqual([['climate.set_temperature', { temperature: 25 }]]);
   });
 
   it('changes the mode, the fan and the swing', async () => {

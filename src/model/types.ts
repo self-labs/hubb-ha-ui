@@ -38,6 +38,17 @@ export interface ClimateItem {
   modes?: string[];
   /** The settings under "Mais ajustes" (`entities.<id>.controls`); missing means all it has. */
   controls?: string[];
+  /** Every function its device keeps in an entity of its own (Iluminação, Modo dormir). */
+  extras?: ClimateExtra[];
+  /** The functions the installer left off its sheet (`entities.<id>.hide`). */
+  hide?: string[];
+}
+
+/** A function of an air conditioner that Home Assistant keeps in an entity of its own. */
+export interface ClimateExtra {
+  entityId: string;
+  name: string;
+  kind: 'switch' | 'select' | 'number';
 }
 
 /** A curtain, a blind or an awning. */
@@ -171,6 +182,8 @@ export interface Room {
   humidity: string | null;
   /** Every sensor of the room, for its Sensores block: doors, windows, presence, temperature, humidity. */
   sensors: SensorItem[];
+  /** User ids this room is hidden for (`rooms.<area>.hidden_for`), for the tag of the edit mode. */
+  hiddenFor: string[];
 }
 
 export interface HiddenItem {
@@ -204,6 +217,8 @@ export interface RoomOverride {
   art?: string;
   /** A floor id of Home Assistant, to place the room on another floor without touching HA. */
   floor?: string;
+  /** User ids of Home Assistant this is hidden for; administrators always see it. */
+  hidden_for?: string[];
 }
 
 /** What the YAML says about one entity, before `readConfig` checks it. */
@@ -223,6 +238,8 @@ export interface EntityConfig {
   controls?: string[];
   /** Place inside its block: lower first; items with none come after, by name. */
   order?: number;
+  /** User ids of Home Assistant this is hidden for; administrators always see it. */
+  hidden_for?: string[];
 }
 
 export interface HubbConfig {

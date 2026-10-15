@@ -51,6 +51,8 @@ export interface EntitySettings {
   modes?: string[];
   controls?: string[];
   order?: number;
+  /** User ids this item is hidden for. */
+  hiddenFor?: string[];
 }
 
 /** The settings of an air conditioner that can be kept off its sheet. */
@@ -141,7 +143,8 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
     // hide, remaining and progress tune an appliance; on any other role they would do nothing.
     const appliance = v.role === 'appliance';
     if (v.hide !== undefined) {
-      if (!appliance) add(`${at}.hide`, entityId, CFG.applianceOnly('hide'));
+      // An appliance leaves entities of its device off its sheet; an air conditioner, its functions.
+      if (!appliance && !entityId.startsWith('climate.')) add(`${at}.hide`, entityId, CFG.hideOnly);
       else if (Array.isArray(v.hide)) s.hide = v.hide.filter((h): h is string => typeof h === 'string');
     }
     for (const key of ['remaining', 'progress'] as const) {
@@ -175,6 +178,10 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
       if (typeof ref === 'string' && hass.states[ref]) s[key] = ref;
       else add(`${at}.${key}`, entityId, CFG.missingEntity(String(ref)));
     }
+    if (v.hidden_for !== undefined) {
+      if (Array.isArray(v.hidden_for) && v.hidden_for.every((u) => typeof u === 'string')) s.hiddenFor = v.hidden_for;
+      else add(`${at}.hidden_for`, entityId, CFG.badList('hidden_for', 'id do usuário'));
+    }
     entities[entityId] = s;
   }
 
@@ -186,6 +193,10 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
     if (!hass.areas[areaId]) add(at, null, CFG.unknownArea(areaId));
     if (room?.art !== undefined && !isArtId(room.art)) add(`${at}.art`, null, CFG.unknownArt(String(room.art)));
     if (room?.floor !== undefined && !hass.floors?.[room.floor]) add(`${at}.floor`, null, CFG.unknownFloor(String(room.floor)));
+    const hiddenFor: unknown = room?.hidden_for;
+    if (hiddenFor !== undefined && !(Array.isArray(hiddenFor) && hiddenFor.every((u) => typeof u === 'string'))) {
+      add(`${at}.hidden_for`, null, CFG.badList('hidden_for', 'id do usuário'));
+    }
   }
 
   return { profile, entities, problems };

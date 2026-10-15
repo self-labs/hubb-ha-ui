@@ -1,20 +1,22 @@
 import { isArtId } from '../art/drawings';
 import { artFor } from '../art/resolve';
 import type { HomeAssistant } from '../ha/types';
-import { joinPt, KIND_LABELS, S } from '../strings';
-import { applianceName, findParts } from './appliances';
-import { areaOf, classify, classifyContext } from './classify';
+import { CLIMATE, joinPt, KIND_LABELS, S } from '../strings';
+import { applianceName, deviceEntities, findParts, isPowerTwin } from './appliances';
+import { areaOf, classify, classifyContext, isClimatePart, type ClassifyContext } from './classify';
 import { readConfig } from './config';
 import { consumptionOf } from './energy';
 import { floorTabs, roomFloor } from './floors';
 import { displayName } from './names';
 import { roomPath } from './paths';
 import { isProfileId, PROFILES } from './profiles';
+import { hiddenForList, roomHiddenFor, viewerOf } from './visibility';
 import type {
   AlarmItem,
   AlertItem,
   AlertKind,
   CameraItem,
+  ClimateExtra,
   House,
   HubbConfig,
   OpeningItem,
@@ -36,7 +38,7 @@ export function isDimmable(hass: HomeAssistant, entityId: string): boolean {
   return Array.isArray(modes) && modes.some((m) => m !== 'onoff');
 }
 
-function sceneDescription(hass: HomeAssistant, entityId: string): string | null {
+function sceneDescription(hass: HomeAssistant, entityId: string, hiddenHere: (areaId: string) => boolean): string | null {
   if (!entityId.startsWith('scene.')) return null;
   const members = hass.states[entityId]?.attributes.entity_id;
   if (!Array.isArray(members)) return null;
@@ -44,7 +46,8 @@ function sceneDescription(hass: HomeAssistant, entityId: string): string | null 
   for (const member of members) {
     if (typeof member !== 'string') continue;
     const areaId = areaOf(hass, member);
-    const name = areaId ? hass.areas[areaId]?.name : undefined;
+    // A room hidden for the resident looking is not named, even in a scene of the whole house.
+    const name = areaId && !hiddenHere(areaId) ? hass.areas[areaId]?.name : undefined;
     if (name && !rooms.includes(name)) rooms.push(name);
   }
   return rooms.length ? joinPt(rooms) : null;
@@ -91,6 +94,7 @@ export function newRoom(hass: HomeAssistant, areaId: string, config: HubbConfig 
     temperature: null,
     humidity: null,
     sensors: [],
+    hiddenFor: hiddenForList(override?.hidden_for),
   };
 }
 
@@ -106,6 +110,35 @@ export function hasSecurity(house: House): boolean {
   return s.alarms.length + s.cameras.length + s.openings.length + s.access.length > 0;
 }
 
+/**
+ * The functions of an air conditioner that its device keeps in entities of their own: Iluminação,
+ * Economia de energia, the timers. Each model has its own; the power switch repeats the button of the
+ * sheet, and a diagnostic entity or one the installer placed elsewhere is not one of them.
+ */
+function climateExtras(hass: HomeAssistant, entityId: string, ctx: ClassifyContext): ClimateExtra[] {
+  const deviceId = hass.entities[entityId]?.device_id;
+  if (!deviceId) return [];
+  const order = { switch: 0, select: 1, number: 2 } as const;
+  return deviceEntities(hass, deviceId)
+    .filter((id) => {
+      const reg = hass.entities[id]!;
+      return (
+        isClimatePart(hass, id, ctx.climateDevices) &&
+        reg.entity_category !== 'diagnostic' &&
+        !ctx.cfg.entities[id]?.role &&
+        !ctx.hidden.has(id) &&
+        !isPowerTwin(hass, id)
+      );
+    })
+    .map((id): ClimateExtra => {
+      const shown = displayName(hass, id, null);
+      const key = hass.entities[id]?.translation_key ?? '';
+      const name = CLIMATE.extraWords[key] ?? CLIMATE.extraWords[shown.toLocaleLowerCase('en')] ?? shown;
+      return { entityId: id, name, kind: id.slice(0, id.indexOf('.')) as ClimateExtra['kind'] };
+    })
+    .sort((a, b) => order[a.kind] - order[b.kind] || byName(a, b));
+}
+
 const hasContent = (r: Room): boolean =>
   r.lights.length + r.outlets.length + r.equipment.length + r.appliances.length + r.actions.length +
     r.climate.length + r.covers.length + r.media.length + r.access.length >
@@ -114,7 +147,18 @@ const hasContent = (r: Room): boolean =>
 export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House {
   const cfg = readConfig(hass, config);
   const profile = PROFILES[cfg.profile];
-  const ctx = classifyContext(hass, cfg, config.hide_entities);
+  const viewer = viewerOf(hass);
+  const viewerHidden = new Set(viewer ? Object.keys(cfg.entities).filter((id) => cfg.entities[id]!.hiddenFor?.includes(viewer)) : []);
+  // An appliance is its device: hidden through one of its marked entities, it is hidden through all.
+  const hiddenAppliances = new Set(
+    [...viewerHidden].filter((id) => cfg.entities[id]?.role === 'appliance').map((id) => hass.entities[id]?.device_id),
+  );
+  for (const [id, s] of Object.entries(cfg.entities)) {
+    if (s.role === 'appliance' && hiddenAppliances.has(hass.entities[id]?.device_id)) viewerHidden.add(id);
+  }
+  const ctx = classifyContext(hass, cfg, config.hide_entities, viewerHidden);
+  /** A room hidden for the resident looking: nothing of it reaches them but a danger alert. */
+  const hiddenHere = (areaId: string | null): boolean => !!areaId && roomHiddenFor(config, areaId, viewer);
   const overrides: Record<string, RoomOverride> =
     config.rooms && typeof config.rooms === 'object' && !Array.isArray(config.rooms) ? config.rooms : {};
   const rooms = new Map<string, Room>();
@@ -130,7 +174,7 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     if (!areaId) return null;
     const known = rooms.get(areaId);
     if (known) return known;
-    if (!hass.areas[areaId] || overrides[areaId]?.hidden) return null;
+    if (!hass.areas[areaId] || overrides[areaId]?.hidden || hiddenHere(areaId)) return null;
     const room = newRoom(hass, areaId, config);
     rooms.set(areaId, room);
     return room;
@@ -154,18 +198,22 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     }
     const s = cfg.entities[entityId];
     if (placed.block === 'scene') {
+      if (hiddenHere(placed.areaId)) continue;
       scenes.push({
         entityId,
         name: s?.name ?? displayName(hass, entityId, null),
         areaId: placed.areaId,
-        description: sceneDescription(hass, entityId),
+        description: sceneDescription(hass, entityId, hiddenHere),
       });
       continue;
     }
     if (placed.block === 'alert' || placed.block === 'opening' || placed.block === 'camera' || placed.block === 'alarm') {
       // The house's own: listed with or without a room, the room only names where it is.
+      // A danger alert and the alarm are the house's: the room they hang in does not hide them.
+      if (placed.block !== 'alert' && placed.block !== 'alarm' && hiddenHere(placed.areaId)) continue;
       const home = roomFor(placed.areaId);
-      const roomName = home?.name ?? null;
+      // Decision B: smoke in a room hidden for the resident still names it, with no page to lead to.
+      const roomName = home?.name ?? (hiddenHere(placed.areaId) ? (hass.areas[placed.areaId!]?.name ?? null) : null);
       const path = home?.path ?? null;
       const name = s?.name ?? displayName(hass, entityId, roomName);
       const cls = String(hass.states[entityId]?.attributes.device_class ?? '');
@@ -211,7 +259,14 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     } else if (placed.block === 'action') {
       room.actions.push({ entityId, name, icon: s?.icon ?? null });
     } else if (placed.block === 'climate' || placed.block === 'fan') {
-      room.climate.push({ entityId, name, kind: placed.block, modes: s?.modes, controls: s?.controls });
+      room.climate.push({
+        entityId,
+        name,
+        kind: placed.block,
+        modes: s?.modes,
+        controls: s?.controls,
+        ...(placed.block === 'climate' ? { extras: climateExtras(hass, entityId, ctx), hide: s?.hide.length ? s.hide : undefined } : {}),
+      });
     } else if (placed.block === 'cover') {
       room.covers.push({ entityId, name });
     } else if (placed.block === 'media') {
@@ -241,7 +296,7 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
   const sensorRooms = [...rooms.values()].filter(
     (r) =>
       !hasContent(r) &&
-      (r.openings.length > 0 || r.presence.length > 0 || r.temperature !== null || r.humidity !== null || r.hidden.length > 0),
+      (r.openings.length > 0 || r.presence.length > 0 || r.temperature !== null || r.humidity !== null || (viewer === null && r.hidden.length > 0)),
   );
   const named = (id: string): boolean => !!cfg.entities[id]?.name;
   const rankOf = (id: string): number => cfg.entities[id]?.order ?? LAST;
@@ -273,6 +328,9 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
   // Room by room, the roomless at the end; by name inside a room.
   openings.sort((a, b) => (a.roomName === null ? 1 : 0) - (b.roomName === null ? 1 : 0) || collator.compare(a.roomName ?? '', b.roomName ?? '') || byName(a, b));
   for (const room of shown) room.openings.sort(byName);
+  // An alert leads to a room page only when the resident has that page; else to the security tab.
+  const pages = new Set([...shown, ...sensorRooms].map((r) => r.path));
+  for (const alert of alerts) if (alert.path !== null && !pages.has(alert.path)) alert.path = null;
   const security: Security = {
     alarms: alarms.sort(byName),
     cameras: cameras.sort(byName),
@@ -341,6 +399,7 @@ export function normalizeRoom(room: Room): Room {
     temperature: typeof room.temperature === 'string' ? room.temperature : null,
     humidity: typeof room.humidity === 'string' ? room.humidity : null,
     sensors: Array.isArray(room.sensors) ? room.sensors : frozenSensors(room),
+    hiddenFor: list(room.hiddenFor),
   };
 }
 
