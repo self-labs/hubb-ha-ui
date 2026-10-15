@@ -1,5 +1,5 @@
 import type { HomeAssistant } from '../ha/types';
-import type { HubbConfig } from './types';
+import type { HubbConfig, TabId } from './types';
 
 /**
  * The resident the panel is filtered for; null for an administrator, who always sees everything
@@ -17,7 +17,7 @@ export function hiddenForList(value: unknown): string[] {
 
 /** An entry of the YAML hiding something from users Home Assistant no longer has. */
 export interface StaleEntry {
-  section: 'rooms' | 'entities';
+  section: 'rooms' | 'entities' | 'tabs';
   key: string;
   /** What `hidden_for` keeps once cleaned. */
   keep: string[];
@@ -26,16 +26,25 @@ export interface StaleEntry {
 /** The rooms and items whose `hidden_for` names an id `known` does not have. */
 export function staleEntries(config: HubbConfig, known: ReadonlySet<string>): StaleEntry[] {
   const out: StaleEntry[] = [];
-  for (const section of ['rooms', 'entities'] as const) {
+  for (const section of ['rooms', 'entities', 'tabs'] as const) {
     const entries: unknown = config[section];
     if (!entries || typeof entries !== 'object' || Array.isArray(entries)) continue;
     for (const [key, entry] of Object.entries(entries as Record<string, { hidden_for?: unknown } | undefined>)) {
+      // A key of tabs other than scenes and security is a mistake the review reports on its own.
+      if (section === 'tabs' && key !== 'scenes' && key !== 'security') continue;
       const ids = hiddenForList(entry?.hidden_for);
       const keep = ids.filter((id) => known.has(id));
       if (keep.length < ids.length) out.push({ section, key, keep });
     }
   }
   return out;
+}
+
+/** Whether `tabs.<tab>.hidden_for` hides a tab of the bar from the resident looking. */
+export function tabHiddenFor(config: HubbConfig, tab: TabId, viewer: string | null): boolean {
+  if (viewer === null) return false;
+  const tabs = config.tabs && typeof config.tabs === 'object' && !Array.isArray(config.tabs) ? config.tabs : {};
+  return hiddenForList(tabs[tab]?.hidden_for).includes(viewer);
 }
 
 /** Whether `rooms.<area>.hidden_for` hides the room from the resident looking. */

@@ -1,5 +1,6 @@
 import { mdiCheck, mdiChevronLeft, mdiChevronRight, mdiPencilOutline, mdiWrenchOutline } from '@mdi/js';
 import { css, html, nothing, type PropertyValues } from 'lit';
+import { keyed } from 'lit/directives/keyed.js';
 import { haptic } from '../actions/haptic';
 import { setLight } from '../actions/light';
 import { basePath, navigate } from '../actions/navigate';
@@ -13,6 +14,7 @@ import '../elements/people-picker';
 import type { PeopleChange } from '../elements/people-picker';
 import { loadUsers, type HaUser } from '../actions/people';
 import { staleEntries } from '../model/visibility';
+import { keepSheet, keptSheet } from '../sheets';
 import '../elements/room-card';
 import { sensorIcon } from '../elements/sensor-tile';
 import '../elements/scene-button';
@@ -168,8 +170,15 @@ export class HubbHomeScreen extends HubbScreen {
     });
   }
 
+  #reopened = false;
+
   protected willUpdate(changed: PropertyValues<this>): void {
     super.willUpdate(changed);
+    // The "Quem vê" sheet of a room survives the rebuild after a save: the new home opens it again.
+    if (!this.#reopened) {
+      this.#reopened = true;
+      this.peopleRoom ??= keptSheet<string>('hubb-home-screen:room');
+    } else if (changed.has('peopleRoom')) keepSheet('hubb-home-screen:room', this.peopleRoom);
     if (this.hass && this.canEdit(this.config?.options) && this.users === null && !this.#loadingUsers) {
       this.#loadingUsers = true;
       void loadUsers(this.hass).then((users) => (this.users = users ?? []));
@@ -334,15 +343,24 @@ export class HubbHomeScreen extends HubbScreen {
         @hubb-close=${() => (this.peopleRoom = null)}
       >
         ${peopleRoom
-          ? html`<hubb-people-picker
-              .hass=${hass}
-              .hiddenFor=${peopleRoom.hiddenFor}
-              @hubb-people=${(e: CustomEvent<PeopleChange>) => this.#setRoomPeople(peopleRoom, e.detail)}
-            ></hubb-people-picker>`
+          ? // One picker per room: the taps on one never carry over to the next one opened.
+            keyed(
+              peopleRoom.areaId,
+              html`<hubb-people-picker
+                .hass=${hass}
+                .hiddenFor=${peopleRoom.hiddenFor}
+                @hubb-people=${(e: CustomEvent<PeopleChange>) => this.#setRoomPeople(peopleRoom, e.detail)}
+              ></hubb-people-picker>`,
+            )
           : nothing}
       </hubb-sheet>
       <hubb-toast></hubb-toast>
-      <hubb-nav-bar current="home" home-label=${house.homeLabel} ?security=${this.config?.shared?.security ?? false}></hubb-nav-bar>`;
+      <hubb-nav-bar
+        current="home"
+        home-label=${house.homeLabel}
+        ?security=${this.config?.shared?.security ?? false}
+        .scenes=${this.config?.shared?.scenes ?? true}
+      ></hubb-nav-bar>`;
   }
 
   static styles = [

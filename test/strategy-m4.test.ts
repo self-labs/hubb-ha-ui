@@ -24,9 +24,14 @@ describe('the security view', () => {
 
   it('hands every screen the same shared slice', () => {
     const views = generateDashboard({}, h()).views;
-    const shared = views.map((v) => (v.cards[0] as { shared?: unknown }).shared);
+    // A view with nothing for the resident (Cenas, with no scene) only sends them home: no slice.
+    const shared = views.map((v) => (v.cards[0] as { shared?: unknown }).shared).filter((s) => s !== undefined);
     expect(shared.every((s) => s === shared[0])).toBe(true);
-    expect(shared[0]).toEqual({ alerts: [{ entityId: 'alarm_control_panel.alarme', kind: 'alarm', roomName: null, path: null }], security: true });
+    expect(shared[0]).toEqual({
+      alerts: [{ entityId: 'alarm_control_panel.alarme', kind: 'alarm', roomName: null, path: null }],
+      security: true,
+      scenes: false,
+    });
     expect(views[2]!.cards[0]).toMatchObject({ type: 'custom:hubb-security-screen' });
   });
 

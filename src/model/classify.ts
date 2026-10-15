@@ -140,9 +140,13 @@ export function coverIsGate(hass: HomeAssistant, entityId: string): boolean {
   return GATE_WORDS.test(name);
 }
 
-/** Smoke, gas, carbon monoxide or a water leak: what reaches every resident (decision B). */
+/**
+ * Smoke, gas, carbon monoxide, a water leak, the alarm: what reaches every resident (decision B). The
+ * alarm passes to keep its alert; buildHouse leaves its card out for whoever it is hidden for.
+ */
 const isDanger = (hass: HomeAssistant, entityId: string): boolean =>
-  entityId.startsWith('binary_sensor.') && ALERT_CLASSES.has(String(hass.states[entityId]?.attributes.device_class ?? ''));
+  entityId.startsWith('alarm_control_panel.') ||
+  (entityId.startsWith('binary_sensor.') && ALERT_CLASSES.has(String(hass.states[entityId]?.attributes.device_class ?? '')));
 
 /** Where an entity goes on the panel, or why it stays off. The one rule every screen uses. */
 export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyContext): Placement {
@@ -153,6 +157,8 @@ export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyCon
   const s = ctx.cfg.entities[entityId];
   const role = s?.role;
   if (reg.hidden || ctx.hidden.has(entityId) || role === 'hidden') return { block: null, why: 'hidden', areaId: null };
+  // A scene put in Cenas from the panel: with or without a room, like a labelled one.
+  if (role === 'scene') return { block: 'scene', areaId: areaOf(hass, entityId, s?.area) };
   if (role === 'appliance') {
     const areaId = applianceAreaOf(hass, entityId, s?.area);
     return areaId ? { block: 'appliance', areaId } : roomless;

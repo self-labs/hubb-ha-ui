@@ -20,7 +20,9 @@ export interface PeopleChange {
 export class HubbPeoplePicker extends LitElement {
   static properties = {
     hass: { attribute: false },
-    hiddenFor: { attribute: false },
+    // Screens build the list on every render: only another list of people counts as a change, so a
+    // new state of Home Assistant between two taps does not undo the first one.
+    hiddenFor: { attribute: false, hasChanged: (a: unknown, b: unknown) => hiddenForList(a).join() !== hiddenForList(b).join() },
     users: { state: true },
     failed: { state: true },
     chosen: { state: true },

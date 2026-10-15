@@ -8,6 +8,27 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Added
+
+- Who sees the tabs: **Quem vê esta aba** on Cenas and Segurança in edit mode, and **Quem vê** on each
+  scene, camera and alarm (`tabs.<tab>.hidden_for`). A tab with nothing for someone leaves their
+  bar; hiding Cenas takes every scene from them, hiding Segurança takes the alarm card, the cameras
+  and the lists, while doors and gates stay in their rooms. Whoever does not see the alarm still gets
+  "Alarme disparado", and a strip with nowhere to lead only says what happened.
+- **Adicionar cena** on Cenas in edit mode: the scenes and scripts of Home Assistant not there yet,
+  each marked scene or script, added with a tap (the role `scene`; the `hubb_cena` label still
+  works). A scene leaves Cenas with Não mostrar, and "Mostrar como" offers Cena for a script of a
+  room. On Segurança the edit mode switches nothing: the alarm and the cameras become rows.
+
+### Fixed
+
+- Two quick changes in the edit mode (two scenes added, two rooms moved) no longer undo each other:
+  the saves of the dashboard go one at a time.
+- The **Quem vê** sheet closed after each tap, because Home Assistant rebuilds the panel after a
+  save: it now opens again on the rebuilt screen, so the installer takes several people out in a
+  row. The editor of an item stays open the same way after a Quem vê tap.
+
+
 ## [2026.10.10] - 2026-10-15
 
 ### Added

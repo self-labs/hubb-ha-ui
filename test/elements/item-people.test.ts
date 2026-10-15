@@ -52,7 +52,7 @@ describe('who sees an item', () => {
     let asked: unknown = null;
     el.addEventListener('hubb-edit', (e) => (asked = (e as CustomEvent).detail));
     (picker.shadowRoot!.querySelectorAll('.person')[1] as HTMLButtonElement).click();
-    expect(asked).toEqual({ entityId: 'light.abajur', patch: { hidden_for: ['u_lia'] }, message: 'Abajur não aparece mais para Lia.' });
+    expect(asked).toEqual({ entityId: 'light.abajur', patch: { hidden_for: ['u_lia'] }, message: 'Abajur não aparece mais para Lia.', keepOpen: true });
   });
 
   it('drops the list when everyone sees the item again', async () => {
@@ -60,7 +60,7 @@ describe('who sees an item', () => {
     let asked: unknown = null;
     el.addEventListener('hubb-edit', (e) => (asked = (e as CustomEvent).detail));
     (picker.shadowRoot!.querySelectorAll('.person')[1] as HTMLButtonElement).click();
-    expect(asked).toEqual({ entityId: 'light.abajur', patch: { hidden_for: undefined }, message: 'Abajur voltou a aparecer para Lia.' });
+    expect(asked).toEqual({ entityId: 'light.abajur', patch: { hidden_for: undefined }, message: 'Abajur voltou a aparecer para Lia.', keepOpen: true });
   });
 
   it('tags the edit tile of an item hidden for someone', async () => {

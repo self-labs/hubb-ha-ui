@@ -1,7 +1,7 @@
 import { mdiChevronLeft } from '@mdi/js';
 import { css, html, nothing, type PropertyValues } from 'lit';
 import { copyText } from '../actions/clipboard';
-import { putBack, putBackRooms, setEntity, setRoles, setRooms } from '../actions/dashboard-config';
+import { putBack, putBackRooms, putBackTabs, setEntity, setRoles, setRooms, setTabs } from '../actions/dashboard-config';
 import { haptic } from '../actions/haptic';
 import { loadUsers, type HaUser } from '../actions/people';
 import { goBack } from '../actions/navigate';
@@ -82,6 +82,10 @@ export class HubbReviewScreen extends HubbScreen {
         const before = await setRooms(hass, urlPath, { [entry.key]: { hidden_for: hiddenFor } });
         return (h) => putBackRooms(h, urlPath, before);
       }
+      if (entry.section === 'tabs') {
+        const before = await setTabs(hass, urlPath, { [entry.key]: { hidden_for: hiddenFor } });
+        return (h) => putBackTabs(h, urlPath, before);
+      }
       const before = await setEntity(hass, urlPath, entry.key, { hidden_for: hiddenFor });
       return (h) => putBack(h, urlPath, before);
     });
@@ -92,7 +96,9 @@ export class HubbReviewScreen extends HubbScreen {
     const name =
       entry.section === 'rooms'
         ? (hass.areas[entry.key]?.name ?? entry.key)
-        : String(hass.states[entry.key]?.attributes.friendly_name ?? entry.key);
+        : entry.section === 'tabs'
+          ? REVIEW.tab(entry.key === 'scenes' ? S.scenes : S.security)
+          : String(hass.states[entry.key]?.attributes.friendly_name ?? entry.key);
     return html`<li class="item">
       <strong>${name}</strong>
       <span class="why">${REVIEW.staleReason}</span>
@@ -211,6 +217,7 @@ export class HubbReviewScreen extends HubbScreen {
         current="home"
         home-label=${this.config?.homeLabel ?? S.home}
         ?security=${this.config?.shared?.security ?? false}
+        .scenes=${this.config?.shared?.scenes ?? true}
       ></hubb-nav-bar>`;
   }
 

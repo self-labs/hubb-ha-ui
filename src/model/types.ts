@@ -137,6 +137,8 @@ export interface Shared {
   alerts: AlertItem[];
   /** Whether the security tab has anything to show, so the bar offers it. */
   security: boolean;
+  /** Whether the bar offers Cenas: always to an administrator, to a resident when they have a scene. */
+  scenes: boolean;
 }
 
 export interface SceneItem {
@@ -207,7 +209,24 @@ export interface House {
   security: Security;
   /** Rooms with only sensors: not on the home, but their page shows them when an alert leads there. */
   sensorRooms: Room[];
+  /** Scenes and scripts not in Cenas yet, for "Adicionar cena" (administrators only; empty otherwise). */
+  sceneCandidates: SceneCandidate[];
 }
+
+/** A scene or a script the installer can put in Cenas. */
+export interface SceneCandidate {
+  entityId: string;
+  name: string;
+}
+
+/** Who sees a tab of the bar (`tabs.scenes`, `tabs.security`). */
+export interface TabOverride {
+  /** User ids of Home Assistant the tab is hidden for; administrators always see it. */
+  hidden_for?: string[];
+}
+
+/** The tabs of the bar a person can be kept from. */
+export type TabId = 'scenes' | 'security';
 
 export interface RoomOverride {
   order?: number;
@@ -251,4 +270,5 @@ export interface HubbConfig {
   rooms?: Record<string, RoomOverride>;
   entities?: Record<string, EntityConfig>;
   hide_entities?: string[];
+  tabs?: Partial<Record<TabId, TabOverride>>;
 }

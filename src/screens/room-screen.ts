@@ -1,5 +1,5 @@
 import { mdiCheck, mdiChevronLeft, mdiPencilOutline } from '@mdi/js';
-import { css, html, nothing } from 'lit';
+import { css, html, nothing, type PropertyValues } from 'lit';
 import { putBack, setEntity, setOrders, showEntity } from '../actions/dashboard-config';
 import { setLight } from '../actions/light';
 import { goBack } from '../actions/navigate';
@@ -40,6 +40,7 @@ import { ACCESS, CLIMATE, COVER, EDIT, KIND_LABELS, MEDIA, POWER, roomTurnedOff,
 import { applianceSubheading, roomClimate, roomHeroStatus } from '../summary';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
+import { keepSheet, keptSheet } from '../sheets';
 
 export interface RoomScreenConfig {
   type: string;
@@ -77,7 +78,8 @@ export class HubbRoomScreen extends HubbScreen {
 
   #onEdit = (e: Event): void => {
     const request = (e as CustomEvent<EditRequest>).detail;
-    this.editingItem = null;
+    // "Quem vê" keeps the editor open, so the installer taps one person after another.
+    if (!request.keepOpen) this.editingItem = null;
     void this.saveChange(request.message, async (hass, urlPath) => {
       const before = request.orders
         ? await setOrders(hass, urlPath, request.orders)
@@ -114,6 +116,19 @@ export class HubbRoomScreen extends HubbScreen {
   setConfig(config: RoomScreenConfig): void {
     if (!config || !config.room) throw new Error('hubb-room-screen: missing room');
     this.config = { ...config, room: normalizeRoom(config.room) };
+  }
+
+  #reopened = false;
+
+  protected willUpdate(changed: PropertyValues<this>): void {
+    super.willUpdate(changed);
+    const area = this.config?.room.areaId;
+    if (!area) return;
+    // The editor of an item survives the rebuild after a "Quem vê" tap: the new page opens it again.
+    if (!this.#reopened) {
+      this.#reopened = true;
+      this.editingItem ??= keptSheet<EditItem>(`hubb-room-screen:${area}`);
+    } else if (changed.has('editingItem')) keepSheet(`hubb-room-screen:${area}`, this.editingItem);
   }
 
   protected scope(): string[] {
@@ -353,6 +368,7 @@ export class HubbRoomScreen extends HubbScreen {
         current="home"
         home-label=${this.config?.homeLabel ?? S.home}
         ?security=${this.config?.shared?.security ?? false}
+        .scenes=${this.config?.shared?.scenes ?? true}
       ></hubb-nav-bar>`;
   }
 

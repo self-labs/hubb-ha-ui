@@ -48,11 +48,14 @@ describe('generateDashboard', () => {
   });
 
   it('names the first tab after the place and tells every screen', () => {
-    const config = generateDashboard(CLINIC_CONFIG, clinicHass());
+    // An administrator: a resident with no scene gets no Cenas screen (visibility, Section 8).
+    const clinic = clinicHass();
+    clinic.user = { id: 'u1', name: 'Gustavo Exemplo', is_admin: true };
+    const config = generateDashboard(CLINIC_CONFIG, clinic);
     expect(config.views[0]!.title).toBe('Início');
     expect(config.views[1]!.cards[0]).toMatchObject({ type: 'custom:hubb-scenes-screen', homeLabel: 'Início' });
     expect(config.views[2]!.cards[0]).toMatchObject({ type: 'custom:hubb-security-screen', homeLabel: 'Início' });
-    expect(config.views[3]!.cards[0]).toMatchObject({ type: 'custom:hubb-room-screen', homeLabel: 'Início' });
+    expect(config.views.find((v) => v.path !== 'revisar' && v.subview && v.cards[0]!.type === 'custom:hubb-room-screen')!.cards[0]).toMatchObject({ homeLabel: 'Início' });
     expect(generateDashboard({}, sampleHouseHass()).views[0]!.title).toBe('Casa');
   });
 
@@ -66,7 +69,7 @@ describe('generateDashboard', () => {
       path: 'revisar',
       type: 'panel',
       subview: true,
-      cards: [{ type: 'custom:hubb-review-screen', options: config, homeLabel: 'Casa', shared: { alerts: [], security: false } }],
+      cards: [{ type: 'custom:hubb-review-screen', options: config, homeLabel: 'Casa', shared: { alerts: [], security: false, scenes: true } }],
     });
     expect(views[0]!.cards[0]).toMatchObject({ type: 'custom:hubb-home-screen', options: config });
     expect(generateDashboard(config, sampleHouseHass()).views.some((v) => v.path === 'revisar')).toBe(false);

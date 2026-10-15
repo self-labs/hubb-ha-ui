@@ -1,10 +1,11 @@
 import type { HomeAssistant } from '../ha/types';
 import type { Role } from '../model/config';
-import type { EntityConfig, HubbConfig, RoomOverride } from '../model/types';
+import type { EntityConfig, HubbConfig, RoomOverride, TabId, TabOverride } from '../model/types';
 
 /** The entries touched by a write, as they were before it; null for an entry that did not exist. */
 export type EntityEntries = Record<string, EntityConfig | null>;
 export type RoomEntries = Record<string, RoomOverride | null>;
+export type TabEntries = Record<string, TabOverride | null>;
 
 interface SavedDashboard {
   strategy?: HubbConfig;
@@ -41,24 +42,37 @@ function save(hass: HomeAssistant, urlPath: string | null, saved: SavedDashboard
   return hass.callWS!({ type: 'lovelace/config/save', url_path: urlPath, config: { ...saved, strategy } });
 }
 
-async function edit<T extends object>(
+/**
+ * One write at a time. Each one reads the saved dashboard and saves it whole: two in flight would
+ * start from the same copy and the second would undo the first (two quick taps on Adicionar cena).
+ */
+let queue: Promise<unknown> = Promise.resolve();
+function serial<T>(job: () => Promise<T>): Promise<T> {
+  const run = queue.then(job, job);
+  queue = run.catch(() => undefined);
+  return run;
+}
+
+function edit<T extends object>(
   hass: HomeAssistant,
   urlPath: string | null,
-  section: 'entities' | 'rooms',
+  section: 'entities' | 'rooms' | 'tabs',
   ids: readonly string[],
   next: (prev: T | undefined, id: string) => T | null,
 ): Promise<Record<string, T | null>> {
-  const { saved, strategy } = await read(hass, urlPath);
-  const entries: Record<string, T> = { ...((strategy[section] as Record<string, T> | undefined) ?? {}) };
-  const before: Record<string, T | null> = {};
-  for (const id of ids) {
-    before[id] = entries[id] ?? null;
-    const value = next(entries[id], id);
-    if (value === null) delete entries[id];
-    else entries[id] = value;
-  }
-  await save(hass, urlPath, saved, { ...strategy, [section]: entries });
-  return before;
+  return serial(async () => {
+    const { saved, strategy } = await read(hass, urlPath);
+    const entries: Record<string, T> = { ...((strategy[section] as Record<string, T> | undefined) ?? {}) };
+    const before: Record<string, T | null> = {};
+    for (const id of ids) {
+      before[id] = entries[id] ?? null;
+      const value = next(entries[id], id);
+      if (value === null) delete entries[id];
+      else entries[id] = value;
+    }
+    await save(hass, urlPath, saved, { ...strategy, [section]: entries });
+    return before;
+  });
 }
 
 /** Gives roles to entities, keeping the rest of each entry (name, icon, area). */
@@ -90,6 +104,16 @@ export function setRooms(
   return edit<RoomOverride>(hass, urlPath, 'rooms', Object.keys(patches), (prev, id) => clean({ ...(prev ?? {}), ...patches[id] }));
 }
 
+/** Who sees the tabs of the bar (`tabs.scenes`, `tabs.security`); a key set to undefined goes back to everyone. */
+export function setTabs(hass: HomeAssistant, urlPath: string | null, patches: Readonly<Partial<Record<TabId, Partial<TabOverride>>>>): Promise<TabEntries> {
+  return edit<TabOverride>(hass, urlPath, 'tabs', Object.keys(patches), (prev, id) => clean({ ...(prev ?? {}), ...patches[id as TabId] }));
+}
+
+/** Desfazer: the tab entries as they were before a write. */
+export function putBackTabs(hass: HomeAssistant, urlPath: string | null, before: TabEntries): Promise<TabEntries> {
+  return edit<TabOverride>(hass, urlPath, 'tabs', Object.keys(before), (_prev, id) => before[id] ?? null);
+}
+
 /** Desfazer: the room entries as they were before a write. */
 export function putBackRooms(hass: HomeAssistant, urlPath: string | null, before: RoomEntries): Promise<RoomEntries> {
   return edit<RoomOverride>(hass, urlPath, 'rooms', Object.keys(before), (_prev, id) => before[id] ?? null);
@@ -99,7 +123,11 @@ export function putBackRooms(hass: HomeAssistant, urlPath: string | null, before
  * Shows again an entity the configuration hides: drops the hidden role and takes it out of
  * hide_entities. Returns the undo, which puts both back as they were.
  */
-export async function showEntity(hass: HomeAssistant, urlPath: string | null, id: string): Promise<(hass: HomeAssistant) => Promise<unknown>> {
+export function showEntity(hass: HomeAssistant, urlPath: string | null, id: string): Promise<(hass: HomeAssistant) => Promise<unknown>> {
+  return serial(() => showNow(hass, urlPath, id));
+}
+
+async function showNow(hass: HomeAssistant, urlPath: string | null, id: string): Promise<(hass: HomeAssistant) => Promise<unknown>> {
   const { saved, strategy } = await read(hass, urlPath);
   const entry = strategy.entities?.[id];
   const entities: Record<string, EntityConfig> = { ...(strategy.entities ?? {}) };
@@ -112,13 +140,14 @@ export async function showEntity(hass: HomeAssistant, urlPath: string | null, id
   const next: HubbConfig = { ...strategy, entities };
   if (hideEntities) next.hide_entities = hideEntities.filter((e) => e !== id);
   await save(hass, urlPath, saved, next);
-  return async (h) => {
-    const now = await read(h, urlPath);
-    const back: Record<string, EntityConfig> = { ...(now.strategy.entities ?? {}) };
-    if (entry) back[id] = entry;
-    else delete back[id];
-    const restored: HubbConfig = { ...now.strategy, entities: back };
-    if (hideEntities) restored.hide_entities = hideEntities;
-    await save(h, urlPath, now.saved, restored);
-  };
+  return (h) =>
+    serial(async () => {
+      const now = await read(h, urlPath);
+      const back: Record<string, EntityConfig> = { ...(now.strategy.entities ?? {}) };
+      if (entry) back[id] = entry;
+      else delete back[id];
+      const restored: HubbConfig = { ...now.strategy, entities: back };
+      if (hideEntities) restored.hide_entities = hideEntities;
+      await save(h, urlPath, now.saved, restored);
+    });
 }

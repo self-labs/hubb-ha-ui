@@ -37,7 +37,10 @@ export function generateDashboard(config: HubbConfig, hass: HomeAssistant): Love
     const viewer = viewerOf(hass);
     const { homeLabel } = house;
     // One object for every screen: the alerts strip and the security tab are the same everywhere.
-    const shared: Shared = { alerts: house.alerts, security: hasSecurity(house) };
+    // A resident's bar offers Cenas only when they have a scene; an administrator's always, to add one.
+    const shared: Shared = { alerts: house.alerts, security: hasSecurity(house), scenes: viewer === null || house.scenes.length > 0 };
+    /** Where a tab with nothing for the resident stands: the view keeps its place and sends them home. */
+    const away = [{ type: 'custom:hubb-redirect-card' }];
     // Only an administrator gets the review; for a resident its address falls back to the home.
     const review: LovelaceViewConfig[] = hass.user?.is_admin
       ? [
@@ -59,14 +62,17 @@ export function generateDashboard(config: HubbConfig, hass: HomeAssistant): Love
           path: 'scenes',
           type: 'panel',
           subview: true,
-          cards: [{ type: 'custom:hubb-scenes-screen', scenes: house.scenes, lightIds, homeLabel, shared }],
+          cards: shared.scenes
+            ? [{ type: 'custom:hubb-scenes-screen', scenes: house.scenes, lightIds, homeLabel, shared, options: config, candidates: house.sceneCandidates }]
+            : away,
         },
         {
           title: S.security,
           path: 'seguranca',
           type: 'panel',
           subview: true,
-          cards: [{ type: 'custom:hubb-security-screen', security: house.security, shared, homeLabel }],
+          cards:
+            viewer === null || shared.security ? [{ type: 'custom:hubb-security-screen', security: house.security, shared, homeLabel, options: config }] : away,
         },
         ...review,
         ...Object.keys(hass.areas)

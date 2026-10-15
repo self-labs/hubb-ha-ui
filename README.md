@@ -267,6 +267,7 @@ strategy:
 | `entities.<id>.hide`  | none                               | Appliance or air conditioner: entities of its device left out of its sheet |
 | `rooms.<area>.hidden_for` | none | User ids of Home Assistant the room is hidden for (not administrators). See [Who sees what](#who-sees-what) |
 | `entities.<id>.hidden_for` | none | User ids the item is hidden for; danger alerts still show |
+| `tabs.scenes.hidden_for`, `tabs.security.hidden_for` | none | User ids Cenas or Segurança is hidden for. See [Who sees what](#who-sees-what) |
 | `entities.<id>.remaining`, `.progress` | Found on the device | Appliance only: the time left and the progress sensors, when the automatic pick is wrong |
 | `entities.<id>.power`, `.energy` | Found on the device | Outlet or equipment: its power and energy sensors, when the automatic match fails. See [Sensors, security and consumption](#sensors-security-and-consumption) |
 | `entities.<id>.modes` | Every mode it has | Air conditioner (`climate.*`) only: the modes its sheet offers, for example `[cool, dry]`; turning on without `turn_on` picks among them |
@@ -300,6 +301,7 @@ role puts it somewhere else:
 | `appliance` | any entity with a device             | The device becomes an appliance card, with a full sheet        |
 | `action`    | `button`, `input_button`, `script`   | A button in "Ações" that says "Feito"                          |
 | `gate`      | `switch`, `button`, `input_button`, `script`, `cover` | A gate in "Acesso", opened with a slide ("Deslize para acionar" for a pulse relay) |
+| `scene`     | `scene`, `script`                    | A scene in Cenas, with or without a room, like one labelled `hubb_cena` |
 | `hidden`    | anything                             | Left out                                                       |
 
 ```yaml
@@ -407,6 +409,13 @@ mode tags what is hidden ("Oculto para Lia"). Smoke, gas, carbon monoxide, water
 alarm still reach everyone. "Revisar o painel" lists the rooms and items hidden for users that no longer exist,
 with **Limpar**.
 
+The tabs follow the same rule. In edit mode, Cenas and Segurança each have **Quem vê esta aba**, and
+every scene, camera and alarm has its own **Quem vê**. A tab with nothing for someone leaves their
+bar. Hiding Cenas from someone takes every scene from them, on the home and in the rooms too; hiding
+Segurança takes the alarm card, the cameras and the lists, while doors and gates stay in the rooms
+they see. Whoever does not see the alarm still gets "Alarme disparado". Cenas in edit mode also
+lists the scenes and scripts of Home Assistant that are not there yet, under **Adicionar cena**.
+
 ```yaml
 strategy:
   type: custom:hubb
@@ -415,6 +424,10 @@ strategy:
       hidden_for: [8f3c0d2a1b9e4f7a]   # user id in Home Assistant
   entities:
     camera.portao:
+      hidden_for: [8f3c0d2a1b9e4f7a]
+    script.tv: { role: scene }
+  tabs:
+    security:
       hidden_for: [8f3c0d2a1b9e4f7a]
 ```
 
@@ -434,7 +447,7 @@ The strategy shows what Home Assistant knows, so the work happens in Home Assist
 | **Lights as `light.*`**   | Relays exposed as switches or helpers are not lights      | A switch that is a light: entity settings, **Show as** Light. ControlArt: the [ControlArt integration](https://github.com/tompsonpecini/controlart). KinCony with Tasmota: `SetOption30 1`. Anything else: a template light |
 | **Outlets as outlets**    | Only a switch shown as an outlet reaches the panel on its own | Entity settings, **Show as** Outlet, or a [role](#roles). Any other switch waits on **Revisar o painel** |
 | **Short, client names**   | The tile shows the name as is                             | "Sofá", not "Saída 1". A room name at the start or the end is dropped ("LED Sala" in the Sala shows "LED") |
-| **Scenes labelled**       | Only labelled scenes and scripts reach the panel          | Label **`hubb_cena`** on a `scene.*` or `script.*`; give it an area to show it on that room too       |
+| **Scenes in Cenas**       | Only scenes and scripts put in Cenas reach the panel      | **Adicionar cena** on Cenas in edit mode, or the label **`hubb_cena`** on a `scene.*` or `script.*`; give it an area to show it on that room too |
 | **Area pictures** (optional) | Without one, the card shows a drawing picked from the area name or icon ([list](docs/drawings.md)) | The picture field of each area                                                  |
 | **Devices in an area**    | Air conditioners, fans, curtains, TVs, gates and locks show on the room page of their area | The area field. A gate `cover` needs the class gate, garage or door, or "portão" in its name; a pulse relay gets the [role](#roles) `gate` |
 | **Sensors with their class** | Doors, windows, motion, temperature and humidity show on their room; smoke, gas, leaks, cameras and the alarm work with or without an area | The area field, and the right class (entity settings, **Show as** Door, Window, Motion, Smoke, Moisture) |

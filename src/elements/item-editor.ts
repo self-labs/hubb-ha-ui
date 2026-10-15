@@ -30,6 +30,8 @@ export interface EditRequest {
   message: string;
   patch?: Partial<EntityConfig>;
   orders?: Record<string, number>;
+  /** The editor stays open after the save ("Quem vê": one person after another). */
+  keepOpen?: boolean;
 }
 
 /** What the sheet of an air conditioner shows: modes, settings and the functions of its device, by id. */
@@ -155,6 +157,7 @@ export class HubbItemEditor extends LitElement {
     this.#ask({
       patch: { hidden_for: change.hiddenFor.length ? change.hiddenFor : undefined },
       message: change.sees ? EDIT.nowShownFor(item.name, change.person) : EDIT.nowHiddenFor(item.name, change.person),
+      keepOpen: true,
     });
   };
 
@@ -224,7 +227,7 @@ export class HubbItemEditor extends LitElement {
     }
     // A curtain made a gate by hand can go back; one whose class or name says gate cannot.
     if (item.kind === 'gate' && item.entityId.startsWith('cover.')) return coverIsGate(hass, item.entityId) ? ['gate', 'hidden'] : ['cover', 'gate', 'hidden'];
-    const fitting = (['light', 'outlet', 'equipment', 'action', 'gate'] as Role[]).filter((r) => roleFits(hass, r, item.entityId));
+    const fitting = (['light', 'outlet', 'equipment', 'action', 'gate', 'scene'] as Role[]).filter((r) => roleFits(hass, r, item.entityId));
     return [...fitting, 'hidden'];
   }
 

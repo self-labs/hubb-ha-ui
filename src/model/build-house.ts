@@ -10,7 +10,7 @@ import { floorTabs, roomFloor } from './floors';
 import { displayName } from './names';
 import { roomPath } from './paths';
 import { isProfileId, PROFILES } from './profiles';
-import { hiddenForList, roomHiddenFor, viewerOf } from './visibility';
+import { hiddenForList, roomHiddenFor, tabHiddenFor, viewerOf } from './visibility';
 import type {
   AlarmItem,
   AlertItem,
@@ -157,6 +157,10 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     if (s.role === 'appliance' && hiddenAppliances.has(hass.entities[id]?.device_id)) viewerHidden.add(id);
   }
   const ctx = classifyContext(hass, cfg, config.hide_entities, viewerHidden);
+  // A tab hidden for the resident takes what only lives in it (spec, Section 8): every scene for
+  // Cenas; the alarm card, the cameras and the lists of Segurança. Doors and gates stay in their rooms.
+  const scenesHidden = tabHiddenFor(config, 'scenes', viewer);
+  const securityHidden = tabHiddenFor(config, 'security', viewer);
   /** A room hidden for the resident looking: nothing of it reaches them but a danger alert. */
   const hiddenHere = (areaId: string | null): boolean => !!areaId && roomHiddenFor(config, areaId, viewer);
   const overrides: Record<string, RoomOverride> =
@@ -198,7 +202,7 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     }
     const s = cfg.entities[entityId];
     if (placed.block === 'scene') {
-      if (hiddenHere(placed.areaId)) continue;
+      if (scenesHidden || hiddenHere(placed.areaId)) continue;
       scenes.push({
         entityId,
         name: s?.name ?? displayName(hass, entityId, null),
@@ -218,13 +222,15 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
       const name = s?.name ?? displayName(hass, entityId, roomName);
       const cls = String(hass.states[entityId]?.attributes.device_class ?? '');
       if (placed.block === 'alert') alerts.push({ entityId, kind: cls as AlertKind, roomName, path });
-      else if (placed.block === 'camera') cameras.push({ entityId, name, roomName });
-      else if (placed.block === 'alarm') {
-        alarms.push({ entityId, name });
+      else if (placed.block === 'camera') {
+        if (!securityHidden) cameras.push({ entityId, name, roomName });
+      } else if (placed.block === 'alarm') {
+        // Decision B: whoever the alarm is hidden for loses its card, never the warning that it went off.
+        if (!securityHidden && !ctx.viewerHidden.has(entityId)) alarms.push({ entityId, name });
         alerts.push({ entityId, kind: 'alarm', roomName: null, path: null });
       } else {
         const opening: OpeningItem = { entityId, name, kind: cls as OpeningKind, roomName, path };
-        openings.push(opening);
+        if (!securityHidden) openings.push(opening);
         home?.openings.push(opening);
         home?.sensors.push({ entityId, name, kind: opening.kind });
       }
@@ -335,8 +341,19 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     alarms: alarms.sort(byName),
     cameras: cameras.sort(byName),
     openings,
-    access: shown.flatMap((r) => r.access.map((a) => ({ ...a, roomName: r.name }))),
+    access: securityHidden ? [] : shown.flatMap((r) => r.access.map((a) => ({ ...a, roomName: r.name }))),
   };
+  // What "Adicionar cena" offers the installer: scenes and scripts not in Cenas, not hidden in Home
+  // Assistant, and not placed elsewhere on purpose (an action or a gate of a room).
+  const inCenas = new Set(scenes.map((s) => s.entityId));
+  const sceneCandidates = hass.user?.is_admin
+    ? Object.keys(hass.entities)
+        .filter((id) => (id.startsWith('scene.') || id.startsWith('script.')) && !inCenas.has(id))
+        .filter((id) => !hass.entities[id]!.hidden && !hass.entities[id]!.entity_category && !ctx.hidden.has(id))
+        .filter((id) => !['action', 'gate'].includes(cfg.entities[id]?.role ?? ''))
+        .map((id) => ({ entityId: id, name: cfg.entities[id]?.name ?? displayName(hass, id, null) }))
+        .sort(byName)
+    : [];
 
   return {
     name: config.name || hass.config.location_name || 'Casa',
@@ -353,6 +370,7 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     alerts: alerts.sort((a, b) => a.entityId.localeCompare(b.entityId)),
     security,
     sensorRooms,
+    sceneCandidates,
   };
 }
 
@@ -420,5 +438,6 @@ export function normalizeHouse(house: House): House {
       access: list(house.security?.access),
     },
     sensorRooms: list(house.sensorRooms).map(normalizeRoom),
+    sceneCandidates: list(house.sceneCandidates),
   };
 }

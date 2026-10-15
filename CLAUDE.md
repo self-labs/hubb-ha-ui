@@ -139,6 +139,14 @@ operation.
   for the resident looking, `classify` returns `viewer`, `generateDashboard` skips the view. Danger
   alerts always pass. `config/auth/list` is admin only: only the edit mode, the item editor and the
   review call it (`loadUsers`).
+- Cenas and Segurança follow who sees what too: `tabs.<tab>.hidden_for` (`tabHiddenFor`), and a tab
+  with nothing for a resident gets the redirect card in its view and leaves the bar
+  (`Shared.scenes`, `Shared.security`). Their edit mode shares `peopleSheet`, `hiddenForOf` and
+  `hideItem` from `HubbScreen`. The alarm always passes `classify` (its alert reaches everyone);
+  `buildHouse` drops only its card for whoever it is hidden for.
+- An open "Quem vê" sheet (and the item editor after a Quem vê tap) is module state in
+  `src/sheets.ts`, keyed by screen: Home Assistant recreates the screens after every save, and the
+  new one opens it again. Leaving the edit mode or closing the sheet forgets it.
 - happy-dom miscounts the options Lit renders in a `<select>` (`selectedIndex` lands on the wrong
   one): tests read the `selected` attribute instead.
 - Block order on a room page is fixed (Acesso, Luzes, Clima, Cortinas, Mídia, Tomadas e

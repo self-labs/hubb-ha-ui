@@ -42,15 +42,19 @@ export class HubbStatusStrips extends LitElement {
   static properties = {
     hass: { attribute: false },
     alerts: { attribute: false },
+    security: { attribute: false },
   };
 
   declare hass: HomeAssistant | undefined;
   declare alerts: AlertItem[];
+  /** Whether the person has the security tab, where a roomless alert and the alarm lead. */
+  declare security: boolean;
 
   constructor() {
     super();
     this.hass = undefined;
     this.alerts = [];
+    this.security = true;
   }
 
   protected updated(): void {
@@ -69,10 +73,16 @@ export class HubbStatusStrips extends LitElement {
     const hass = this.hass;
     if (!hass) return nothing;
     const active = this.alerts.filter((a) => alertActive(hass, a));
-    // A roomless alert or the alarm lead to the security tab, where the alarm and the house are.
-    const go = (): void => navigate(`${basePath()}/${active[0]?.path ?? 'seguranca'}`);
+    // A roomless alert or the alarm lead to the security tab, where the alarm and the house are; for
+    // someone without that tab, the strip only says what happened.
+    const target = this.security ? (active[0]?.path ?? 'seguranca') : (active.find((a) => a.path)?.path ?? null);
+    const go = (): void => navigate(`${basePath()}/${target}`);
     return html`${active.length
-      ? html`<div role="alert"><button class="alert" @click=${go}>${icon(mdiAlert)}<span>${alertText(active)}</span></button></div>`
+      ? html`<div role="alert">
+          ${target
+            ? html`<button class="alert" @click=${go}>${icon(mdiAlert)}<span>${alertText(active)}</span></button>`
+            : html`<p class="alert">${icon(mdiAlert)}<span>${alertText(active)}</span></p>`}
+        </div>`
       : nothing}${hass.connected === false
       ? html`<p class="offline" role="status">${icon(mdiWifiOff)}<span>${STRIP.offline}</span></p>`
       : nothing}`;
@@ -106,6 +116,8 @@ export class HubbStatusStrips extends LitElement {
     .alert {
       background: var(--hubb-alert-bg);
       color: var(--hubb-alert-ink);
+    }
+    button.alert {
       cursor: pointer;
     }
     .alert:focus-visible {

@@ -1,12 +1,16 @@
+import { mdiCheck, mdiPencilOutline } from '@mdi/js';
 import { css, html, nothing } from 'lit';
+import { isEditing, setEditing } from '../editing';
 import '../elements/access-tile';
 import '../elements/alarm-card';
 import '../elements/camera-tile';
 import '../elements/sensor-tile';
 import { define } from '../elements/define';
+import { icon } from '../elements/icon';
 import '../elements/nav-bar';
-import type { Security, Shared } from '../model/types';
-import { ALARM, S, SECURITY } from '../strings';
+import type { HubbConfig, Security, Shared } from '../model/types';
+import { hiddenForList } from '../model/visibility';
+import { ALARM, EDIT, S, SECURITY } from '../strings';
 import { openNow } from '../summary';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
@@ -17,6 +21,8 @@ export interface SecurityScreenConfig {
   shared?: Shared;
   /** Name of the first tab of the bottom bar; "Casa" when missing. */
   homeLabel?: string;
+  /** The dashboard configuration, for the edit mode; missing on dashboards frozen before it. */
+  options?: HubbConfig;
 }
 
 const list = <T>(value: T[] | undefined): T[] => (Array.isArray(value) ? value : []);
@@ -45,6 +51,22 @@ export class HubbSecurityScreen extends HubbScreen {
     return [];
   }
 
+  /**
+   * The alarm or a camera in the edit mode: a row with its name, Quem vê and who it is hidden for.
+   * Nothing switches by accident: the card itself comes back when the edit mode ends.
+   */
+  #inEdit(cls: string, entityId: string, name: string) {
+    return html`<div class="item-edit">
+      <strong>${name}</strong>
+      <div class="tools ${cls}">
+        <button class="tool people" aria-label=${`${name}: ${EDIT.whoSees}`} @click=${() => (this.peopleTarget = { kind: 'entity', entityId, name })}>
+          ${EDIT.whoSees}
+        </button>
+        <hubb-hidden-tag .hass=${this.hass} .ids=${hiddenForList(this.config?.options?.entities?.[entityId]?.hidden_for)}></hubb-hidden-tag>
+      </div>
+    </div>`;
+  }
+
   render() {
     const hass = this.hass;
     const security = this.config?.security;
@@ -54,14 +76,37 @@ export class HubbSecurityScreen extends HubbScreen {
     // One that does not answer may be open: no all-clear while any of them says nothing.
     const unread = openings.filter((o) => !['on', 'off'].includes(hass.states[o.entityId]?.state ?? ''));
     const empty = alarms.length + cameras.length + openings.length + access.length === 0;
+    const options = this.config?.options;
+    const editable = this.canEdit(options);
+    const editing = editable && isEditing();
     return html`${this.strips(this.config?.shared)}<main>
-        <h1>${S.security}</h1>
+        <div class="title">
+          <h1>${S.security}</h1>
+          ${editable
+            ? html`<button class="edit ${editing ? 'on' : ''}" aria-label=${editing ? EDIT.done : EDIT.edit} @click=${() => setEditing(!editing)}>
+                ${icon(editing ? mdiCheck : mdiPencilOutline)}
+              </button>`
+            : nothing}
+        </div>
+        ${editing
+          ? html`<p class="hint" role="status">${this.editNotice ?? EDIT.hintSecurity}</p>
+              <div class="tools">
+                <button class="tool tab-people" @click=${() => (this.peopleTarget = { kind: 'tab', tab: 'security', name: S.security })}>
+                  ${EDIT.whoSeesTab}
+                </button>
+                <hubb-hidden-tag .hass=${hass} .ids=${hiddenForList(options?.tabs?.security?.hidden_for)}></hubb-hidden-tag>
+              </div>`
+          : nothing}
         ${empty ? html`<p class="empty"><strong>${SECURITY.empty}</strong></p>` : nothing}
         ${alarms.length
           ? html`<h2>${ALARM.title}</h2>
-              <div class="stack">${alarms.map((a) => html`<hubb-alarm-card .hass=${hass} .item=${a}></hubb-alarm-card>`)}</div>`
+              <div class="stack">
+                ${alarms.map((a) =>
+                  editing ? this.#inEdit('alarm-tools', a.entityId, a.name) : html`<hubb-alarm-card .hass=${hass} .item=${a}></hubb-alarm-card>`,
+                )}
+              </div>`
           : nothing}
-        ${openings.length
+        ${openings.length && !editing
           ? html`<h2>${SECURITY.openNow}</h2>
               ${open.length || unread.length
                 ? html`<div class="openings">
@@ -71,7 +116,7 @@ export class HubbSecurityScreen extends HubbScreen {
                   </div>`
                 : html`<p class="all-closed">${SECURITY.allClosed}</p>`}`
           : nothing}
-        ${access.length
+        ${access.length && !editing
           ? html`<h2>${SECURITY.access}</h2>
               <div class="stack">
                 ${access.map((a) => html`<hubb-access-tile .hass=${hass} .item=${{ ...a, name: SECURITY.at(a.name, a.roomName) }}></hubb-access-tile>`)}
@@ -79,16 +124,27 @@ export class HubbSecurityScreen extends HubbScreen {
           : nothing}
         ${cameras.length
           ? html`<h2>${SECURITY.cameras}</h2>
-              <div class="cameras">${cameras.map((c) => html`<hubb-camera-tile .hass=${hass} .item=${c}></hubb-camera-tile>`)}</div>`
+              <div class="cameras">
+                ${cameras.map((c) =>
+                  editing ? this.#inEdit('camera-tools', c.entityId, c.name) : html`<hubb-camera-tile .hass=${hass} .item=${c}></hubb-camera-tile>`,
+                )}
+              </div>`
           : nothing}
       </main>
+      ${editing ? this.peopleSheet(options) : nothing}
       <hubb-toast></hubb-toast>
-      <hubb-nav-bar current="seguranca" security home-label=${this.config?.homeLabel ?? S.home}></hubb-nav-bar>`;
+      <hubb-nav-bar
+        current="seguranca"
+        security
+        home-label=${this.config?.homeLabel ?? S.home}
+        .scenes=${this.config?.shared?.scenes ?? true}
+      ></hubb-nav-bar>`;
   }
 
   static styles = [
     tokens,
     HubbScreen.baseStyles,
+    HubbScreen.editStyles,
     css`
       h1 {
         margin: 6px 2px 4px;
@@ -126,6 +182,16 @@ export class HubbSecurityScreen extends HubbScreen {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
+      }
+      .item-edit {
+        padding: 12px 14px 8px;
+        border-radius: 16px;
+        background: var(--hubb-surface);
+        box-shadow: var(--hubb-card-shadow);
+      }
+      .item-edit strong {
+        font-size: 14px;
+        font-weight: 700;
       }
     `,
   ];

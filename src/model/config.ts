@@ -5,7 +5,7 @@ import { isProfileId, type ProfileId } from './profiles';
 import type { HubbConfig } from './types';
 
 /** The roles an entity can be given in `entities.<id>.role`. */
-export const ROLES = ['light', 'outlet', 'equipment', 'appliance', 'action', 'gate', 'hidden'] as const;
+export const ROLES = ['light', 'outlet', 'equipment', 'appliance', 'action', 'gate', 'scene', 'hidden'] as const;
 export type Role = (typeof ROLES)[number];
 
 /** How an item shows on its room page: a role, or a kind its type alone decides. */
@@ -32,6 +32,8 @@ export const ROLE_DOMAINS: Readonly<Record<Exclude<Role, 'hidden' | 'appliance'>
   action: ['button', 'input_button', 'script'],
   /** A pulse relay, a button or a script that opens the gate, or a cover that does not say it is one. */
   gate: ['switch', 'button', 'input_button', 'script', 'cover'],
+  /** A scene or a script in Cenas, put there from the panel (the hubb_cena label still works). */
+  scene: ['scene', 'script'],
 };
 
 export interface EntitySettings {
@@ -183,6 +185,24 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
       else add(`${at}.hidden_for`, entityId, CFG.badList('hidden_for', 'id do usuário'));
     }
     entities[entityId] = s;
+  }
+
+  // Who sees each tab of the bar: only scenes and security can be kept from someone.
+  const tabs: unknown = config.tabs;
+  if (tabs !== undefined) {
+    if (!tabs || typeof tabs !== 'object' || Array.isArray(tabs)) add('tabs', null, CFG.badTabs);
+    else {
+      for (const [key, tab] of Object.entries(tabs as Record<string, unknown>)) {
+        if (key !== 'scenes' && key !== 'security') {
+          add(`tabs.${key}`, null, CFG.unknownTab(key));
+          continue;
+        }
+        const hiddenFor = (tab as { hidden_for?: unknown } | null)?.hidden_for;
+        if (hiddenFor !== undefined && !(Array.isArray(hiddenFor) && hiddenFor.every((u) => typeof u === 'string'))) {
+          add(`tabs.${key}.hidden_for`, null, CFG.badList('hidden_for', 'id do usuário'));
+        }
+      }
+    }
   }
 
   const rooms: unknown = config.rooms;

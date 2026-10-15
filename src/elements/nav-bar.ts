@@ -9,19 +9,22 @@ import { icon } from './icon';
 export type NavCurrent = 'home' | 'scenes' | 'seguranca';
 
 export class HubbNavBar extends LitElement {
-  static properties = { current: {}, homeLabel: { attribute: 'home-label' }, security: { type: Boolean } };
+  static properties = { current: {}, homeLabel: { attribute: 'home-label' }, security: { type: Boolean }, scenes: { attribute: false } };
 
   declare current: NavCurrent;
   /** "Casa" for a home, "Início" for the other places. */
   declare homeLabel: string;
   /** Whether the house has an alarm, a camera, a door or window sensor, a gate or a lock: the third tab. */
   declare security: boolean;
+  /** Whether Cenas is offered: a resident with no scene to see does not get the tab. */
+  declare scenes: boolean;
 
   constructor() {
     super();
     this.current = 'home';
     this.homeLabel = S.home;
     this.security = false;
+    this.scenes = true;
   }
 
   #go(path: NavCurrent): void {
@@ -38,7 +41,7 @@ export class HubbNavBar extends LitElement {
 
   render() {
     return html`<nav aria-label=${S.navigation}>
-      ${this.#item('home', this.homeLabel, mdiHomeOutline)} ${this.#item('scenes', S.scenes, mdiCreationOutline)}
+      ${this.#item('home', this.homeLabel, mdiHomeOutline)} ${this.scenes ? this.#item('scenes', S.scenes, mdiCreationOutline) : nothing}
       ${this.security ? this.#item('seguranca', S.security, mdiShieldHomeOutline) : nothing}
     </nav>`;
   }
