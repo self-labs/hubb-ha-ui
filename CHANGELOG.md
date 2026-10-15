@@ -8,6 +8,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.12] - 2026-10-15
+
 ### Added
 
 - How wide each card is: **Tamanho** in the editor of an item and on each scene of Cenas in edit
@@ -406,7 +408,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.11...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.12...HEAD
+[2026.10.12]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.11...v2026.10.12
 [2026.10.11]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.10...v2026.10.11
 [2026.10.10]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.9...v2026.10.10
 [2026.10.9]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.8...v2026.10.9
