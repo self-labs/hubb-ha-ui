@@ -83,7 +83,9 @@ describe('M4 review fixes', () => {
     document.body.appendChild(el);
     await el.updateComplete;
     expect(el.shadowRoot!.querySelector('.all-closed')).toBeNull();
-    expect([...el.shadowRoot!.querySelectorAll('.open-row')].map((r) => r.textContent!.replace(/\s+/g, ' ').trim())).toEqual(['Porta · Entrada · sem leitura']);
+    const card = el.shadowRoot!.querySelector('.openings hubb-sensor-tile')!;
+    await (card as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    expect([card.shadowRoot!.querySelector('.name')!.textContent, card.shadowRoot!.querySelector('.state')!.textContent]).toEqual(['Porta · Entrada', 'Sem resposta']);
   });
 
   it('keeps the words of the alarm card readable on the red of a triggered alarm', () => {

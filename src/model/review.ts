@@ -1,15 +1,62 @@
 import type { HomeAssistant } from '../ha/types';
 import { CFG, REVIEW } from '../strings';
 import { APPLIANCE_PLATFORMS, applianceName, findParts, stateSensorOf } from './appliances';
+import { buildHouse } from './build-house';
 import { applianceAreaOf, areaOf, classify, classifyContext, type ClassifyContext } from './classify';
 import { readConfig, type PanelConfig, type Role } from './config';
 import { displayName } from './names';
+import { originOf } from './origin';
 import type { HubbConfig } from './types';
 
-export type ReviewGroup = 'role' | 'appliance' | 'area' | 'config' | 'silent';
+export type ReviewGroup = 'role' | 'duplicate' | 'appliance' | 'area' | 'config' | 'silent';
 
 /** The groups of the screen, in the order they show. */
-export const REVIEW_GROUPS: readonly ReviewGroup[] = ['role', 'appliance', 'area', 'config', 'silent'];
+export const REVIEW_GROUPS: readonly ReviewGroup[] = ['role', 'duplicate', 'appliance', 'area', 'config', 'silent'];
+
+/**
+ * Items of one room that show with the same name: one device seen by two integrations (an air
+ * conditioner by LG ThinQ and by SmartThinQ, an Echo by Alexa and by Alexa Media, a washer by LG
+ * ThinQ and by SmartThinQ). The review names where each comes from, so the installer keeps one and
+ * hides the other. Controls, appliances and sensors are compared each among their own: a plug named
+ * after the washer it feeds, or the contact of a gate named like the gate, are two real things.
+ */
+function duplicates(hass: HomeAssistant, config: HubbConfig): ReviewItem[] {
+  const out: ReviewItem[] = [];
+  for (const room of buildHouse(hass, config).rooms) {
+    const controls = [
+      ...room.access,
+      ...room.lights,
+      ...room.climate,
+      ...room.covers,
+      ...room.media,
+      ...room.outlets,
+      ...room.equipment,
+      ...room.actions,
+    ];
+    for (const items of [controls, room.appliances, room.sensors]) {
+      const byName = new Map<string, { entityId: string; name: string }[]>();
+      for (const item of items) {
+        const key = item.name.toLocaleLowerCase('pt-BR');
+        byName.set(key, [...(byName.get(key) ?? []), item]);
+      }
+      for (const same of byName.values()) {
+        if (same.length < 2) continue;
+        for (const item of [...same].sort((a, b) => a.entityId.localeCompare(b.entityId))) {
+          out.push({
+            group: 'duplicate',
+            entityId: item.entityId,
+            name: item.name,
+            areaName: room.name,
+            reason: REVIEW.duplicate(originOf(hass, item.entityId)),
+            roles: ['hidden'],
+            suggested: null,
+          });
+        }
+      }
+    }
+  }
+  return out;
+}
 
 export interface ReviewItem {
   group: ReviewGroup;
@@ -158,6 +205,7 @@ export function staticReview(hass: HomeAssistant, config: HubbConfig): StaticRev
       suggested: 'appliance',
     });
   }
+  items.push(...duplicates(hass, config));
   return { items, watched };
 }
 

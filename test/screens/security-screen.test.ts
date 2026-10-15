@@ -38,7 +38,11 @@ describe('hubb-security-screen', () => {
   it('shows the alarm, what is open, the access and the cameras, in that order', async () => {
     const el = await mount(h());
     expect(headings(el)).toEqual(['Alarme', 'Abertos agora', 'Acesso', 'Câmeras']);
-    expect([...el.shadowRoot!.querySelectorAll('.open-row')].map((r) => r.textContent!.replace(/\s+/g, ' ').trim())).toEqual(['Janela · Quarto']);
+    const open = [...el.shadowRoot!.querySelectorAll('.openings hubb-sensor-tile')];
+    for (const c of open) await (c as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    expect(open.map((c) => [c.shadowRoot!.querySelector('.name')!.textContent, c.shadowRoot!.querySelector('.state')!.textContent])).toEqual([
+      ['Janela · Quarto', 'Aberta'],
+    ]);
     expect(el.shadowRoot!.querySelectorAll('hubb-access-tile')).toHaveLength(1);
   });
 

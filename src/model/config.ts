@@ -9,7 +9,20 @@ export const ROLES = ['light', 'outlet', 'equipment', 'appliance', 'action', 'ga
 export type Role = (typeof ROLES)[number];
 
 /** How an item shows on its room page: a role, or a kind its type alone decides. */
-export type ItemKind = Role | 'climate' | 'fan' | 'cover' | 'media' | 'lock';
+export type ItemKind =
+  | Role
+  | 'climate'
+  | 'fan'
+  | 'cover'
+  | 'media'
+  | 'lock'
+  | 'door'
+  | 'window'
+  | 'garage_door'
+  | 'opening'
+  | 'presence'
+  | 'temperature'
+  | 'humidity';
 
 /** The domains each role can be given to; `appliance` takes any entity with a device, `hidden` any entity. */
 export const ROLE_DOMAINS: Readonly<Record<Exclude<Role, 'hidden' | 'appliance'>, readonly string[]>> = {
@@ -34,8 +47,14 @@ export interface EntitySettings {
   /** The power and energy sensors of an outlet or equipment, when the panel cannot match them. */
   power?: string;
   energy?: string;
+  /** An air conditioner: the modes its sheet offers, and its settings under "Mais ajustes". */
+  modes?: string[];
+  controls?: string[];
   order?: number;
 }
+
+/** The settings of an air conditioner that can be kept off its sheet. */
+export const CLIMATE_CONTROLS = ['fan', 'swing', 'preset'] as const;
 
 export interface ConfigProblem {
   /** Where in the YAML: "profile", "entities.switch.x.role", "rooms.sala.floor". */
@@ -134,6 +153,20 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
       }
       if (typeof ref === 'string' && hass.states[ref]) s[key] = ref;
       else add(`${at}.${key}`, entityId, CFG.missingEntity(String(ref)));
+    }
+    // What the sheet of an air conditioner offers: the installer keeps what the device really does.
+    const climate = entityId.startsWith('climate.');
+    if (v.modes !== undefined) {
+      if (!climate) add(`${at}.modes`, entityId, CFG.climateOnly('modes'));
+      else if (Array.isArray(v.modes) && v.modes.every((m) => typeof m === 'string')) s.modes = v.modes;
+      else add(`${at}.modes`, entityId, CFG.badList('modes', 'cool, dry'));
+    }
+    if (v.controls !== undefined) {
+      const wrong = Array.isArray(v.controls) ? v.controls.find((c) => !(CLIMATE_CONTROLS as readonly unknown[]).includes(c)) : undefined;
+      if (!climate) add(`${at}.controls`, entityId, CFG.climateOnly('controls'));
+      else if (!Array.isArray(v.controls)) add(`${at}.controls`, entityId, CFG.badList('controls', 'fan, swing'));
+      else if (wrong !== undefined) add(`${at}.controls`, entityId, CFG.badControls(String(wrong)));
+      else s.controls = v.controls;
     }
     // The consumption of an outlet or equipment whose sensors the panel cannot match by itself.
     for (const key of ['power', 'energy'] as const) {

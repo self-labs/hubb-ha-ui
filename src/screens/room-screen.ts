@@ -26,14 +26,16 @@ import '../elements/media-panel';
 import '../elements/nav-bar';
 import '../elements/outlet-tile';
 import '../elements/power-panel';
+import '../elements/sensor-tile';
 import '../elements/scene-button';
 import '../elements/sheet';
 import { isEditing, setEditing } from '../editing';
 import { normalizeRoom } from '../model/build-house';
+import { originOf } from '../model/origin';
 import type { ItemKind } from '../model/config';
 import type { HiddenItem, HubbConfig, Room, Shared } from '../model/types';
 import { ACCESS, CLIMATE, COVER, EDIT, KIND_LABELS, MEDIA, POWER, roomTurnedOff, S, SENSE } from '../strings';
-import { applianceSubheading, occupied, openingWord, openNow, roomClimate, roomHeroStatus } from '../summary';
+import { applianceSubheading, roomClimate, roomHeroStatus } from '../summary';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 
@@ -127,9 +129,17 @@ export class HubbRoomScreen extends HubbScreen {
     const siblings = items.map((i) => i.entityId);
     return items.map((i) => {
       const kind = typeof kindOf === 'function' ? kindOf(i) : kindOf;
-      return html`<button class="edit-tile" @click=${() => (this.editingItem = { entityId: i.entityId, name: i.name, kind, siblings })}>
+      // Where it comes from, so two items with one name can be told apart (Gustavo, 14/10).
+      const origin = this.hass ? originOf(this.hass, i.entityId) : null;
+      // As wide as its card off the edit mode would be: "Ar-condicionado" needs the room.
+      const wide = kind === 'climate' || kind === 'media' || kind === 'gate' || kind === 'lock' || kind === 'appliance';
+      return html`<button class="edit-tile ${wide ? 'wide' : ''}" @click=${() => (this.editingItem = { entityId: i.entityId, name: i.name, kind, siblings })}>
         <span class="icon">${icon(mdiPencilOutline)}</span>
-        <span class="text"><span class="name">${i.name}</span><span class="kind">${KIND_LABELS[kind]}</span></span>
+        <span class="text"
+          ><span class="name">${i.name}</span><span class="kind">${KIND_LABELS[kind]}</span>${origin
+            ? html`<span class="origin">${origin}</span>`
+            : nothing}</span
+        >
       </button>`;
     });
   }
@@ -155,8 +165,6 @@ export class HubbRoomScreen extends HubbScreen {
     const open = this.appliance ? (room.appliances.find((a) => a.deviceId === this.appliance) ?? null) : null;
     const device = this.device;
     const climate = roomClimate(hass, room);
-    const opened = openNow(hass, room.openings);
-    const facts = [...(occupied(hass, room) ? [SENSE.occupied] : []), ...(opened.length > 1 ? [SENSE.manyOpen(opened.length)] : opened.map(openingWord))];
     return html`${this.strips(this.config?.shared)}<header
         class="hero ${room.photo ? 'photo' : ''} ${onIds.length ? 'lit' : ''}"
         style=${room.photo ? `--photo:url("${room.photo}")` : ''}
@@ -175,7 +183,6 @@ export class HubbRoomScreen extends HubbScreen {
           : nothing}
       </header>
       <main>
-        ${facts.length ? html`<div class="facts">${facts.map((f) => html`<span class="fact">${f}</span>`)}</div>` : nothing}
         ${editing ? html`<p class="hint" role="status">${this.editNotice ?? EDIT.hintRoom}</p>` : nothing}
         ${!editing && (room.lights.length || room.scenes.length)
           ? html`<div class="actions">
@@ -264,6 +271,14 @@ export class HubbRoomScreen extends HubbScreen {
                   : room.actions.map((a) => html`<hubb-action-button .hass=${hass} .item=${a}></hubb-action-button>`)}
               </div>`
           : nothing}
+        ${room.sensors.length
+          ? html`<h2>${SENSE.title}</h2>
+              <div class="grid">
+                ${editing
+                  ? this.#editTiles(room.sensors, (i) => i.kind)
+                  : room.sensors.map((i) => html`<hubb-sensor-tile .hass=${hass} .item=${i}></hubb-sensor-tile>`)}
+              </div>`
+          : nothing}
         ${editing && room.hidden.length
           ? html`<div class="hidden-items">
               <h2>${EDIT.hiddenItems}</h2>
@@ -298,7 +313,13 @@ export class HubbRoomScreen extends HubbScreen {
         subheading=${device?.sheet === 'power' ? `${POWER.title} · ${room.name}` : room.name}
         @hubb-close=${() => (this.device = null)}
       >
-        ${device?.sheet === 'climate' ? html`<hubb-climate-panel .hass=${hass} .entityId=${device.entityId}></hubb-climate-panel>` : nothing}
+        ${device?.sheet === 'climate'
+          ? html`<hubb-climate-panel
+              .hass=${hass}
+              .entityId=${device.entityId}
+              .allowed=${room.climate.find((c) => c.entityId === device.entityId) ?? null}
+            ></hubb-climate-panel>`
+          : nothing}
         ${device?.sheet === 'cover' ? html`<hubb-cover-panel .hass=${hass} .entityId=${device.entityId}></hubb-cover-panel>` : nothing}
         ${device?.sheet === 'media' ? html`<hubb-media-panel .hass=${hass} .entityId=${device.entityId}></hubb-media-panel>` : nothing}
         ${device?.sheet === 'power' ? html`<hubb-power-panel .hass=${hass} .item=${[...room.outlets, ...room.equipment].find((i) => i.entityId === device.entityId)}></hubb-power-panel>` : nothing}
@@ -316,6 +337,7 @@ export class HubbRoomScreen extends HubbScreen {
               .item=${this.editingItem}
               .roomAreaId=${room.areaId}
               .named=${!!this.config?.options?.entities?.[this.editingItem.entityId]?.name}
+              .settings=${this.config?.options?.entities?.[this.editingItem.entityId]}
               @hubb-edit=${this.#onEdit}
             ></hubb-item-editor>`
           : nothing}
@@ -409,24 +431,6 @@ export class HubbRoomScreen extends HubbScreen {
       .hero p.climate {
         color: var(--hubb-text);
       }
-      /* What the sensors say: someone is in, something is open. Read only, so no button. */
-      .facts {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin: 0 0 10px;
-      }
-      .fact {
-        display: inline-flex;
-        align-items: center;
-        min-height: 28px;
-        padding: 0 10px;
-        border-radius: 14px;
-        background: var(--hubb-surface);
-        box-shadow: var(--hubb-card-shadow);
-        font-size: 12px;
-        font-weight: 700;
-      }
       .actions {
         display: flex;
         flex-wrap: wrap;
@@ -488,6 +492,9 @@ export class HubbRoomScreen extends HubbScreen {
         font-weight: 600;
         color: var(--hubb-text-2);
       }
+      .edit-tile.wide {
+        grid-column: span 2;
+      }
       .edit-tile {
         all: unset;
         box-sizing: border-box;
@@ -517,6 +524,21 @@ export class HubbRoomScreen extends HubbScreen {
         display: block;
         font-weight: 700;
         font-size: 13px;
+      }
+      /* One line each: "Ar-condicionado" broke at its hyphen in a third of a phone. */
+      .edit-tile .kind,
+      .edit-tile .origin {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .edit-tile .origin {
+        display: block;
+        margin-top: 1px;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--hubb-text-2);
+        opacity: 0.85;
       }
       .edit-tile .kind {
         display: block;

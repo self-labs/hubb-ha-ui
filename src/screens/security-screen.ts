@@ -2,6 +2,7 @@ import { css, html, nothing } from 'lit';
 import '../elements/access-tile';
 import '../elements/alarm-card';
 import '../elements/camera-tile';
+import '../elements/sensor-tile';
 import { define } from '../elements/define';
 import '../elements/nav-bar';
 import type { Security, Shared } from '../model/types';
@@ -63,9 +64,10 @@ export class HubbSecurityScreen extends HubbScreen {
         ${openings.length
           ? html`<h2>${SECURITY.openNow}</h2>
               ${open.length || unread.length
-                ? html`<div class="stack">
-                    ${open.map((o) => html`<p class="open-row">${SECURITY.at(o.name, o.roomName)}</p>`)}
-                    ${unread.map((o) => html`<p class="open-row unread">${SECURITY.unread(SECURITY.at(o.name, o.roomName))}</p>`)}
+                ? html`<div class="openings">
+                    ${[...open, ...unread].map(
+                      (o) => html`<hubb-sensor-tile .hass=${hass} .item=${{ entityId: o.entityId, name: SECURITY.at(o.name, o.roomName), kind: o.kind }}></hubb-sensor-tile>`,
+                    )}
                   </div>`
                 : html`<p class="all-closed">${SECURITY.allClosed}</p>`}`
           : nothing}
@@ -98,7 +100,12 @@ export class HubbSecurityScreen extends HubbScreen {
         display: grid;
         gap: 8px;
       }
-      .open-row,
+      /* What is open, as the cards of a room: a door, a window, the room it is in. */
+      .openings {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
       .all-closed {
         box-sizing: border-box;
         display: flex;
@@ -112,8 +119,7 @@ export class HubbSecurityScreen extends HubbScreen {
         font-size: 13px;
         font-weight: 700;
       }
-      .all-closed,
-      .unread {
+      .all-closed {
         color: var(--hubb-text-2);
       }
       .cameras {

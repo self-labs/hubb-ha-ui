@@ -26,6 +26,7 @@ const room = (areaId: string, floorId: string | null): Room => ({
   presence: [],
   temperature: null,
   humidity: null,
+  sensors: [],
 });
 
 function hass() {

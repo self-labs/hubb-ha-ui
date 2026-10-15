@@ -58,7 +58,7 @@ describe('nothing jumps when a light turns on', () => {
     expect(css).toMatch(/\.chips\s*\{[^}]*min-height: 44px/);
     // The chip is a touch target too: 44 px, like every other button.
     expect(css).toMatch(/\.chip\s*\{[^}]*min-height: 44px/);
-    expect(css).toMatch(/\.headline\s*\{[^}]*min-height: calc\(2 \* 1\.22em\)/);
+    expect(css).toMatch(/\.headline\s*\{[^}]*min-height: calc\(2 \* 1\.3em\)/);
   });
 });
 
@@ -95,6 +95,7 @@ describe('room card shading', () => {
     presence: [],
     temperature: null,
     humidity: null,
+    sensors: [],
   });
 
   it('darkens the bottom only over a photo, so dark text on the plain Areia card stays readable', async () => {

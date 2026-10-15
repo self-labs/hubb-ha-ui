@@ -10,6 +10,7 @@ import '../elements/floor-tabs';
 import '../elements/light-tile';
 import '../elements/nav-bar';
 import '../elements/room-card';
+import { sensorIcon } from '../elements/sensor-tile';
 import '../elements/scene-button';
 import '../elements/sheet';
 import type { HomeAssistant } from '../ha/types';
@@ -248,7 +249,7 @@ export class HubbHomeScreen extends HubbScreen {
                 ${openNow(hass, house.rooms.flatMap((r) => r.openings)).map(
                   (o) =>
                     html`<button class="chip open" @click=${() => navigate(`${basePath()}/${o.path}`)}>
-                      ${SENSE.openAt(openingWord(o), o.roomName!)}
+                      ${icon(sensorIcon(o.kind, true))}${SENSE.openAt(openingWord(o), o.roomName!)}
                     </button>`,
                 )}
               </div>
@@ -375,16 +376,18 @@ export class HubbHomeScreen extends HubbScreen {
         outline-offset: 2px;
       }
       /* Reserved height, so the cards below stay put when the sentence grows or the chip shows. */
+      /* A calm sentence, not a title: it was shouting over the rooms (Gustavo, 14/10). */
       .headline {
-        min-height: calc(2 * 1.22em);
-        margin: 18px 2px 12px;
-        font-size: 20px;
-        font-weight: 800;
-        line-height: 1.22;
-        letter-spacing: -0.02em;
+        min-height: calc(2 * 1.3em);
+        margin: 16px 2px 10px;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.3;
+        letter-spacing: -0.01em;
       }
       .headline span {
         font-weight: 500;
+        color: var(--hubb-text-2);
       }
       .chips {
         display: flex;
@@ -404,6 +407,15 @@ export class HubbHomeScreen extends HubbScreen {
         font-size: 12px;
         font-weight: 700;
         cursor: pointer;
+      }
+      /* The icon says it is a sensor of the house, not a button that switches something. */
+      .chip.open {
+        gap: 6px;
+      }
+      .chip.open svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
       }
       .chip:focus-visible {
         outline: 2px solid var(--hubb-focus);

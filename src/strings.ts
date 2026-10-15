@@ -135,10 +135,14 @@ export const STRIP = {
 
 /** What the sensors of a room say. */
 export const SENSE = {
+  title: 'Sensores',
+  /** A door, a garage door, a window: the feminine; an opening of no known kind: the masculine. */
+  openState: { door: 'Aberta', window: 'Aberta', garage_door: 'Aberta', opening: 'Aberto' } as Readonly<Record<string, string>>,
+  closedState: { door: 'Fechada', window: 'Fechada', garage_door: 'Fechada', opening: 'Fechado' } as Readonly<Record<string, string>>,
+  free: 'Livre',
   occupied: 'Ocupado',
   open: { door: 'Porta aberta', window: 'Janela aberta', garage_door: 'Garagem aberta' } as Readonly<Record<string, string>>,
   openNamed: (name: string): string => `Aberto: ${name}`,
-  manyOpen: (n: number): string => `${n} abertos`,
   openAt: (what: string, room: string): string => `${what} · ${room}`,
   occupiedLine: (line: string): string => (line ? `Ocupado · ${line}` : 'Ocupado'),
 } as const;
@@ -179,8 +183,6 @@ export const SECURITY = {
   noImage: 'Sem imagem',
   empty: 'Nenhum alarme, câmera, portão, fechadura ou sensor de porta e janela nesta casa.',
   at: (what: string, room: string | null): string => (room ? `${what} · ${room}` : what),
-  /** A door or window that does not answer: it may be open. */
-  unread: (what: string): string => `${what} · sem leitura`,
 } as const;
 
 export function greeting(hour: number): string {
@@ -204,6 +206,9 @@ export const CFG = {
   applianceOnly: (key: string): string => `${key} só vale junto com role: appliance.`,
   badRooms: 'rooms precisa listar áreas, por exemplo rooms: { sala: { order: 1 } }.',
   badOrder: (id: string): string => `order de ${id} precisa ser um número.`,
+  badList: (key: string, example: string): string => `${key} precisa ser uma lista, por exemplo [${example}].`,
+  climateOnly: (key: string): string => `${key} só vale para ar-condicionado (climate).`,
+  badControls: (value: string): string => `controls: ${value} não existe. Use fan, swing ou preset.`,
   badIcon: (i: string): string => `icon: ${i} precisa começar com mdi: (por exemplo, mdi:pool).`,
   unknownArea: (a: string): string => `A área ${a} não existe no Home Assistant.`,
   unknownArt: (a: string): string => `art: ${a} não é um desenho conhecido.`,
@@ -229,7 +234,10 @@ export const REVIEW = {
     area: 'Sem cômodo',
     config: 'Erros no YAML do painel',
     silent: 'Sem resposta há mais de um dia',
+    duplicate: 'Mesmo nome no mesmo cômodo',
   },
+  duplicate: (origin: string | null): string =>
+    origin ? `Outro item deste cômodo tem o mesmo nome. Este vem de ${origin}.` : 'Outro item deste cômodo tem o mesmo nome.',
   noClass: 'Não aparece no painel até você escolher como mostrar.',
   applianceFound: 'Toque em Aparelho para mostrar no painel.',
   noArea: 'Não aparece no painel porque não está em nenhuma área. Ponha numa área em Configurações > Áreas.',
@@ -237,6 +245,47 @@ export const REVIEW = {
   key: (n: number): string =>
     n === 0 ? 'Revisar o painel' : n === 1 ? 'Revisar o painel: 1 pendência' : `Revisar o painel: ${n} pendências`,
 } as const;
+
+/**
+ * The integrations as an installer knows them, by the id Home Assistant gives them. Names of
+ * products and projects, kept as they are written; an id missing here shows as the id itself.
+ */
+export const ORIGIN: Readonly<Record<string, string>> = {
+  alexa_devices: 'Alexa',
+  alexa_media: 'Alexa Media',
+  broadlink: 'Broadlink',
+  browser_mod: 'Browser Mod',
+  cast: 'Google Cast',
+  controlart: 'ControlArt',
+  denonavr: 'Denon',
+  electrolux_status: 'Electrolux',
+  esphome: 'ESPHome',
+  generic: 'Câmera genérica',
+  group: 'Grupo',
+  heos: 'HEOS',
+  hue: 'Philips Hue',
+  lg_thinq: 'LG ThinQ',
+  localtuya: 'Local Tuya',
+  midea_ac_lan: 'Midea',
+  mqtt: 'MQTT',
+  onvif: 'ONVIF',
+  samsungtv: 'Samsung TV',
+  shelly: 'Shelly',
+  smartir: 'SmartIR',
+  smartthinq_sensors: 'SmartThinQ',
+  sonoff: 'Sonoff',
+  spotify: 'Spotify',
+  switch_as_x: 'Mostrar como',
+  tasmota: 'Tasmota',
+  tasmota_ir: 'Tasmota IR',
+  template: 'Template',
+  tuya: 'Tuya',
+  webostv: 'LG webOS',
+  wled: 'WLED',
+  xiaomi_miio: 'Xiaomi',
+  zha: 'ZHA',
+  zwave_js: 'Z-Wave',
+};
 
 /** The roles as the installer reads them. */
 export const ROLE_LABELS = {
@@ -257,6 +306,13 @@ export const KIND_LABELS = {
   cover: 'Cortina',
   media: 'Mídia',
   lock: 'Fechadura',
+  door: 'Porta',
+  window: 'Janela',
+  garage_door: 'Garagem',
+  opening: 'Abertura',
+  presence: 'Presença',
+  temperature: 'Temperatura',
+  humidity: 'Umidade',
 } as const;
 
 /**
@@ -312,6 +368,8 @@ export const EDIT = {
   roomHidden: (name: string): string => `${name} não aparece mais na home.`,
   roomShown: (name: string): string => `${name} voltou para a home.`,
   itemShown: (name: string): string => `${name} voltou para o painel.`,
+  origin: 'Origem',
+  inHa: (name: string): string => `no Home Assistant: ${name}`,
 } as const;
 
 /** Gates, doors and locks: the "Acesso" block. Opening always takes a slide. */
@@ -350,6 +408,12 @@ export const CLIMATE = {
   turnOn: 'Ligar',
   turnOff: 'Desligar',
   colder: 'Diminuir a temperatura',
+  more: 'Mais ajustes',
+  /** A setting on a value nobody can name: the select says so instead of showing its first choice. */
+  otherValue: 'Outra opção',
+  onPanel: 'No painel',
+  saveChoices: 'Salvar escolhas',
+  choicesSaved: (name: string): string => `${name} agora mostra só o que você escolheu.`,
   warmer: 'Aumentar a temperatura',
   modes: {
     off: 'Desligado',
@@ -376,6 +440,10 @@ export const CLIMATE = {
     mid_high: 'Média alta',
     high: 'Alta',
     max: 'Máxima',
+    highest: 'Mais alta',
+    middle: 'Meio',
+    lowest: 'Mais baixa',
+    diffuse: 'Difusa',
     turbo: 'Turbo',
     on: 'Ligada',
     off: 'Desligada',

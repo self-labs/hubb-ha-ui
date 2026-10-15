@@ -34,6 +34,10 @@ export interface ClimateItem {
   entityId: string;
   name: string;
   kind: 'climate' | 'fan';
+  /** The modes its sheet offers (`entities.<id>.modes`); missing means every mode the device has. */
+  modes?: string[];
+  /** The settings under "Mais ajustes" (`entities.<id>.controls`); missing means all it has. */
+  controls?: string[];
 }
 
 /** A curtain, a blind or an awning. */
@@ -71,6 +75,15 @@ export interface OpeningItem {
   /** Null without a room: then only the security tab lists it. */
   roomName: string | null;
   path: string | null;
+}
+
+/** A sensor of a room, shown as a card in its Sensores block and edited like any item. */
+export type SensorKind = OpeningKind | 'presence' | 'temperature' | 'humidity';
+
+export interface SensorItem {
+  entityId: string;
+  name: string;
+  kind: SensorKind;
 }
 
 /** What lights the red strip: a smoke, gas, carbon monoxide or leak sensor, or an alarm going off. */
@@ -156,6 +169,8 @@ export interface Room {
   /** The thermometer and the hygrometer of the room, for "24° · 61%". */
   temperature: string | null;
   humidity: string | null;
+  /** Every sensor of the room, for its Sensores block: doors, windows, presence, temperature, humidity. */
+  sensors: SensorItem[];
 }
 
 export interface HiddenItem {
@@ -203,6 +218,9 @@ export interface EntityConfig {
   /** The power and energy sensors of an outlet or equipment, when the panel cannot match them. */
   power?: string;
   energy?: string;
+  /** An air conditioner: the modes and the settings its sheet offers. */
+  modes?: string[];
+  controls?: string[];
   /** Place inside its block: lower first; items with none come after, by name. */
   order?: number;
 }

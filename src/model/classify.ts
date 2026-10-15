@@ -136,10 +136,11 @@ export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyCon
   // Browser Mod makes a player for every browser; they are screens, not media of a room.
   if (domain === 'media_player' && reg.platform !== 'browser_mod') return placedAs('media');
   const cls = String(hass.states[entityId]?.attributes.device_class ?? '');
-  // Alerts, openings, cameras and alarms belong to the house: they count with or without a room.
+  // Alerts, cameras and alarms belong to the house: they count with or without a room.
   if (domain === 'binary_sensor') {
     if (ALERT_CLASSES.has(cls)) return { block: 'alert', areaId };
-    if (OPENING_CLASSES.has(cls)) return { block: 'opening', areaId };
+    // A door or window with no room is out, like everything else: the doors of a fridge have none.
+    if (OPENING_CLASSES.has(cls) && areaId) return { block: 'opening', areaId };
     if (PRESENCE_CLASSES.has(cls) && areaId) return { block: 'presence', areaId };
     return { block: null, why: 'unsupported', areaId };
   }

@@ -52,7 +52,8 @@ describe('M4 classification', () => {
     expect(at('binary_sensor.fumaca')).toEqual(['alert', 'cozinha']);
     expect(at('binary_sensor.vazamento')).toEqual(['alert', null]);
     expect(at('binary_sensor.janela')).toEqual(['opening', 'quarto']);
-    expect(at('binary_sensor.porta_fundos')).toEqual(['opening', null]);
+    // A door with no room is out, like everything else: a fridge door has no area (pente fino 1).
+    expect(at('binary_sensor.porta_fundos')).toEqual(['unsupported', null]);
     expect(at('binary_sensor.movimento')).toEqual(['presence', 'quarto']);
     expect(at('binary_sensor.movimento_solto')).toEqual(['unsupported', null]);
     expect(at('binary_sensor.defeito')[0]).toBe('unsupported');
@@ -96,7 +97,6 @@ describe('M4 house data', () => {
     expect(built.security.cameras).toEqual([{ entityId: 'camera.garagem', name: 'Garagem', roomName: null }]);
     expect(built.security.openings.map((o) => [o.entityId, o.roomName])).toEqual([
       ['binary_sensor.janela', 'Quarto'],
-      ['binary_sensor.porta_fundos', null],
     ]);
     expect(hasSecurity(built)).toBe(true);
     const bare = buildHouse(makeHass({ areas: [area('sala', 'Sala')], entities: [{ entity_id: 'light.sala', area_id: 'sala', state: 'off' }] }));

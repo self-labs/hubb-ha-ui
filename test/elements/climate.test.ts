@@ -110,8 +110,9 @@ describe('hubb-climate-panel', () => {
     const h = ar();
     const el = await panel(h);
     const modes = [...el.shadowRoot!.querySelectorAll('.mode')];
-    expect(modes.map((b) => b.textContent!.trim())).toEqual(['Desligado', 'Frio', 'Auto']);
-    (modes[2] as HTMLButtonElement).click();
+    // Off is the power button's since the compact sheet (pente fino 1).
+    expect(modes.map((b) => b.textContent!.trim())).toEqual(['Frio', 'Auto']);
+    (modes[1] as HTMLButtonElement).click();
     const fans = [...el.shadowRoot!.querySelectorAll('.fan')];
     expect(fans.map((b) => b.textContent!.trim())).toEqual(['Auto', 'Baixa', 'Alta']);
     (fans[2] as HTMLButtonElement).click();

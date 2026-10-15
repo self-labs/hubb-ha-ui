@@ -12,14 +12,55 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 - `npm run preview`: the real bundle over a made-up house (`dev/`), to see every screen in a
   browser and to take the screenshots of the README.
+- **Sensores**, the last block of a room: one card per door, window, presence, temperature and
+  humidity sensor, with its icon and what it reads, and its history in Home Assistant on a tap. Each
+  sensor is edited like any item (name, room, place, Não mostrar).
+- In the edit mode, every item says the integration it comes from ("Ar-condicionado · LG ThinQ"),
+  and its editor adds the entity id and the name Home Assistant gives it. "Revisar o painel" lists
+  the items with the same name in the same room, with where each comes from: one device seen by two
+  integrations. Controls, appliances and sensors are compared each among their own, so a plug named
+  after its washer, or the contact of a gate named like the gate, is not flagged.
+- The editor of an air conditioner picks the modes and the settings its sheet offers
+  (`entities.<id>.modes`, `entities.<id>.controls`); it offers only the settings the sheet would show.
 
 ### Changed
 
+- The sheet of an air conditioner is compact: − and + with the power button on top, the modes in
+  one row (Desligado is the power button now), and ventilation, swing and preset closed under "Mais
+  ajustes". A value neither Home Assistant nor the panel can name ("MiddleTop1", "position_3") stays
+  out, a setting left with one choice disappears, and a setting on such a value reads "Outra opção"
+  instead of its first choice. The panel's own words come first, so a row never mixes genders
+  ("Baixa, Média, Alta, Difusa"), and the swing of an infrared unit names "Mais alta", "Meio" and
+  "Mais baixa".
+- The thermometer inside an air conditioner stays off the Sensores cards: the air conditioner already
+  shows it, and its integration names it in English.
+- The sentence of the home is smaller and calmer, and names the rooms only while they are two.
+- What is open: the chip of the home carries the icon of a door or a window, the security tab shows
+  cards, and the row of words under the header of a room gave way to the Sensores block.
+- A door or window sensor with no room stays out of the panel, the security tab included (the four
+  doors of a fridge showed there as "sem leitura").
 - The README opens with a tour of the panel, with new screenshots of the home, a room, the light and
   air conditioner sheets, the gate, the security tab, the washer, the consumption, the review and
   the edit mode.
 - The README says how to prepare a house for the device blocks, the sensors, the consumption and
   the remote control of an appliance, and CLAUDE.md lists the release steps in order.
+
+### Fixed
+
+- On an iPhone, a long press opened a sheet and letting go closed it again: the click of the release
+  landed on the dark backdrop. The backdrop now closes the sheet only when the touch began on it, and
+  a touch the browser cancels (a swipe) never carries over to the next sheet.
+- A room with nothing to control keeps its page while an item is hidden there, so the last sensor
+  hidden in it can come back from "Escondidos neste cômodo".
+- A thermometer that reads in Fahrenheit says "°F", on its card and on the line of its room.
+- A dashboard frozen with "Take control" on an older version builds its Sensores from what its rooms
+  carry (open doors by name, presence and temperature by kind), instead of losing them with the row
+  of words they replaced.
+- The power button of an air conditioner: an infrared unit in an unknown state shows off and the
+  button turns it on; a unit that cannot be turned off has no button; turning on a unit without
+  `turn_on` picks among the modes the installer kept.
+- The review names the right mistake for `controls: fan` (a list is needed) and for `modes` or
+  `controls` on something that is not an air conditioner.
 
 ## [2026.10.8] - 2026-10-14
 

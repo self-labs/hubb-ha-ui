@@ -55,10 +55,11 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
   </tr>
 </table>
 
-- A greeting with the resident's name, the outside temperature and **one sentence about the house**
-  ("4 luzes acesas em 3 ambientes").
+- A greeting with the resident's name, the outside temperature and **one calm sentence about the
+  house** ("4 luzes acesas em 3 ambientes."); it names the rooms only while they are two.
 - Chips for what needs attention: the lights on (a tap lists them and turns them all off), an
-  appliance running ("Lavadora · 40 min"), a window left open ("Janela aberta · Quarto").
+  appliance running ("Lavadora · 40 min"), a window left open ("Janela aberta · Quarto", with the
+  icon of a window, so it reads as a sensor).
 - The first four scenes, then one card per room with its photo or one of [59 drawings](docs/drawings.md),
   lit while a light is on, with "Ocupado" when someone is in.
 - **Smoke, gas, carbon monoxide, a leak or the alarm going off** turn into a red strip on top of every
@@ -70,9 +71,9 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
 
 <table>
   <tr>
-    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/room-light.png" width="200" alt="Bedroom page with temperature, humidity, Ocupado and an open window"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/room-light.png" width="200" alt="Bedroom page with the lights, the air conditioner and the Sensores block: window open, someone in, temperature and humidity"></td>
     <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/sheet-dark.png" width="200" alt="Light sheet with brightness, colours and white temperature"></td>
-    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/climate-dark.png" width="200" alt="Air conditioner sheet with target temperature, mode, ventilation and swing"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/climate-dark.png" width="200" alt="Compact air conditioner sheet: temperature, power, the modes and Mais ajustes"></td>
   </tr>
   <tr>
     <td align="center">Sensors of the room</td>
@@ -81,16 +82,18 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
   </tr>
 </table>
 
-- The header reads the room: how many lights are on, **"24° · 61%"** from its thermometer, and chips
-  for "Ocupado" and "Janela aberta".
+- The header reads the room: how many lights are on, and **"24° · 61%"** from its thermometer.
 - **Apagar tudo** and the room's scenes, then the blocks in a fixed order: Acesso, Luzes, Clima,
-  Cortinas, Mídia, Tomadas e equipamentos, Aparelhos, Ações. A block with nothing stays out.
+  Cortinas, Mídia, Tomadas e equipamentos, Aparelhos, Ações, Sensores. A block with nothing stays out.
+- **Sensores:** one card per sensor of the room, with its icon and what it reads (a window "Aberta",
+  presence "Ocupado", "24,4°", "61%"); a tap opens its history in Home Assistant.
 - **Lights** change at once and vibrate; with no answer in 3 s they say "Sem resposta". A long press
   opens the sheet: brightness, 9 colours, the whites and their temperature, each only when the bulb
   has it.
-- **Air conditioner:** what it is doing, the target and the temperature now; its sheet has − and +,
-  the mode, the ventilation, the swing and the preset it supports. An infrared one says its state is
-  the last command sent.
+- **Air conditioner:** what it is doing, the target and the temperature now. Its sheet is compact:
+  − and + with the power button, the modes in one row, and ventilation, swing and preset closed under
+  **Mais ajustes**. A value no one translated ("MiddleTop1") stays out, and the installer picks which
+  modes and settings show. An infrared one says its state is the last command sent.
 - **Curtains** open, close and stop with a tap; **TV and sound** play, pause and turn off from the
   card, with volume, mute and source on the sheet; **fans** switch and open their speeds.
 
@@ -111,8 +114,8 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
   abrir"); letting go earlier, a second finger or the phone taking the touch away does nothing.
   Closing and locking are a tap.
 - The **Segurança** tab gathers the alarm (arming is a tap; disarming asks for the code, or takes a
-  slide when there is none), the doors and windows open now, every gate and lock of the house, and
-  the cameras.
+  slide when there is none), the doors and windows open now (as cards, and "Sem resposta" for one that
+  does not answer: never an all-clear by default), every gate and lock of the house, and the cameras.
 - **Cameras:** one still image each time the tab opens, never refreshed while it stays open, so a
   camera behind a tunnel does not eat its traffic. A tap opens the live view in Home Assistant's own
   window.
@@ -141,7 +144,7 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
 <table>
   <tr>
     <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/review-light.png" width="200" alt="Revisar o painel: switches waiting for a role and a light with no room"></td>
-    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/edit-dark.png" width="200" alt="Edit mode on a room page: every item opens its editor"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/edit-dark.png" width="200" alt="Edit mode on a room page: every item says what it is and the integration it comes from"></td>
   </tr>
   <tr>
     <td align="center">Revisar o painel</td>
@@ -150,10 +153,15 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
 </table>
 
 - **Revisar o painel** (the wrench, administrators only) lists what the panel cannot place by itself:
-  switches with no role, appliances found, what has no room, mistakes in the configuration and what
-  has not answered for a day. One tap saves the choice; "Aceitar todas as sugestões" saves them all.
-- **Edit mode** (the pencil): rename an item, move it to another room, change how it shows, reorder
-  it, hide a room. Every change goes into the dashboard configuration with **Desfazer** for 5 s.
+  switches with no role, **items with the same name in the same room** (one device seen by two
+  integrations, with where each comes from), appliances found, what has no room, mistakes in the
+  configuration and what has not answered for a day. One tap saves the choice; "Aceitar todas as
+  sugestões" saves them all.
+- **Edit mode** (the pencil): every item says what it is and **the integration it comes from**
+  ("Ar-condicionado · LG ThinQ"); its editor adds the entity id and the name Home Assistant gives it.
+  Rename an item, move it to another room, change how it shows, reorder it, hide a room or a sensor,
+  pick the modes of an air conditioner. Every change goes into the dashboard configuration with
+  **Desfazer** for 5 s.
 - Residents never see either: client accounts are not administrators.
 
 <details>
@@ -254,6 +262,8 @@ strategy:
 | `entities.<id>.hide`  | none                               | Appliance only: entities of its device left out of its sheet |
 | `entities.<id>.remaining`, `.progress` | Found on the device | Appliance only: the time left and the progress sensors, when the automatic pick is wrong |
 | `entities.<id>.power`, `.energy` | Found on the device | Outlet or equipment: its power and energy sensors, when the automatic match fails. See [Sensors, security and consumption](#sensors-security-and-consumption) |
+| `entities.<id>.modes` | Every mode it has | Air conditioner (`climate.*`) only: the modes its sheet offers, for example `[cool, dry]`; turning on without `turn_on` picks among them |
+| `entities.<id>.controls` | Every setting it has | Air conditioner (`climate.*`) only: which of `fan`, `swing` and `preset` show under Mais ajustes, as a list (`[fan, swing]`) |
 | `hide_entities`       | none                               | Lights and outlets left out even though they have an area (the fridge or the router plug) |
 
 ```yaml
@@ -308,9 +318,9 @@ These need no role; their class says where they go:
 | Entity | Shows as |
 | :----- | :------- |
 | `binary_sensor` `smoke`, `gas`, `carbon_monoxide`, `moisture` | The red strip on every screen, with or without a room |
-| `binary_sensor` `door`, `window`, `garage_door`, `opening` | "Janela aberta" on the room, a chip on the home, and the security tab |
-| `binary_sensor` `motion`, `occupancy`, `presence` with a room | "Ocupado" on the room and its card |
-| `sensor` `temperature`, `humidity` with a room | "24° · 61%" under the room name; a dedicated thermometer wins over the one inside an air conditioner |
+| `binary_sensor` `door`, `window`, `garage_door`, `opening` with a room | A card in Sensores, a chip on the home while open, and the security tab. With no room it stays out (the doors of a fridge have none) |
+| `binary_sensor` `motion`, `occupancy`, `presence` with a room | A card in Sensores, and "Ocupado" on the room card |
+| `sensor` `temperature`, `humidity` with a room | A card in Sensores, and "24° · 61%" under the room name; a dedicated thermometer wins over the one inside an air conditioner |
 | `camera`, `alarm_control_panel` | The security tab, with or without a room |
 | `sensor` `power`, `energy` on the device of an outlet or equipment | The power on its tile and the consumption sheet |
 

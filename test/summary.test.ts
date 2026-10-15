@@ -63,6 +63,13 @@ describe('summarize', () => {
     expect(summarize(house, h)).toEqual({ headline: '3 luzes acesas em 2 ambientes.', detail: 'Quarto e Sala.', lightsOn: 3 });
   });
 
+  it('names the rooms only while they are two: with three or more the count says enough', () => {
+    let h = hass();
+    const house = buildHouse(h);
+    h = withState(withState(withState(h, 'light.sofa', 'on'), 'light.cama', 'on'), 'light.bancada', 'on');
+    expect(summarize(house, h)).toEqual({ headline: '3 luzes acesas em 3 ambientes.', detail: '', lightsOn: 3 });
+  });
+
   it('does not count unavailable lights, and skips "the rest" in a one-room house', () => {
     const h = makeHass({
       areas: [area('sala', 'Sala')],
@@ -108,6 +115,7 @@ const bareRoom = (over: Partial<Room>): Room => ({
   presence: [],
   temperature: null,
   humidity: null,
+  sensors: [],
   ...over,
 });
 

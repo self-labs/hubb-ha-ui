@@ -64,7 +64,7 @@ export function mockHouse(q) {
   scene('scene.boa_noite', 'Boa noite', null, ['light.quarto_cabeceira', 'light.sala_teto']);
 
   // Climate, curtains, media
-  add('climate.sala_ar', 'Ar', at('sala'), 'cool', {
+  add('climate.sala_ar', 'Ar', { area_id: 'sala', platform: 'lg_thinq' }, 'cool', {
     hvac_modes: ['off', 'cool', 'heat', 'auto', 'dry', 'fan_only'],
     hvac_action: 'cooling',
     temperature: 23,

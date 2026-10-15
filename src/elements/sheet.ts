@@ -15,6 +15,27 @@ export class HubbSheet extends LitElement {
   declare subheading: string;
 
   #dragStartY: number | null = null;
+  /**
+   * Whether the touch now ending began on the backdrop. On an iPhone, the release of a long press
+   * that opened the sheet sends its click to whatever is under the finger, often the backdrop: that
+   * click must not close what it just opened (a resident's iPhone, 14/10).
+   */
+  #downOnBackdrop = false;
+
+  #backdropDown = (): void => {
+    this.#downOnBackdrop = true;
+  };
+
+  #backdropClick = (): void => {
+    const began = this.#downOnBackdrop;
+    this.#downOnBackdrop = false;
+    if (began) this.close();
+  };
+
+  /** A touch cancelled by the browser (a swipe) sends no click: it must not wait for the next one. */
+  #backdropCancel = (): void => {
+    this.#downOnBackdrop = false;
+  };
 
   constructor() {
     super();
@@ -50,6 +71,11 @@ export class HubbSheet extends LitElement {
     }
   };
 
+  protected willUpdate(changed: PropertyValues<this>): void {
+    // Every opening starts clean: a touch of an earlier one never closes this one.
+    if (changed.has('open')) this.#downOnBackdrop = false;
+  }
+
   protected updated(changed: PropertyValues<this>): void {
     // The focus goes into the sheet when it opens, so the keyboard and screen readers land inside it.
     if (changed.has('open') && this.open) this.renderRoot.querySelector<HTMLElement>('.sheet')?.focus();
@@ -57,7 +83,7 @@ export class HubbSheet extends LitElement {
 
   render() {
     if (!this.open) return nothing;
-    return html`<div class="backdrop" @click=${() => this.close()}></div>
+    return html`<div class="backdrop" @pointerdown=${this.#backdropDown} @pointercancel=${this.#backdropCancel} @click=${this.#backdropClick}></div>
       <section class="sheet" role="dialog" aria-modal="true" aria-label=${this.heading} tabindex="-1" @keydown=${this.#onKey}>
         <div class="grab" @pointerdown=${this.#down} @pointermove=${this.#move} @pointerup=${this.#up} @pointercancel=${this.#up}>
           <span></span>

@@ -34,10 +34,23 @@ describe('hubb-sheet', () => {
     const el = await mount(true);
     let closed = 0;
     el.addEventListener('hubb-close', () => { closed += 1; });
-    (el.shadowRoot!.querySelector('.backdrop') as HTMLElement).click();
+    const backdrop = el.shadowRoot!.querySelector('.backdrop') as HTMLElement;
+    backdrop.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    backdrop.click();
     await el.updateComplete;
     expect(el.open).toBe(false);
     expect(closed).toBe(1);
+  });
+
+  it('stays open when the click only lands on the outside, as the release of a long press does on an iPhone', async () => {
+    const el = await mount(true);
+    let closed = 0;
+    el.addEventListener('hubb-close', () => { closed += 1; });
+    // The finger went down on the tile, before the sheet existed; only the click reaches the backdrop.
+    (el.shadowRoot!.querySelector('.backdrop') as HTMLElement).click();
+    await el.updateComplete;
+    expect(el.open).toBe(true);
+    expect(closed).toBe(0);
   });
 
   it('closes when the handle is dragged down', async () => {

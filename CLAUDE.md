@@ -121,12 +121,21 @@ operation.
 - Every screen gets `shared` (alerts and whether the security tab exists) from the strategy and
   draws `hubb-status-strips` through `HubbScreen.strips()`. The buzz of a new alert is module state,
   so a view switch does not buzz again.
-- The camera image is taken once per opening of the security tab (`connectedCallback`), never on
-  a new `hass`: the token in `entity_picture` rotates, and a refreshing image used up the free
-  Cloudflare traffic of a client. Keep it that way.
+- The camera image is taken once per opening of the security tab (`connectedCallback`), signed then
+  with `auth/sign_path` (a hidden view keeps an old `hass` whose token may have expired), never on a
+  new `hass`: a refreshing image used up the free Cloudflare traffic of a client. Keep it that way.
+- `hubb-sheet` closes on its backdrop only when the touch began there: on an iPhone the release of
+  the long press that opened it sends a click to the backdrop. A test pins it.
+- Values of climate attributes that neither `CLIMATE.fanWords` nor Home Assistant can name never
+  reach the sheet (`knownWord`, `namedValues`); add a word there before showing a new value. Ours
+  come first: they agree with the feminine headings ("Ventilação", "Oscilação"), Home Assistant's
+  are masculine. The item editor offers a setting only when the sheet would show it.
+- happy-dom miscounts the options Lit renders in a `<select>` (`selectedIndex` lands on the wrong
+  one): tests read the `selected` attribute instead.
 - Block order on a room page is fixed (Acesso, Luzes, Clima, Cortinas, Mídia, Tomadas e
-  equipamentos, Aparelhos, Ações). The climate, cover and media sheets are one `hubb-sheet.device`
-  opened by `hubb-open-climate`, `hubb-open-cover` and `hubb-open-media`.
+  equipamentos, Aparelhos, Ações, Sensores). The climate, cover, media and consumption sheets are one
+  `hubb-sheet.device` opened by `hubb-open-climate`, `hubb-open-cover`, `hubb-open-media` and
+  `hubb-open-power`.
 - `cachedStaticReview` keys on the identity of `hass.entities`, `hass.devices`, `hass.areas`,
   `hass.floors` and the configuration object: the frontend keeps those objects across state
   changes, so the home can count the review on every update.

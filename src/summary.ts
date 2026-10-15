@@ -1,3 +1,4 @@
+import { degreeSign } from './actions/climate';
 import type { HomeAssistant } from './ha/types';
 import { applianceReach, isShownOption, programOf, remainingMinutes, situation, stateText, type ApplianceItem } from './model/appliances';
 import type { House, OpeningItem, Room } from './model/types';
@@ -55,7 +56,9 @@ export function summarize(house: House, hass: HomeAssistant): Summary {
       lightsOn,
     };
   }
-  return { headline: lightsInRooms(lightsOn, groups.length), detail: `${joinPt(groups.map((g) => g.room.name))}.`, lightsOn };
+  // Two rooms read well; a list of six shouts (Gustavo, 14/10): the count says enough.
+  const detail = groups.length <= 2 ? `${joinPt(groups.map((g) => g.room.name))}.` : '';
+  return { headline: lightsInRooms(lightsOn, groups.length), detail, lightsOn };
 }
 
 const lightsOnIn = (room: Room, hass: HomeAssistant): number =>
@@ -82,7 +85,8 @@ function reading(hass: HomeAssistant, entityId: string | null): number | null {
 export function roomClimate(hass: HomeAssistant, room: Room): string | null {
   const t = reading(hass, room.temperature);
   const u = reading(hass, room.humidity);
-  const parts = [t !== null ? `${Math.round(t)}°` : null, u !== null ? `${Math.round(u)}%` : null].filter((p): p is string => p !== null);
+  const sign = degreeSign(room.temperature ? hass.states[room.temperature]?.attributes.unit_of_measurement : undefined);
+  const parts = [t !== null ? `${Math.round(t)}${sign}` : null, u !== null ? `${Math.round(u)}%` : null].filter((p): p is string => p !== null);
   return parts.length ? parts.join(' · ') : null;
 }
 

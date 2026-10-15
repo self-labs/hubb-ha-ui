@@ -1,6 +1,6 @@
 import { mdiAirConditioner, mdiPower } from '@mdi/js';
 import { LitElement, css, html, nothing } from 'lit';
-import { climateLine, setClimatePower } from '../actions/climate';
+import { canPower, climateLine, setClimatePower } from '../actions/climate';
 import { haptic } from '../actions/haptic';
 import type { HassEntityState, HomeAssistant } from '../ha/types';
 import type { ClimateItem } from '../model/types';
@@ -56,7 +56,7 @@ export class HubbClimateCard extends LitElement {
     this.sent = { from: st, on, at: Date.now() };
     if (this.#timer) clearTimeout(this.#timer);
     this.#timer = setTimeout(() => (this.sent = null), WAIT_MS);
-    setClimatePower(hass, st, on).catch(() => haptic('failure'));
+    setClimatePower(hass, st, on, item?.modes).catch(() => haptic('failure'));
   };
 
   render() {
@@ -74,9 +74,11 @@ export class HubbClimateCard extends LitElement {
         <span class="text"><span class="name">${item.name}</span><span class="state">${line}</span></span>
         ${typeof now === 'number' ? html`<span class="now">${CLIMATE.now(Math.round(now))}</span>` : nothing}
       </button>
-      <button class="power" aria-label=${on ? CLIMATE.turnOff : CLIMATE.turnOn} aria-pressed=${on ? 'true' : 'false'} @click=${this.#power}>
-        ${icon(mdiPower)}
-      </button>
+      ${st && !down && !canPower(st)
+        ? nothing
+        : html`<button class="power" aria-label=${on ? CLIMATE.turnOff : CLIMATE.turnOn} aria-pressed=${on ? 'true' : 'false'} @click=${this.#power}>
+            ${icon(mdiPower)}
+          </button>`}
     </div>`;
   }
 

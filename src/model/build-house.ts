@@ -1,7 +1,7 @@
 import { isArtId } from '../art/drawings';
 import { artFor } from '../art/resolve';
 import type { HomeAssistant } from '../ha/types';
-import { joinPt, S } from '../strings';
+import { joinPt, KIND_LABELS, S } from '../strings';
 import { applianceName, findParts } from './appliances';
 import { areaOf, classify, classifyContext } from './classify';
 import { readConfig } from './config';
@@ -23,6 +23,8 @@ import type {
   RoomOverride,
   SceneItem,
   Security,
+  SensorItem,
+  SensorKind,
 } from './types';
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
@@ -88,6 +90,7 @@ export function newRoom(hass: HomeAssistant, areaId: string, config: HubbConfig 
     presence: [],
     temperature: null,
     humidity: null,
+    sensors: [],
   };
 }
 
@@ -175,6 +178,7 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
         const opening: OpeningItem = { entityId, name, kind: cls as OpeningKind, roomName, path };
         openings.push(opening);
         home?.openings.push(opening);
+        home?.sensors.push({ entityId, name, kind: opening.kind });
       }
       continue;
     }
@@ -182,9 +186,15 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     if (!room) continue;
     if (placed.block === 'presence') {
       room.presence.push(entityId);
+      room.sensors.push({ entityId, name: s?.name ?? displayName(hass, entityId, room.name), kind: 'presence' });
       continue;
     }
     if (placed.block === 'temperature' || placed.block === 'humidity') {
+      // The thermometer inside an air conditioner is the air conditioner's: its card already says it,
+      // and its integration names it in English ("Room temperature"). It feeds the room line only.
+      if (!onClimateDevice(hass, entityId)) {
+        room.sensors.push({ entityId, name: s?.name ?? displayName(hass, entityId, room.name), kind: placed.block });
+      }
       // A dedicated thermometer first, the inside sensor of an air conditioner after it; then by id.
       const current = room[placed.block];
       if (current === null || (onClimateDevice(hass, current) && !onClimateDevice(hass, entityId))) room[placed.block] = entityId;
@@ -201,7 +211,7 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     } else if (placed.block === 'action') {
       room.actions.push({ entityId, name, icon: s?.icon ?? null });
     } else if (placed.block === 'climate' || placed.block === 'fan') {
-      room.climate.push({ entityId, name, kind: placed.block });
+      room.climate.push({ entityId, name, kind: placed.block, modes: s?.modes, controls: s?.controls });
     } else if (placed.block === 'cover') {
       room.covers.push({ entityId, name });
     } else if (placed.block === 'media') {
@@ -226,14 +236,22 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
   scenes.sort((a, b) => rank(a.entityId) - rank(b.entityId) || byName(a, b));
 
   const shown = [...rooms.values()].filter(hasContent);
+  // A room with nothing to control keeps its page while it has a sensor, or an item hidden there: the
+  // installer brings that one back from "Escondidos neste cômodo".
   const sensorRooms = [...rooms.values()].filter(
-    (r) => !hasContent(r) && (r.openings.length > 0 || r.presence.length > 0 || r.temperature !== null || r.humidity !== null),
+    (r) =>
+      !hasContent(r) &&
+      (r.openings.length > 0 || r.presence.length > 0 || r.temperature !== null || r.humidity !== null || r.hidden.length > 0),
   );
-  for (const room of sensorRooms) room.openings.sort(byName);
   const named = (id: string): boolean => !!cfg.entities[id]?.name;
   const rankOf = (id: string): number => cfg.entities[id]?.order ?? LAST;
   const byOrder = (a: { entityId: string; name: string }, b: { entityId: string; name: string }): number =>
     rankOf(a.entityId) - rankOf(b.entityId) || byName(a, b);
+  for (const room of sensorRooms) {
+    room.openings.sort(byName);
+    room.sensors.sort(byOrder);
+    room.hidden.sort(byName);
+  }
   for (const room of shown) {
     plainNames(room.lights, room.name, S.lightWord, named);
     plainNames(room.outlets, room.name, S.outletWord, named);
@@ -247,6 +265,7 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     room.covers.sort(byOrder);
     room.media.sort(byOrder);
     room.access.sort(byOrder);
+    room.sensors.sort(byOrder);
     room.hidden.sort(byName);
     room.scenes = scenes.filter((s) => s.areaId === room.areaId);
   }
@@ -286,6 +305,20 @@ export function allLightIds(house: House): string[] {
 const list = <T>(value: T[] | undefined): T[] => (Array.isArray(value) ? value : []);
 
 /**
+ * The Sensores of a room frozen before they existed (2026.10.8 and older): its openings by their
+ * names, its presence and its thermometer by kind, which is what the row of words they replaced said.
+ */
+function frozenSensors(room: Room): SensorItem[] {
+  const byKind = (entityId: string, kind: SensorKind): SensorItem => ({ entityId, name: KIND_LABELS[kind], kind });
+  return [
+    ...list(room.openings).map((o): SensorItem => ({ entityId: o.entityId, name: o.name, kind: o.kind })),
+    ...list(room.presence).map((id) => byKind(id, 'presence')),
+    ...(typeof room.temperature === 'string' ? [byKind(room.temperature, 'temperature')] : []),
+    ...(typeof room.humidity === 'string' ? [byKind(room.humidity, 'humidity')] : []),
+  ];
+}
+
+/**
  * A room as a screen receives it. A dashboard frozen with "Take control" on an older version keeps
  * rooms without the newer fields; filling them in keeps those screens working after an update.
  */
@@ -307,6 +340,7 @@ export function normalizeRoom(room: Room): Room {
     presence: list(room.presence),
     temperature: typeof room.temperature === 'string' ? room.temperature : null,
     humidity: typeof room.humidity === 'string' ? room.humidity : null,
+    sensors: Array.isArray(room.sensors) ? room.sensors : frozenSensors(room),
   };
 }
 
