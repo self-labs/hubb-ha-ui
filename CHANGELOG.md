@@ -8,6 +8,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.9] - 2026-10-14
+
 ### Added
 
 - `npm run preview`: the real bundle over a made-up house (`dev/`), to see every screen in a
@@ -335,7 +337,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.8...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.9...HEAD
+[2026.10.9]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.8...v2026.10.9
 [2026.10.8]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.7...v2026.10.8
 [2026.10.7]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.6...v2026.10.7
 [2026.10.6]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.5...v2026.10.6
