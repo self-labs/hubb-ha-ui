@@ -8,6 +8,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.11] - 2026-10-15
+
 ### Added
 
 - Who sees the tabs: **Quem vê esta aba** on Cenas and Segurança in edit mode, and **Quem vê** on each
@@ -27,7 +29,6 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - The **Quem vê** sheet closed after each tap, because Home Assistant rebuilds the panel after a
   save: it now opens again on the rebuilt screen, so the installer takes several people out in a
   row. The editor of an item stays open the same way after a Quem vê tap.
-
 
 ## [2026.10.10] - 2026-10-15
 
@@ -392,7 +393,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.10...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.11...HEAD
+[2026.10.11]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.10...v2026.10.11
 [2026.10.10]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.9...v2026.10.10
 [2026.10.9]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.8...v2026.10.9
 [2026.10.8]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.7...v2026.10.8
