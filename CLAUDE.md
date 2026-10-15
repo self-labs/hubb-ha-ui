@@ -147,6 +147,11 @@ operation.
 - An open "Quem vê" sheet (and the item editor after a Quem vê tap) is module state in
   `src/sheets.ts`, keyed by screen: Home Assistant recreates the screens after every save, and the
   new one opens it again. Leaving the edit mode or closing the sheet forgets it.
+- The blocks of a room page and the list of Cenas are six-column grids: a card takes 2 (small), 3
+  (medium) or all 6 (large) columns through a `size-*` class from `sizeOf` (`src/model/sizes.ts`).
+  Cards with buttons or a slide only take the whole row. The span rules name the size class
+  (`.grid > .size-small`): an edit tile resets its own styles with `all: unset`, which would undo a
+  rule as weak as `.grid > *`.
 - happy-dom miscounts the options Lit renders in a `<select>` (`selectedIndex` lands on the wrong
   one): tests read the `selected` attribute instead.
 - Block order on a room page is fixed (Acesso, Luzes, Clima, Cortinas, Mídia, Tomadas e

@@ -67,6 +67,12 @@ export class HubbSceneButton extends LitElement {
       display: block;
       font-weight: 700;
       font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    /* Two scenes side by side take one height, whatever their names. */
+    .tile,
+    .row {
+      height: 100%;
     }
     .desc {
       display: block;

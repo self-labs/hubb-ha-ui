@@ -40,13 +40,37 @@ export class HubbNavBar extends LitElement {
   }
 
   render() {
-    return html`<nav aria-label=${S.navigation}>
+    // The page fades out under and around the bar: cards scrolling past never read as part of it.
+    return html`<div class="fade" aria-hidden="true"></div>
+      <div class="shield" aria-hidden="true"></div>
+      <nav aria-label=${S.navigation}>
       ${this.#item('home', this.homeLabel, mdiHomeOutline)} ${this.scenes ? this.#item('scenes', S.scenes, mdiCreationOutline) : nothing}
       ${this.security ? this.#item('seguranca', S.security, mdiShieldHomeOutline) : nothing}
     </nav>`;
   }
 
   static styles = css`
+    /* Below the docked sidebar of Home Assistant (z-index 6), above the page. */
+    .fade {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 5;
+      height: calc(92px + env(safe-area-inset-bottom));
+      pointer-events: none;
+      background: linear-gradient(to top, var(--hubb-bg) 72%, color-mix(in srgb, var(--hubb-bg) 0%, transparent));
+    }
+    /* The solid part, up to the top of the bar: a card hidden under it takes no tap. */
+    .shield {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 5;
+      height: calc(72px + env(safe-area-inset-bottom));
+      pointer-events: auto;
+    }
     nav {
       position: fixed;
       left: 12px;
@@ -60,6 +84,7 @@ export class HubbNavBar extends LitElement {
       height: 60px;
       margin: 0 auto;
       border-radius: 18px;
+      border: 1px solid color-mix(in srgb, var(--hubb-text) 10%, transparent);
       background: var(--hubb-surface);
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
       font-family: var(--hubb-font);

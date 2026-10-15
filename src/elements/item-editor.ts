@@ -6,8 +6,9 @@ import { coverIsGate } from '../model/classify';
 import { CLIMATE_CONTROLS, ROLES, roleFits, type ItemKind, type Role } from '../model/config';
 import { originOf } from '../model/origin';
 import type { ClimateExtra, EntityConfig } from '../model/types';
+import { defaultSize, sizeOf, sizesFor, type Size } from '../model/sizes';
 import { hiddenForList } from '../model/visibility';
-import { CLIMATE, EDIT, KIND_LABELS, REVIEW } from '../strings';
+import { CLIMATE, EDIT, KIND_LABELS, REVIEW, SIZE_LABELS } from '../strings';
 import { define } from './define';
 import { icon } from './icon';
 import './people-picker';
@@ -161,6 +162,13 @@ export class HubbItemEditor extends LitElement {
     });
   };
 
+  #size(size: Size): void {
+    const item = this.item;
+    if (!item) return;
+    // The default writes nothing: the YAML only keeps a size someone chose against it.
+    this.#ask({ patch: { size: size === defaultSize(item.kind) ? undefined : size }, message: EDIT.sizeSaved(item.name, SIZE_LABELS[size]) });
+  }
+
   #ask(request: Omit<EditRequest, 'entityId'>): void {
     const item = this.item;
     if (!item) return;
@@ -273,6 +281,19 @@ export class HubbItemEditor extends LitElement {
           )}
         </div>
       </div>
+      ${item.kind === 'hidden' || sizesFor(item.kind).length < 2
+        ? nothing
+        : html`<div class="field">
+            <span class="label">${EDIT.size}</span>
+            <div class="row">
+              ${sizesFor(item.kind).map((size) => {
+                const on = size === sizeOf({ entities: { [item.entityId]: this.settings ?? {} } }, item.entityId, item.kind);
+                return html`<button class="size ${on ? 'current' : ''}" aria-pressed=${on ? 'true' : 'false'} ?disabled=${on} @click=${() => this.#size(size)}>
+                  ${SIZE_LABELS[size]}
+                </button>`;
+              })}
+            </div>
+          </div>`}
       <div class="field">
         <span class="label">${EDIT.whoSeesItem}</span>
         <hubb-people-picker .hass=${hass} .hiddenFor=${hiddenForList(this.settings?.hidden_for)} @hubb-people=${this.#onPeople}></hubb-people-picker>
@@ -372,6 +393,7 @@ export class HubbItemEditor extends LitElement {
     }
     .save-name,
     .save-choices,
+    .size.current,
     .role.current,
     .panel-choice.current {
       background: var(--hubb-primary-bg);
@@ -380,7 +402,8 @@ export class HubbItemEditor extends LitElement {
     .save-choices {
       justify-content: center;
     }
-    .role.current[disabled] {
+    .role.current[disabled],
+    .size.current[disabled] {
       opacity: 1;
     }
     button svg {

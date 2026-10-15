@@ -259,6 +259,8 @@ export interface EntityConfig {
   order?: number;
   /** User ids of Home Assistant this is hidden for; administrators always see it. */
   hidden_for?: string[];
+  /** How wide its card is: small (a third of the row), medium (half) or large (all of it). */
+  size?: string;
 }
 
 export interface HubbConfig {

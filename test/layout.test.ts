@@ -115,9 +115,9 @@ describe('room card shading', () => {
 });
 
 describe('appliances fit on a phone', () => {
-  it('lets the appliance card span two of the three columns, so its state line does not wrap', async () => {
-    const { HubbRoomScreen: Screen } = await import('../src/screens/room-screen');
-    expect(cssOf(Screen.styles)).toMatch(/hubb-appliance-card\s*\{[^}]*grid-column: span 2/);
+  it('never makes the appliance card small, so its state line does not wrap; it takes the row by default', async () => {
+    const { sizesFor, defaultSize } = await import('../src/model/sizes');
+    expect([sizesFor('appliance'), defaultSize('appliance')]).toEqual([['large'], 'large']);
   });
 
   it('lays the options of the appliance sheet in two columns, so their names fit', async () => {

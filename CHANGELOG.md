@@ -8,6 +8,19 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Added
+
+- How wide each card is: **Tamanho** in the editor of an item and on each scene of Cenas in edit
+  mode, Pequeno, Médio or Grande (a third, half or the whole row; `entities.<id>.size`). Cards with
+  buttons or a slide (air conditioner, TV, gate, lock, appliance) always take the whole row.
+
+### Changed
+
+- The scenes of Cenas go two to a row instead of one, at one height per row, and a small one shows as
+  a tile, like on the home. An appliance card takes the whole row instead of two thirds.
+- The page fades out under and around the bottom bar, and the bar has a hairline border: cards
+  scrolling past no longer read as part of it, and one hidden below it takes no tap.
+
 ## [2026.10.11] - 2026-10-15
 
 ### Added

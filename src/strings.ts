@@ -208,6 +208,8 @@ export const CFG = {
   badOrder: (id: string): string => `order de ${id} precisa ser um número.`,
   badList: (key: string, example: string): string => `${key} precisa ser uma lista, por exemplo [${example}].`,
   climateOnly: (key: string): string => `${key} só vale para ar-condicionado (climate).`,
+  badSize: (value: string): string => `size: ${value} não existe. Use small, medium ou large.`,
+  sizeDoesNotFit: (value: string): string => `size: ${value} não cabe neste card: ele ocupa a linha toda.`,
   hideOnly: 'hide só vale para um aparelho (role: appliance) ou um ar-condicionado.',
   badTabs: 'tabs precisa ser um bloco com scenes e security.',
   unknownTab: (key: string): string => `tabs: ${key} não existe. Use scenes ou security.`,
@@ -356,6 +358,8 @@ export const EDIT = {
   whoSees: 'Quem vê',
   whoSeesRoom: 'Quem vê este cômodo',
   whoSeesItem: 'Quem vê este item',
+  size: 'Tamanho',
+  sizeSaved: (name: string, size: string): string => `${name}: tamanho ${size.toLocaleLowerCase('pt-BR')}.`,
   whoSeesTab: 'Quem vê esta aba',
   tabName: (name: string): string => `A aba ${name}`,
   hintScenes: 'Modo edição: escolha quem vê a aba e cada cena, tire uma cena ou adicione outra.',
@@ -537,4 +541,11 @@ export const MEDIA = {
   power: 'Ligar ou desligar',
   turnOn: 'Ligar',
   turnOff: 'Desligar',
+} as const;
+
+/** The sizes of a card, as the installer picks them. */
+export const SIZE_LABELS = {
+  small: 'Pequeno',
+  medium: 'Médio',
+  large: 'Grande',
 } as const;

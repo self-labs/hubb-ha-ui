@@ -162,9 +162,10 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
   sugestões" saves them all.
 - **Edit mode** (the pencil): every item says what it is and **the integration it comes from**
   ("Ar-condicionado · LG ThinQ"); its editor adds the entity id and the name Home Assistant gives it.
-  Rename an item, move it to another room, change how it shows, reorder it, hide a room or a sensor,
-  pick the modes of an air conditioner. Every change goes into the dashboard configuration with
-  **Desfazer** for 5 s.
+  Rename an item, move it to another room, change how it shows, reorder it, pick how wide its card
+  is (**Pequeno**, **Médio** or **Grande**: a third, half or the whole row; a scene of Cenas too),
+  hide a room or a sensor, pick the modes of an air conditioner. Every change goes into the
+  dashboard configuration with **Desfazer** for 5 s.
 - **Who sees what:** a room or an item can be hidden for chosen users (**Quem vê**), see
   [Who sees what](#who-sees-what).
 - Residents never see either: client accounts are not administrators.
@@ -267,6 +268,7 @@ strategy:
 | `entities.<id>.hide`  | none                               | Appliance or air conditioner: entities of its device left out of its sheet |
 | `rooms.<area>.hidden_for` | none | User ids of Home Assistant the room is hidden for (not administrators). See [Who sees what](#who-sees-what) |
 | `entities.<id>.hidden_for` | none | User ids the item is hidden for; danger alerts still show |
+| `entities.<id>.size` | Tiles `small`, scenes of Cenas `medium` | How wide the card is: `small` (a third of the row), `medium` (half) or `large` (all of it). Air conditioners, TVs, gates, locks and appliances always take the whole row |
 | `tabs.scenes.hidden_for`, `tabs.security.hidden_for` | none | User ids Cenas or Segurança is hidden for. See [Who sees what](#who-sees-what) |
 | `entities.<id>.remaining`, `.progress` | Found on the device | Appliance only: the time left and the progress sensors, when the automatic pick is wrong |
 | `entities.<id>.power`, `.energy` | Found on the device | Outlet or equipment: its power and energy sensors, when the automatic match fails. See [Sensors, security and consumption](#sensors-security-and-consumption) |

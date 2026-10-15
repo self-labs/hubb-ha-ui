@@ -2,6 +2,7 @@ import { isArtId } from '../art/drawings';
 import type { HomeAssistant } from '../ha/types';
 import { CFG } from '../strings';
 import { isProfileId, type ProfileId } from './profiles';
+import { isSize, wholeRowOnly } from './sizes';
 import type { HubbConfig } from './types';
 
 /** The roles an entity can be given in `entities.<id>.role`. */
@@ -55,6 +56,7 @@ export interface EntitySettings {
   order?: number;
   /** User ids this item is hidden for. */
   hiddenFor?: string[];
+
 }
 
 /** The settings of an air conditioner that can be kept off its sheet. */
@@ -179,6 +181,13 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
       if (ref === undefined) continue;
       if (typeof ref === 'string' && hass.states[ref]) s[key] = ref;
       else add(`${at}.${key}`, entityId, CFG.missingEntity(String(ref)));
+    }
+    // Screens read the size through sizeOf; here only what is wrong with it.
+    if (v.size !== undefined) {
+      if (!isSize(v.size)) add(`${at}.size`, entityId, CFG.badSize(String(v.size)));
+      else if (v.size !== 'large' && wholeRowOnly(entityId, typeof v.role === 'string' ? v.role : undefined)) {
+        add(`${at}.size`, entityId, CFG.sizeDoesNotFit(v.size));
+      }
     }
     if (v.hidden_for !== undefined) {
       if (Array.isArray(v.hidden_for) && v.hidden_for.every((u) => typeof u === 'string')) s.hiddenFor = v.hidden_for;

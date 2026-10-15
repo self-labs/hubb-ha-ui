@@ -8,8 +8,9 @@ import '../elements/nav-bar';
 import '../elements/people-picker';
 import '../elements/scene-button';
 import type { HubbConfig, SceneCandidate, SceneItem, Shared } from '../model/types';
+import { defaultSize, sizeOf, sizesFor, type Size } from '../model/sizes';
 import { hiddenForList } from '../model/visibility';
-import { EDIT, ROLE_LABELS, S } from '../strings';
+import { EDIT, ROLE_LABELS, S, SIZE_LABELS } from '../strings';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 
@@ -54,12 +55,22 @@ export class HubbScenesScreen extends HubbScreen {
     });
   }
 
+  /** How wide a scene is on Cenas, with Desfazer; the default writes no size. */
+  #resize(scene: SceneItem, size: Size): void {
+    void this.saveChange(EDIT.sizeSaved(scene.name, SIZE_LABELS[size]), async (hass, urlPath) => {
+      const before = await setEntity(hass, urlPath, scene.entityId, { size: size === defaultSize('scene') ? undefined : size });
+      return (h) => putBack(h, urlPath, before);
+    });
+  }
+
   /** A scene in the edit mode: its name, what it is, Quem vê, Não mostrar and who it is hidden for. */
   #sceneInEdit(scene: SceneItem, twin: boolean) {
     const options = this.config?.options;
     const kind = scene.entityId.startsWith('scene.') ? EDIT.fromScene : EDIT.fromScript;
     // A scene and a script often share a name ("Desligar Kitnet"): the sheet says which one.
     const name = twin ? `${scene.name} · ${kind}` : scene.name;
+    const size = sizeOf(options, scene.entityId, 'scene');
+    // In the edit mode every scene takes the row, so its tools fit; its size shows on the buttons.
     return html`<div class="scene-edit">
       <strong>${scene.name}</strong>
       <span class="kind">${kind}</span>
@@ -76,7 +87,27 @@ export class HubbScenesScreen extends HubbScreen {
         </button>
         <hubb-hidden-tag .hass=${this.hass} .ids=${hiddenForList(options?.entities?.[scene.entityId]?.hidden_for)}></hubb-hidden-tag>
       </div>
+      <div class="tools sizes" role="group" aria-label=${`${scene.name}: ${EDIT.size}`}>
+        <span class="label">${EDIT.size}</span>
+        ${sizesFor('scene').map(
+          (s) =>
+            html`<button
+              class="tool size ${s === size ? 'current' : ''}"
+              aria-pressed=${s === size ? 'true' : 'false'}
+              ?disabled=${s === size}
+              @click=${() => this.#resize(scene, s)}
+            >
+              ${SIZE_LABELS[s]}
+            </button>`,
+        )}
+      </div>
     </div>`;
+  }
+
+  /** A scene off the edit mode: a tile when small (like the home), a row otherwise. */
+  #scene(scene: SceneItem) {
+    const size = sizeOf(this.config?.options, scene.entityId, 'scene');
+    return html`<hubb-scene-button class="size-${size}" variant=${size === 'small' ? 'tile' : 'row'} .scene=${scene}></hubb-scene-button>`;
   }
 
   render() {
@@ -110,7 +141,7 @@ export class HubbScenesScreen extends HubbScreen {
               ${scenes.map((s) =>
                 editing
                   ? this.#sceneInEdit(s, scenes.filter((o) => o.name === s.name).length > 1)
-                  : html`<hubb-scene-button variant="row" .scene=${s}></hubb-scene-button>`,
+                  : this.#scene(s),
               )}
             </div>`
           : html`<div class="empty">
@@ -152,11 +183,35 @@ export class HubbScenesScreen extends HubbScreen {
         font-size: 22px;
         font-weight: 800;
       }
+      /* Six columns: a scene takes a third (small), half (medium, the default) or the whole row. */
       .list {
         display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 8px;
       }
+      .list > .size-small {
+        grid-column: span 2;
+      }
+      .list > .size-medium {
+        grid-column: span 3;
+      }
+      .list > .size-large {
+        grid-column: 1 / -1;
+      }
+      .size.current {
+        background: var(--hubb-primary-bg);
+        color: var(--hubb-primary-ink);
+        cursor: default;
+      }
+      .sizes .label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--hubb-text-2);
+      }
       .scene-edit {
+        grid-column: 1 / -1;
         padding: 12px 14px 8px;
         border-radius: 16px;
         background: var(--hubb-surface);
