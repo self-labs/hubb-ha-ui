@@ -8,6 +8,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.10] - 2026-10-15
+
 ### Added
 
 - Who sees what: a room or an item can be hidden for chosen users of Home Assistant (`hidden_for`),
@@ -369,7 +371,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.9...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.10...HEAD
+[2026.10.10]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.9...v2026.10.10
 [2026.10.9]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.8...v2026.10.9
 [2026.10.8]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.7...v2026.10.8
 [2026.10.7]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.6...v2026.10.7
