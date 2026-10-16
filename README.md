@@ -226,6 +226,13 @@ browser, not in Home Assistant: another browser or computer asks again, and the 
 Home Assistant play no part. To change the saved address, open
 [my.home-assistant.io/redirect/_change](https://my.home-assistant.io/redirect/_change/).
 
+**For the residents, also install [kiosk-mode](https://github.com/NemesisRE/kiosk-mode)** from HACS
+(Frontend). The panel asks it to hide the header and the sidebar of Home Assistant for every user who
+is not an administrator, so a resident sees the panel alone; administrators keep both, for the pencil
+and the settings. Nothing to configure: without kiosk-mode the panel works the same, with the menus
+of Home Assistant around it. A resident then has no "Configurações do aplicativo" or "Notificações"
+in the Companion app: set up notifications and location on their phone before.
+
 <details>
 <summary>Doing it by hand</summary>
 

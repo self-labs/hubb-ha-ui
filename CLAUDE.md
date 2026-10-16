@@ -113,6 +113,10 @@ operation.
   wrong wait only takes the tap of Fechar away, a missed one offers it: when in doubt, wait. A pulse
   from the remote control is invisible to both.
 - HACS serves only `hubb-ha-ui.js`, which is why the font is inlined.
+- The header and sidebar of Home Assistant are hidden for residents by kiosk-mode (a separate HACS
+  plugin), never by this code: the strategy returns `kiosk_mode` (`KIOSK` in `strategy/generate.ts`)
+  and Home Assistant keeps whatever a strategy returns as the dashboard config, which kiosk-mode
+  reads. Reaching into the DOM of Home Assistant ourselves would break with its releases.
 - `vite.config.ts` is outside `tsc` on purpose: it uses `node:fs` and would need `@types/node`.
 - Room drawings go into the page through `unsafeSVG`. Only `src/art/drawings.ts` may feed it, and
   `test/art/drawings.test.ts` keeps that file to plain shapes with no colours, links or handlers.

@@ -20,7 +20,16 @@ export interface LovelaceViewConfig {
 export interface LovelaceConfig {
   title: string;
   views: LovelaceViewConfig[];
+  kiosk_mode: typeof KIOSK;
 }
+
+/**
+ * Read by kiosk-mode (HACS, NemesisRE/kiosk-mode) from the dashboard Home Assistant generates, where
+ * Home Assistant puts what a strategy returns: a resident sees the panel alone, with no header and
+ * no sidebar; an administrator keeps both, for the pencil and the settings. Without kiosk-mode it is
+ * a key nobody reads.
+ */
+export const KIOSK = { non_admin_settings: { hide_header: true, hide_sidebar: true } } as const;
 
 /**
  * One panel view per screen; each screen card gets the slice of the house it draws. Never throws.
@@ -55,6 +64,7 @@ export function generateDashboard(config: HubbConfig, hass: HomeAssistant): Love
       : [];
     return {
       title: house.name,
+      kiosk_mode: KIOSK,
       views: [
         { title: homeLabel, path: 'home', type: 'panel', cards: [{ type: 'custom:hubb-home-screen', house, options: config, shared }] },
         {
@@ -99,6 +109,8 @@ export function generateDashboard(config: HubbConfig, hass: HomeAssistant): Love
   } catch (err) {
     return {
       title: 'Hubb',
+      // The error is no reason to hand a resident the menus of Home Assistant.
+      kiosk_mode: KIOSK,
       views: [
         {
           title: S.home,

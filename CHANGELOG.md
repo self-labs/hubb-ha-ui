@@ -10,6 +10,9 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ### Added
 
+- **Residents see the panel alone:** with [kiosk-mode](https://github.com/NemesisRE/kiosk-mode)
+  installed from HACS, the header and the sidebar of Home Assistant are hidden for every user who is
+  not an administrator. The panel asks for it by itself; administrators keep both.
 - **Sensor do portão:** a gate on a pulse relay can take a door contact (class door, garage door or
   opening) or a gate cover as its sensor, in its editor, which offers those of its room, or with
   `entities.<id>.sensor`. Its card then says Aberto or Fechado, opens with the slide, closes with a
