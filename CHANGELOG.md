@@ -8,6 +8,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.13] - 2026-10-16
+
 ### Added
 
 - **Residents see the panel alone:** with [kiosk-mode](https://github.com/NemesisRE/kiosk-mode)
@@ -429,7 +431,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.12...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.13...HEAD
+[2026.10.13]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.12...v2026.10.13
 [2026.10.12]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.11...v2026.10.12
 [2026.10.11]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.10...v2026.10.11
 [2026.10.10]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.9...v2026.10.10
