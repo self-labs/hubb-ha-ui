@@ -4,6 +4,7 @@ import { CLIMATE_FEATURE, has, namedValues } from '../actions/climate';
 import type { HomeAssistant } from '../ha/types';
 import { coverIsGate } from '../model/classify';
 import { CLIMATE_CONTROLS, ROLES, roleFits, type ItemKind, type Role } from '../model/config';
+import type { GateSensor } from '../model/gate-sensor';
 import { originOf } from '../model/origin';
 import type { ClimateExtra, EntityConfig } from '../model/types';
 import { defaultSize, sizeOf, sizesFor, type Size } from '../model/sizes';
@@ -58,6 +59,7 @@ export class HubbItemEditor extends LitElement {
     named: { attribute: false },
     settings: { attribute: false },
     extras: { attribute: false },
+    sensors: { attribute: false },
     chosen: { state: true },
   };
 
@@ -70,6 +72,8 @@ export class HubbItemEditor extends LitElement {
   declare settings: Partial<EntityConfig> | undefined;
   /** An air conditioner: the functions of its device (Iluminação, Modo dormir), to keep or leave out. */
   declare extras: ClimateExtra[];
+  /** A pulse gate: the door contacts and gates of its room it can take as its sensor. */
+  declare sensors: GateSensor[];
   /** An air conditioner: the modes, settings and functions ticked, until "Salvar escolhas". */
   declare chosen: Choices | null;
 
@@ -81,6 +85,7 @@ export class HubbItemEditor extends LitElement {
     this.named = false;
     this.settings = undefined;
     this.extras = [];
+    this.sensors = [];
     this.chosen = null;
   }
 
@@ -169,6 +174,32 @@ export class HubbItemEditor extends LitElement {
     this.#ask({ patch: { size: size === defaultSize(item.kind) ? undefined : size }, message: EDIT.sizeSaved(item.name, SIZE_LABELS[size]) });
   }
 
+  /** The sensor of a pulse gate: Nenhum, or a door contact or gate of its room. */
+  #sensorField(item: EditItem) {
+    const current = this.settings?.sensor ?? null;
+    const choose = (id: string | null, name: string): void =>
+      this.#ask({ patch: { sensor: id ?? undefined }, message: id ? EDIT.gateSensorSaved(item.name, name) : EDIT.gateSensorCleared(item.name) });
+    const button = (id: string | null, name: string) => {
+      const on = id === current;
+      return html`<button class="sensor ${on ? 'current' : ''}" aria-pressed=${on ? 'true' : 'false'} ?disabled=${on} @click=${() => choose(id, name)}>
+        ${name}
+      </button>`;
+    };
+    // One the YAML names that no longer exists still shows, by its id, so Nenhum can take it away.
+    const missing = current !== null && !this.sensors.some((s) => s.entityId === current);
+    return html`<div class="field sensor-field">
+      <span class="label">${EDIT.gateSensor}</span>
+      ${this.sensors.length || current
+        ? html`<div class="row">
+              ${button(null, EDIT.gateSensorNone)}${missing ? button(current, EDIT.gateSensorMissing(current)) : nothing}${this.sensors.map((s) =>
+                button(s.entityId, s.name),
+              )}
+            </div>
+            <p class="hint">${EDIT.gateSensorHint}</p>`
+        : html`<p class="hint">${EDIT.noGateSensor}</p>`}
+    </div>`;
+  }
+
   #ask(request: Omit<EditRequest, 'entityId'>): void {
     const item = this.item;
     if (!item) return;
@@ -198,9 +229,11 @@ export class HubbItemEditor extends LitElement {
     const item = this.item;
     if (!item) return;
     const message = kind === 'hidden' ? REVIEW.savedHidden(item.name) : REVIEW.savedAs(item.name, KIND_LABELS[kind]);
+    // A gate that stops being one takes its sensor along: Revisar would report one the editor no longer shows.
+    const sensor = kind !== 'gate' && this.settings?.sensor !== undefined ? { sensor: undefined } : {};
     // Cortina is no role: a cover is a curtain when nothing says otherwise.
-    if (kind === 'cover') this.#ask({ patch: { role: undefined }, message });
-    else if (isRole(kind)) this.#ask({ patch: { role: kind }, message });
+    if (kind === 'cover') this.#ask({ patch: { role: undefined, ...sensor }, message });
+    else if (isRole(kind)) this.#ask({ patch: { role: kind, ...sensor }, message });
   }
 
   #move(step: number): void {
@@ -294,6 +327,7 @@ export class HubbItemEditor extends LitElement {
               })}
             </div>
           </div>`}
+      ${item.kind === 'gate' && !/^(cover|lock)\./.test(item.entityId) ? this.#sensorField(item) : nothing}
       <div class="field">
         <span class="label">${EDIT.whoSeesItem}</span>
         <hubb-people-picker .hass=${hass} .hiddenFor=${hiddenForList(this.settings?.hidden_for)} @hubb-people=${this.#onPeople}></hubb-people-picker>
@@ -391,10 +425,16 @@ export class HubbItemEditor extends LitElement {
       cursor: default;
       opacity: 0.45;
     }
+    .hint {
+      margin: 0;
+      font-size: 12px;
+      color: var(--hubb-text-2);
+    }
     .save-name,
     .save-choices,
     .size.current,
     .role.current,
+    .sensor.current,
     .panel-choice.current {
       background: var(--hubb-primary-bg);
       color: var(--hubb-primary-ink);
@@ -403,7 +443,8 @@ export class HubbItemEditor extends LitElement {
       justify-content: center;
     }
     .role.current[disabled],
-    .size.current[disabled] {
+    .size.current[disabled],
+    .sensor.current[disabled] {
       opacity: 1;
     }
     button svg {

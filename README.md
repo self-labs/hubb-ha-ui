@@ -86,7 +86,8 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
 - **Apagar tudo** and the room's scenes, then the blocks in a fixed order: Acesso, Luzes, Clima,
   Cortinas, Mídia, Tomadas e equipamentos, Aparelhos, Ações, Sensores. A block with nothing stays out.
 - **Sensores:** one card per sensor of the room, with its icon and what it reads (a window "Aberta",
-  presence "Ocupado", "24,4°", "61%"); a tap opens its history in Home Assistant.
+  presence "Ocupado", "24,4°", "61%"); a tap opens its history in Home Assistant. A contact that is
+  the sensor of a gate in the same room shows there only in edit mode: the card of the gate says it.
 - **Lights** change at once and vibrate; with no answer in 3 s they say "Sem resposta". A long press
   opens the sheet: brightness, 9 colours, the whites and their temperature, each only when the bulb
   has it.
@@ -116,9 +117,19 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
 - **A gate, a door or a lock never opens with a tap.** It takes a slide to the end ("Deslize para
   abrir"); letting go earlier, a second finger or the phone taking the touch away does nothing.
   Closing and locking are a tap.
+- **A gate on a pulse relay can have a sensor** (a door contact or a gate cover). Its card then says
+  Aberto or Fechado, opens with the slide, closes with a tap on Fechar, and says Abrindo… or
+  Fechando… until the sensor moves (90 s at most). While the card waits after a pulse, while a cover
+  used as the sensor says the gate is moving, or while the sensor does not answer, it goes back to
+  "Deslize para acionar", which never promises a direction. Every card of the gate on the phone waits
+  with it, and every phone reads the pulse on the relay itself (the press of a button, the run of a
+  script, the last change of a switch). A pulse from the remote control cannot be seen, and a contact
+  reads Aberto on a gate stopped halfway: on a controller that turns back after a stop, Fechar then
+  opens it. Check that the card says Aberto with the gate open before relying on Fechar.
 - The **Segurança** tab gathers the alarm (arming is a tap; disarming asks for the code, or takes a
   slide when there is none), the doors and windows open now (as cards, and "Sem resposta" for one that
-  does not answer: never an all-clear by default), every gate and lock of the house, and the cameras.
+  does not answer: never an all-clear by default), every gate and lock of the house (a cover used as
+  the sensor of a gate stays out), and the cameras.
 - **Cameras:** one still image each time the tab opens, never refreshed while it stays open, so a
   camera behind a tunnel does not eat its traffic. A tap opens the live view in Home Assistant's own
   window.
@@ -209,9 +220,11 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
 The button opens this repository straight in your HACS. Click **Download**. No restart is needed:
 HACS registers the dashboard resource by itself.
 
-It works through [my.home-assistant.io](https://my.home-assistant.io/), which only knows how to reach
-your instance after you set your own URL there once, under **Settings → System → Network → Home
-Assistant URL**. Until then it asks for it.
+It works through [my.home-assistant.io](https://my.home-assistant.io/). The first time, it asks for
+the address of your Home Assistant (for example `http://192.168.1.10:8123`) and keeps it in that
+browser, not in Home Assistant: another browser or computer asks again, and the network settings of
+Home Assistant play no part. To change the saved address, open
+[my.home-assistant.io/redirect/_change](https://my.home-assistant.io/redirect/_change/).
 
 <details>
 <summary>Doing it by hand</summary>
@@ -269,6 +282,7 @@ strategy:
 | `rooms.<area>.hidden_for` | none | User ids of Home Assistant the room is hidden for (not administrators). See [Who sees what](#who-sees-what) |
 | `entities.<id>.hidden_for` | none | User ids the item is hidden for; danger alerts still show |
 | `entities.<id>.size` | Tiles `small`, scenes of Cenas `medium` | How wide the card is: `small` (a third of the row), `medium` (half) or `large` (all of it). Air conditioners, TVs, gates, locks and appliances always take the whole row |
+| `entities.<id>.sensor` | none | A gate on a pulse relay (`role: gate` on a `switch`, `button`, `input_button` or `script`): the `binary_sensor` of class `door`, `garage_door` or `opening`, or the gate `cover`, that says whether it is open, from any room (the editor offers those of the gate's room). A contact of the gate's room shows in Sensores only in edit mode and still counts as open; a cover used as the sensor leaves Acesso |
 | `tabs.scenes.hidden_for`, `tabs.security.hidden_for` | none | User ids Cenas or Segurança is hidden for. See [Who sees what](#who-sees-what) |
 | `entities.<id>.remaining`, `.progress` | Found on the device | Appliance only: the time left and the progress sensors, when the automatic pick is wrong |
 | `entities.<id>.power`, `.energy` | Found on the device | Outlet or equipment: its power and energy sensors, when the automatic match fails. See [Sensors, security and consumption](#sensors-security-and-consumption) |
@@ -292,7 +306,7 @@ strategy:
 Without a role, an entity reaches the panel by its type: `light.*` is a light, a `switch` shown as an
 outlet is an outlet, a scene or script labelled `hubb_cena` is a scene, `climate` and `fan` go to
 Clima, a `cover` goes to Cortinas (to Acesso when its class is gate, garage or door, or when it has no
-class and its name says "portão"), a `lock` goes to Acesso and a `media_player` to Mídia (Browser Mod players stay out). A
+class and its name says "portão"; out of the panel when it is the `sensor` of a gate), a `lock` goes to Acesso and a `media_player` to Mídia (Browser Mod players stay out). A
 role puts it somewhere else:
 
 | Role        | Takes                                | Shows as                                                       |
@@ -302,7 +316,7 @@ role puts it somewhere else:
 | `equipment` | `switch`                             | Equipment ("Ligado"/"Desligado"), with its `icon` or a power icon |
 | `appliance` | any entity with a device             | The device becomes an appliance card, with a full sheet        |
 | `action`    | `button`, `input_button`, `script`   | A button in "Ações" that says "Feito"                          |
-| `gate`      | `switch`, `button`, `input_button`, `script`, `cover` | A gate in "Acesso", opened with a slide ("Deslize para acionar" for a pulse relay) |
+| `gate`      | `switch`, `button`, `input_button`, `script`, `cover` | A gate in "Acesso", opened with a slide ("Deslize para acionar" for a pulse relay; with a `sensor`, Aberto or Fechado and a Fechar button) |
 | `scene`     | `scene`, `script`                    | A scene in Cenas, with or without a room, like one labelled `hubb_cena` |
 | `hidden`    | anything                             | Left out                                                       |
 
@@ -313,7 +327,7 @@ strategy:
     switch.luz_varanda: { role: light }
     switch.bomba_piscina: { role: equipment, name: Bomba, icon: mdi:pool }
     switch.jet_mode: { role: hidden }
-    switch.portao_social: { role: gate }
+    switch.portao_social: { role: gate, sensor: binary_sensor.portao_social_contato }
     button.reiniciar_roteador: { role: action }
     sensor.electrolux_lavadora_appliancestate:
       role: appliance
@@ -329,7 +343,7 @@ These need no role; their class says where they go:
 | Entity | Shows as |
 | :----- | :------- |
 | `binary_sensor` `smoke`, `gas`, `carbon_monoxide`, `moisture` | The red strip on every screen, with or without a room |
-| `binary_sensor` `door`, `window`, `garage_door`, `opening` with a room | A card in Sensores, a chip on the home while open, and the security tab. With no room it stays out (the doors of a fridge have none) |
+| `binary_sensor` `door`, `window`, `garage_door`, `opening` with a room | A card in Sensores (in edit mode only when it is the `sensor` of a gate of its room), a chip on the home while open, and the security tab. With no room it stays out (the doors of a fridge have none) |
 | `binary_sensor` `motion`, `occupancy`, `presence` with a room | A card in Sensores, and "Ocupado" on the room card |
 | `sensor` `temperature`, `humidity` with a room | A card in Sensores, and "24° · 61%" under the room name; a dedicated thermometer wins over the one inside an air conditioner |
 | `camera`, `alarm_control_panel` | The security tab, with or without a room |
@@ -394,7 +408,8 @@ Administrators also get a pencil, on the home and on each room page. In the edit
 - **On a room page:** a tap on an item opens its editor: the name on the panel, its room, how it shows
   (Luz, Tomada, Equipamento, Aparelho, Ação, Portão or Não mostrar; an air conditioner, a fan, a
   curtain, a TV or a lock shows by its type and offers Não mostrar, and a curtain can become a
-  Portão) and its place in its block. What the
+  Portão) and its place in its block. A gate on a pulse relay also picks its **Sensor do portão**
+  among the door contacts and gate covers of the room. What the
   configuration hides in that room is listed with **Mostrar**.
 
 Every change is saved into the dashboard configuration (the same keys as the YAML above, plus

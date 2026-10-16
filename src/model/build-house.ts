@@ -279,7 +279,8 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
       room.media.push({ entityId, name });
     } else if (placed.block === 'gate' || placed.block === 'lock') {
       const domain = entityId.slice(0, entityId.indexOf('.'));
-      room.access.push({ entityId, name, kind: placed.block === 'lock' ? 'lock' : domain === 'cover' ? 'cover' : 'pulse' });
+      const kind = placed.block === 'lock' ? 'lock' : domain === 'cover' ? 'cover' : 'pulse';
+      room.access.push({ entityId, name, kind, ...(kind === 'pulse' && s?.sensor ? { sensor: s.sensor } : {}) });
     } else {
       // Two entities of one device marked as appliance still make one appliance: the device.
       const deviceId = hass.entities[entityId]!.device_id!;
@@ -287,6 +288,17 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
       placedDevices.add(deviceId);
       room.appliances.push({ deviceId, entityId, name: applianceName(hass, deviceId, s), parts: findParts(hass, deviceId, entityId, s) });
     }
+  }
+
+  // A cover used as the sensor of a pulse gate leaves Acesso for everyone: its slide would move the
+  // sensor, and for whoever cannot see the gate it would be a way around that.
+  const sensorCovers = new Set(Object.values(cfg.entities).flatMap((e) => (e.sensor?.startsWith('cover.') ? [e.sensor] : [])));
+  for (const room of rooms.values()) {
+    if (sensorCovers.size) room.access = room.access.filter((a) => !sensorCovers.has(a.entityId));
+    // A contact speaks through the card of its gate, in the same room only: Sensores shows it in the
+    // edit mode alone, and it still counts as open (decision B). Whoever cannot see the gate keeps it.
+    const gateOf = new Map(room.access.flatMap((a) => (a.sensor ? [[a.sensor, a.entityId] as const] : [])));
+    if (gateOf.size) room.sensors = room.sensors.map((x) => (gateOf.has(x.entityId) ? { ...x, pairedWith: gateOf.get(x.entityId) } : x));
   }
 
   const order = config.scenes ?? [];

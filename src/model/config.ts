@@ -2,6 +2,7 @@ import { isArtId } from '../art/drawings';
 import type { HomeAssistant } from '../ha/types';
 import { CFG } from '../strings';
 import { isProfileId, type ProfileId } from './profiles';
+import { isGateSensor } from './gate-sensor';
 import { isSize, wholeRowOnly } from './sizes';
 import type { HubbConfig } from './types';
 
@@ -56,7 +57,8 @@ export interface EntitySettings {
   order?: number;
   /** User ids this item is hidden for. */
   hiddenFor?: string[];
-
+  /** A pulse gate: the door contact or cover that says whether it is open. */
+  sensor?: string;
 }
 
 /** The settings of an air conditioner that can be kept off its sheet. */
@@ -192,6 +194,15 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
     if (v.hidden_for !== undefined) {
       if (Array.isArray(v.hidden_for) && v.hidden_for.every((u) => typeof u === 'string')) s.hiddenFor = v.hidden_for;
       else add(`${at}.hidden_for`, entityId, CFG.badList('hidden_for', 'id do usuário'));
+    }
+    // The sensor of a pulse gate: a cover or a lock says its own state. The role read is the one
+    // accepted above, so a sensor on a refused role is reported too.
+    if (v.sensor !== undefined) {
+      const ref = v.sensor;
+      if (s.role !== 'gate' || /^(cover|lock)\./.test(entityId)) add(`${at}.sensor`, entityId, CFG.sensorOnly);
+      else if (typeof ref !== 'string' || !hass.states[ref]) add(`${at}.sensor`, entityId, CFG.missingEntity(String(ref)));
+      else if (!isGateSensor(hass, ref)) add(`${at}.sensor`, entityId, CFG.notAGateSensor(ref));
+      else s.sensor = ref;
     }
     entities[entityId] = s;
   }

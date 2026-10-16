@@ -32,6 +32,7 @@ import '../elements/scene-button';
 import '../elements/sheet';
 import { isEditing, setEditing } from '../editing';
 import { normalizeRoom } from '../model/build-house';
+import { gateSensorCandidates } from '../model/gate-sensor';
 import { hiddenForList } from '../model/visibility';
 import { originOf } from '../model/origin';
 import type { ItemKind } from '../model/config';
@@ -185,6 +186,8 @@ export class HubbRoomScreen extends HubbScreen {
     if (!hass || !room) return nothing;
     const editable = this.canEdit(this.config?.options);
     const editing = editable && isEditing();
+    // The contact of a gate speaks through its card; the edit mode still reaches it.
+    const sensors = editing ? room.sensors : room.sensors.filter((s) => !s.pairedWith);
     const onIds = room.lights.filter((l) => hass.states[l.entityId]?.state === 'on').map((l) => l.entityId);
     const status = roomHeroStatus(room, hass);
     const open = this.appliance ? (room.appliances.find((a) => a.deviceId === this.appliance) ?? null) : null;
@@ -302,12 +305,12 @@ export class HubbRoomScreen extends HubbScreen {
                   : room.actions.map((a) => html`<hubb-action-button class=${this.#size(a.entityId, 'action')} .hass=${hass} .item=${a}></hubb-action-button>`)}
               </div>`
           : nothing}
-        ${room.sensors.length
+        ${sensors.length
           ? html`<h2>${SENSE.title}</h2>
               <div class="grid">
                 ${editing
-                  ? this.#editTiles(room.sensors, (i) => i.kind)
-                  : room.sensors.map((i) => html`<hubb-sensor-tile class=${this.#size(i.entityId, i.kind)} .hass=${hass} .item=${i}></hubb-sensor-tile>`)}
+                  ? this.#editTiles(sensors, (i) => i.kind)
+                  : sensors.map((i) => html`<hubb-sensor-tile class=${this.#size(i.entityId, i.kind)} .hass=${hass} .item=${i}></hubb-sensor-tile>`)}
               </div>`
           : nothing}
         ${editing && room.hidden.length
@@ -370,6 +373,7 @@ export class HubbRoomScreen extends HubbScreen {
               .named=${!!this.config?.options?.entities?.[this.editingItem.entityId]?.name}
               .settings=${this.config?.options?.entities?.[this.editingItem.entityId]}
               .extras=${room.climate.find((c) => c.entityId === this.editingItem?.entityId)?.extras ?? []}
+              .sensors=${this.editingItem.kind === 'gate' ? gateSensorCandidates(hass, this.config?.options ?? {}, room.areaId, this.editingItem.entityId) : []}
               @hubb-edit=${this.#onEdit}
             ></hubb-item-editor>`
           : nothing}

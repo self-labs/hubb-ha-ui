@@ -8,6 +8,24 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Added
+
+- **Sensor do portão:** a gate on a pulse relay can take a door contact (class door, garage door or
+  opening) or a gate cover as its sensor, in its editor, which offers those of its room, or with
+  `entities.<id>.sensor`. Its card then says Aberto or Fechado, opens with the slide, closes with a
+  tap on Fechar, and says Abrindo… or Fechando… until the sensor moves (90 s at most). Every card of
+  the gate on the phone waits with it, and so does any phone that reads the pulse on the relay. While
+  the card waits after a pulse, while a cover used as the sensor says the gate is moving, or while the
+  sensor does not answer, the card goes back to "Deslize para acionar". The contact shows in the
+  Sensores of the gate's room only in edit mode, and still counts as open on the home and in
+  Segurança; a cover used as the sensor leaves Acesso.
+
+### Fixed
+
+- The README said the HACS button learns the address of Home Assistant from **Settings → System →
+  Network**. my.home-assistant.io keeps it in the browser (`localStorage`, read in its code) and never
+  asks Home Assistant: another browser asks again, and `redirect/_change` replaces it.
+
 ## [2026.10.12] - 2026-10-15
 
 ### Added

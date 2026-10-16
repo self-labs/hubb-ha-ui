@@ -25,7 +25,8 @@ src/
                        whose state is the last command sent)
   model/               pure rules (no DOM): config (tolerant reader), profiles, classify (the one
                        rule that places every entity), appliances, floors, review, buildHouse,
-                       names, paths, energy (power and energy sensors of a switch)
+                       names, paths, energy (power and energy sensors of a switch), gate-sensor
+                       (the sensor of a pulse gate: its position, candidates, the relay's last pulse)
   summary.ts           the home headline, room lines and room sensors
   strings.ts           every resident string
   actions/             light (by domain), colour, switch, action, scene, pending (3 s window),
@@ -102,7 +103,15 @@ operation.
 - Home Assistant stops sending `hass` to a hidden cached view. Undo reads the newest hass any screen
   got (module state in `screens/base.ts`), not the one of the screen that started the action.
 - A tile keeps one timer, re-armed after every render from `PendingTracker.msUntilChange`; it also
-  re-arms on reconnect, because a view switch disconnects the tile and drops the timer.
+  re-arms on reconnect, because a view switch disconnects the tile and drops the timer. The access
+  tile does the same with its own deadline (`#arm`).
+- The wait of a pulse gate with a sensor is module state of `elements/access-tile.ts`, keyed by
+  `hass.callService` like the users of `actions/people.ts`, so the card on the room page and the one
+  on Segurança agree; the pulse is also read on the relay itself (`relayPulsedAt`: a switch that is
+  off again counts from 2 s before its last change), which is how another phone sees it, and this
+  phone's own pulse coming back is not read twice (`own`). A bare pulse waits with no direction. A
+  wrong wait only takes the tap of Fechar away, a missed one offers it: when in doubt, wait. A pulse
+  from the remote control is invisible to both.
 - HACS serves only `hubb-ha-ui.js`, which is why the font is inlined.
 - `vite.config.ts` is outside `tsc` on purpose: it uses `node:fs` and would need `@types/node`.
 - Room drawings go into the page through `unsafeSVG`. Only `src/art/drawings.ts` may feed it, and
@@ -114,7 +123,9 @@ operation.
   painel" and, later, the editor all call it; never place an entity anywhere else.
 - Opening the house (a gate, a lock, a pulse relay with the `gate` role) only ever goes through
   `hubb-slide-confirm`: a drag to 85% or the right arrow to the end. A tap must never open; keep
-  that test green.
+  that test green. The one tap that pulses a gate is Fechar on a pulse relay whose sensor
+  (`entities.<id>.sensor`, `src/model/gate-sensor.ts`) says open; while the gate is on its way or the
+  sensor does not answer, the card falls back to the slide ("Deslize para acionar").
 - View order is fixed: `home`, `scenes`, `seguranca`, then `revisar` (admin), then one per HA area
   by id. `seguranca` is always generated (the bar hides its tab when the house has nothing for it);
   an area with a fixed id gets `area-<id>` (`src/model/paths.ts`).

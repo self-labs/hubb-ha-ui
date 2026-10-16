@@ -67,6 +67,8 @@ export interface AccessItem {
   entityId: string;
   name: string;
   kind: 'cover' | 'lock' | 'pulse';
+  /** A pulse gate: the door contact or cover that says whether it is open (`entities.<id>.sensor`). */
+  sensor?: string;
 }
 
 /** A `button`, `input_button` or `script` with the action role. */
@@ -95,6 +97,8 @@ export interface SensorItem {
   entityId: string;
   name: string;
   kind: SensorKind;
+  /** The pulse gate of the same room this contact is the sensor of: its card speaks for it. */
+  pairedWith?: string;
 }
 
 /** What lights the red strip: a smoke, gas, carbon monoxide or leak sensor, or an alarm going off. */
@@ -261,6 +265,8 @@ export interface EntityConfig {
   hidden_for?: string[];
   /** How wide its card is: small (a third of the row), medium (half) or large (all of it). */
   size?: string;
+  /** A pulse gate: the door contact or cover that says whether it is open. */
+  sensor?: string;
 }
 
 export interface HubbConfig {
