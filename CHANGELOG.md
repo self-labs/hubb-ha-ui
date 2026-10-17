@@ -8,6 +8,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.15] - 2026-10-16
+
 ### Fixed
 
 - Each **Mover** in Revisar o painel closed "Mostrar interruptores sem cômodo" and sent the page back
@@ -454,7 +456,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.14...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.15...HEAD
+[2026.10.15]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.14...v2026.10.15
 [2026.10.14]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.13...v2026.10.14
 [2026.10.13]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.12...v2026.10.13
 [2026.10.12]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.11...v2026.10.12
