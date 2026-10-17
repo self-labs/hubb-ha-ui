@@ -70,7 +70,9 @@ test/                  Vitest + happy-dom; helpers/fake-hass.ts; fixtures: sampl
   (`actions/entity-area.ts`, from Revisar, administrators only). Never the area of a device: a relay
   board is one device for all its channels, and its area moves every one of them. Roomless switches
   (`roomlessSwitches` in `model/review.ts`) stay out of `reviewItems` and its count: they are behind
-  "Mostrar interruptores sem cômodo" only.
+  "Mostrar interruptores sem cômodo" only. Every move rebuilds the dashboard and the review screen with it, so
+  what the installer is in the middle of (the list open, the rooms chosen, the place in the list)
+  lives in module state keyed by `hass.callService` (`kept` in `screens/review-screen.ts`).
 - Dashboard URLs need a hyphen in Home Assistant (`hubb-casa`), so screens derive their base path
   from `location.pathname`.
 - The `h.` glyph never appears in the panel.

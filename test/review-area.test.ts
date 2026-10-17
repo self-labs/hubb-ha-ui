@@ -131,12 +131,12 @@ describe('choosing the room of an entity in Revisar o painel', () => {
     expect(writes[1]).toEqual({ type: 'config/entity_registry/update', entity_id: 'light.hubb_m1_output01', area_id: null });
   });
 
-  it('leaves the list once Home Assistant has the area, and keeps the focus on the list', async () => {
+  it('leaves the list once Home Assistant has the area, with the focus on the next room list', async () => {
     const h = board();
     withRegistry(h);
     const el = await mount(h);
     await move(el, 'Luz', 'cozinha');
-    expect(el.shadowRoot!.activeElement?.tagName).toBe('H2');
+    expect(el.shadowRoot!.activeElement?.id).toBe('room-light.hubb_m1_output02');
     el.hass = { ...h, entities: { ...h.entities, 'light.hubb_m1_output01': { ...h.entities['light.hubb_m1_output01']!, area_id: 'cozinha' } } };
     await settle(el);
     expect(items(el).map((i) => i.querySelector('strong')!.textContent)).not.toContain('Luz');
@@ -239,5 +239,90 @@ describe('the switches with no room, in Revisar o painel', () => {
     expect(writes).toEqual([{ type: 'config/entity_registry/update', entity_id: 'switch.hubb_m1_output03', area_id: 'sala' }]);
     await toast(el).updateComplete;
     expect(toast(el).shadowRoot!.querySelector('.toast span')!.textContent).toBe('output03 foi para Sala de estar.');
+  });
+});
+
+describe('Revisar o painel across the rebuild after each move', () => {
+  beforeEach(() => history.replaceState(null, '', '/hubb-casa/revisar'));
+  afterEach(() => {
+    vi.restoreAllMocks();
+    for (const el of document.querySelectorAll('hubb-review-screen')) (el.shadowRoot?.querySelector('hubb-toast') as HubbToast | null)?.hide();
+    document.body.replaceChildren();
+  });
+
+  it('keeps the switches open, the rooms chosen and the place in the list: Home Assistant makes a new screen', async () => {
+    const h = board(SWITCHES);
+    withRegistry(h);
+    const el = await mount(h);
+    (el.shadowRoot!.querySelector('button.quiet') as HTMLButtonElement).click();
+    await settle(el);
+    await pick(el, itemOf(el, 'output10'), 'quarto');
+    const focus = vi.spyOn(HTMLElement.prototype, 'focus');
+    await move(el, 'output03', 'sala');
+    // The focus goes down the list, never up to the button: no jump to the top of the list.
+    expect(focus.mock.calls.every(([options]) => (options as FocusOptions | undefined)?.preventScroll === true)).toBe(true);
+    expect(el.shadowRoot!.activeElement?.id).toBe('room-switch.hubb_m1_output10');
+    // The registry changed: Home Assistant regenerates the dashboard, with a new screen, where the
+    // next list stands 170 px lower (the moved switch now waits for its role in a list above).
+    el.remove();
+    const scroll = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ top: 170 } as DOMRect);
+    const moved = { ...h, entities: { ...h.entities, 'switch.hubb_m1_output03': { ...h.entities['switch.hubb_m1_output03']!, area_id: 'sala' } } };
+    const again = await mount(moved);
+    expect(scroll).toHaveBeenCalledWith({ top: 170, behavior: 'auto' });
+    // Once per screen: a later update of Home Assistant never pulls the page back.
+    again.hass = { ...moved };
+    await settle(again);
+    expect(scroll).toHaveBeenCalledTimes(1);
+    expect(again.shadowRoot!.querySelector('button.quiet')!.getAttribute('aria-expanded')).toBe('true');
+    // happy-dom reads a select's first option instead of the selected attribute; the browser does not.
+    expect([...selectOf(itemOf(again, 'output10')).options].find((o) => o.hasAttribute('selected'))?.value).toBe('quarto');
+    expect(again.shadowRoot!.activeElement?.id).toBe('room-switch.hubb_m1_output10');
+  });
+
+  it('forgets all of it in another Home Assistant', async () => {
+    const h = board(SWITCHES);
+    const el = await mount(h);
+    (el.shadowRoot!.querySelector('button.quiet') as HTMLButtonElement).click();
+    await settle(el);
+    el.remove();
+    const other = await mount(board(SWITCHES));
+    expect(other.shadowRoot!.querySelector('button.quiet')!.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('restores the place only right after the move, not when the review is opened again later', async () => {
+    const h = board(SWITCHES);
+    withRegistry(h);
+    const el = await mount(h);
+    (el.shadowRoot!.querySelector('button.quiet') as HTMLButtonElement).click();
+    await settle(el);
+    await move(el, 'output03', 'sala');
+    el.remove();
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now + 60_000);
+    const scroll = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ top: 170 } as DOMRect);
+    const moved = { ...h, entities: { ...h.entities, 'switch.hubb_m1_output03': { ...h.entities['switch.hubb_m1_output03']!, area_id: 'sala' } } };
+    await mount(moved);
+    expect(scroll).not.toHaveBeenCalled();
+  });
+
+  it('puts the place back in the new screen too, when the old one got the new registry first', async () => {
+    const h = board(SWITCHES);
+    withRegistry(h);
+    const el = await mount(h);
+    (el.shadowRoot!.querySelector('button.quiet') as HTMLButtonElement).click();
+    await settle(el);
+    await move(el, 'output03', 'sala');
+    const scroll = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ top: 170 } as DOMRect);
+    const moved = { ...h, entities: { ...h.entities, 'switch.hubb_m1_output03': { ...h.entities['switch.hubb_m1_output03']!, area_id: 'sala' } } };
+    // Home Assistant hands the old screen the new registry, then swaps it for a new one 200 ms later.
+    el.hass = moved;
+    await settle(el);
+    el.remove();
+    const again = await mount(moved);
+    expect(scroll).toHaveBeenCalledWith({ top: 170, behavior: 'auto' });
+    expect(again.shadowRoot!.activeElement?.id).toBe('room-switch.hubb_m1_output10');
   });
 });

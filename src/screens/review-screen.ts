@@ -1,5 +1,6 @@
 import { mdiChevronLeft } from '@mdi/js';
 import { css, html, nothing, type PropertyValues } from 'lit';
+import { live } from 'lit/directives/live.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { copyText } from '../actions/clipboard';
 import { putBack, putBackRooms, putBackTabs, setEntity, setRoles, setRooms, setTabs } from '../actions/dashboard-config';
@@ -12,7 +13,7 @@ import { icon } from '../elements/icon';
 import '../elements/nav-bar';
 import type { Role } from '../model/config';
 import { REVIEW_GROUPS, reviewItems, roomlessSwitches, suggestedLines, yamlBlock, yamlLine, type ReviewItem } from '../model/review';
-import type { HassArea } from '../ha/types';
+import type { HassArea, HomeAssistant } from '../ha/types';
 import type { HubbConfig, Shared } from '../model/types';
 import { staleEntries, type StaleEntry } from '../model/visibility';
 import { EDIT, REVIEW, ROLE_LABELS, S } from '../strings';
@@ -37,6 +38,33 @@ const NO_OPTIONS: HubbConfig = {};
 
 const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
+/**
+ * What survives the screen: every move changes the registry, Home Assistant regenerates the dashboard
+ * and makes a new review screen, and the installer moving a board's channels one by one would find
+ * the list closed, the rooms chosen gone and the page back at the top (Gustavo, 16/10). Keyed like
+ * the users of people.ts, by the callService of the house.
+ */
+interface Kept {
+  quietOpen: boolean;
+  picked: Record<string, string>;
+  /**
+   * After a move: the id to focus once the moved entity has left the list, in the new screen too, and
+   * where that element stood on the screen, to put it back there (the page jumps while Home Assistant
+   * swaps the screen, and the moved entity joining a list above pushes the rest down).
+   */
+  focus: { id: string; moved: string; top: number; at: number; done: WeakSet<object> } | null;
+}
+
+/** How long after a move a screen still puts the place back: the rebuild takes well under a second. */
+const REFOCUS_MS = 5000;
+const kept = new WeakMap<HomeAssistant['callService'], Kept>();
+
+function keptOf(hass: HomeAssistant): Kept {
+  let k = kept.get(hass.callService);
+  if (!k) kept.set(hass.callService, (k = { quietOpen: false, picked: {}, focus: null }));
+  return k;
+}
+
 /** "Revisar o painel": what stayed off the panel and why, with the line of YAML to paste. Administrators only. */
 export class HubbReviewScreen extends HubbScreen {
   static properties = {
@@ -60,6 +88,7 @@ export class HubbReviewScreen extends HubbScreen {
   declare quietOpen: boolean;
 
   #loadingUsers = false;
+  #restored = false;
 
   #timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -84,6 +113,12 @@ export class HubbReviewScreen extends HubbScreen {
 
   protected willUpdate(changed: PropertyValues<this>): void {
     super.willUpdate(changed);
+    if (this.hass && !this.#restored) {
+      this.#restored = true;
+      const k = keptOf(this.hass);
+      this.quietOpen = k.quietOpen;
+      this.picked = k.picked;
+    }
     if (this.hass?.user?.is_admin && this.users === null && !this.#loadingUsers) {
       this.#loadingUsers = true;
       void loadUsers(this.hass).then((users) => (this.users = users ?? []));
@@ -161,25 +196,61 @@ export class HubbReviewScreen extends HubbScreen {
     } else await this.#copy(text, copied);
   }
 
+  #setQuiet(open: boolean): void {
+    this.quietOpen = open;
+    if (this.hass) keptOf(this.hass).quietOpen = open;
+  }
+
+  #setPicked(picked: Record<string, string>): void {
+    this.picked = picked;
+    if (this.hass) keptOf(this.hass).picked = picked;
+  }
+
+  protected updated(changed: PropertyValues<this>): void {
+    super.updated(changed);
+    // The new screen after the rebuild: once the moved entity is gone, the focus is where it was.
+    // The old screen gets the new registry first and the new screen comes 200 ms later, so each screen
+    // puts it back once, and only right after the move: never on a later update, never days later.
+    const k = this.hass ? keptOf(this.hass) : null;
+    const root = this.shadowRoot;
+    const f = k?.focus;
+    if (!k || !f || !root || f.done.has(this) || root.getElementById(`room-${f.moved}`)) return;
+    if (Date.now() - f.at > REFOCUS_MS) {
+      k.focus = null;
+      return;
+    }
+    f.done.add(this);
+    const target = root.getElementById(f.id);
+    if (!target) return;
+    target.focus({ preventScroll: true });
+    const shift = target.getBoundingClientRect().top - f.top;
+    if (shift) window.scrollBy({ top: shift, behavior: 'auto' });
+  }
+
   /**
    * The room of an entity with none, in Home Assistant itself and with Desfazer: the area of the
    * entity, so the other channels of its board stay where they are. Home Assistant rebuilds the panel
-   * when the registry changes, and the item leaves this list. The focus goes to `focus`, since the
-   * button that had it is about to go.
+   * when the registry changes, and the item leaves this list. The focus goes down to the next room
+   * list, or to `fallback` at the end, without scrolling: the button that had it is about to go.
    */
-  async #placeIn(entityId: string, name: string, areaId: string, focus: string): Promise<void> {
-    const room = this.hass?.areas[areaId]?.name;
-    if (!room) return;
-    const before = this.hass?.entities[entityId]?.area_id ?? null;
-    const ok = await this.saveChange(EDIT.movedTo(name, room), async (hass) => {
-      await setEntityArea(hass, entityId, areaId);
-      return (h) => setEntityArea(h, entityId, before);
+  async #placeIn(entityId: string, name: string, areaId: string, fallback: string): Promise<void> {
+    const hass = this.hass;
+    const room = hass?.areas[areaId]?.name;
+    if (!hass || !room) return;
+    const before = hass.entities[entityId]?.area_id ?? null;
+    const ok = await this.saveChange(EDIT.movedTo(name, room), async (h) => {
+      await setEntityArea(h, entityId, areaId);
+      return (u) => setEntityArea(u, entityId, before);
     });
     if (!ok) return this.#say(REVIEW.areaFailed, FAILED_NOTICE_MS);
     const { [entityId]: _done, ...rest } = this.picked;
-    this.picked = rest;
-    await this.updateComplete;
-    (this.shadowRoot?.querySelector(focus) as HTMLElement | null)?.focus();
+    this.#setPicked(rest);
+    const lists = [...(this.shadowRoot?.querySelectorAll('select.room') ?? [])];
+    const at = lists.findIndex((s) => s.id === `room-${entityId}`);
+    const next = lists[at + 1]?.id ?? fallback;
+    const target = this.shadowRoot?.getElementById(next) ?? null;
+    keptOf(hass).focus = { id: next, moved: entityId, top: target?.getBoundingClientRect().top ?? 0, at: Date.now(), done: new WeakSet() };
+    target?.focus({ preventScroll: true });
   }
 
   /** The rooms of the house, by name, without those the panel hides: a choice there would vanish. */
@@ -201,7 +272,12 @@ export class HubbReviewScreen extends HubbScreen {
     return html`<div class="place">
       <label for=${id}>${REVIEW.room}</label>
       <div class="pick">
-        <select id=${id} class="room" @change=${(e: Event) => (this.picked = { ...this.picked, [entityId]: (e.target as HTMLSelectElement).value })}>
+        <select
+          id=${id}
+          class="room"
+          .value=${live(chosen)}
+          @change=${(e: Event) => this.#setPicked({ ...this.picked, [entityId]: (e.target as HTMLSelectElement).value })}
+        >
           <option value="" disabled ?selected=${!chosen}>${REVIEW.pickRoom}</option>
           ${areas.map((a) => html`<option value=${a.area_id} ?selected=${a.area_id === chosen}>${a.name}</option>`)}
         </select>
@@ -215,7 +291,7 @@ export class HubbReviewScreen extends HubbScreen {
     const groups = roomlessSwitches(this.hass!, this.config?.options ?? NO_OPTIONS);
     const count = groups.reduce((n, g) => n + g.switches.length, 0);
     if (!count) return nothing;
-    return html`<button class="role quiet" aria-expanded=${this.quietOpen ? 'true' : 'false'} @click=${() => (this.quietOpen = !this.quietOpen)}>
+    return html`<button id="quiet-toggle" class="role quiet" aria-expanded=${this.quietOpen ? 'true' : 'false'} @click=${() => this.#setQuiet(!this.quietOpen)}>
         ${this.quietOpen ? REVIEW.hideQuiet : REVIEW.showQuiet(count)}
       </button>
       ${this.quietOpen
@@ -230,7 +306,7 @@ export class HubbReviewScreen extends HubbScreen {
                     (s) => html`<li class="item">
                       <strong>${s.name}</strong>
                       <span class="where">${s.entityId}</span>
-                      ${this.#roomPicker(s.entityId, s.name, areas, 'button.quiet')}
+                      ${this.#roomPicker(s.entityId, s.name, areas, 'quiet-toggle')}
                     </li>`,
                   )}
                 </ul>`,
@@ -246,7 +322,7 @@ export class HubbReviewScreen extends HubbScreen {
       <strong>${item.name}</strong>
       ${where ? html`<span class="where">${where}</span>` : nothing}
       <span class="why">${item.reason}</span>
-      ${entityId && item.group === 'area' ? this.#roomPicker(entityId, item.name, areas, '#group-area') : nothing}
+      ${entityId && item.group === 'area' ? this.#roomPicker(entityId, item.name, areas, 'group-area') : nothing}
       ${entityId && item.roles.length
         ? html`<div class="roles">
             ${item.roles.map(

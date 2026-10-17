@@ -8,6 +8,12 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Fixed
+
+- Each **Mover** in Revisar o painel closed "Mostrar interruptores sem cômodo" and sent the page back
+  to the top: Home Assistant makes a new screen after every registry change. The open list, the rooms
+  already chosen and the place in the list now survive it, with the focus on the next room list.
+
 ## [2026.10.14] - 2026-10-16
 
 ### Added
