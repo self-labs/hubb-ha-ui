@@ -30,7 +30,8 @@ export const S = {
   whiteTemp: 'Temperatura do branco',
   navigation: 'Navegação',
   emptyHouse: 'Nenhum ambiente por aqui ainda.',
-  emptyHouseAdmin: 'Coloque cada luz numa área em Configurações > Áreas, rótulos e zonas.',
+  emptyHouseAdmin:
+    'Escolha o cômodo de cada luz ou interruptor em Revisar o painel, ou nas configurações da entidade: dê um nome a ela e desligue "Usar a área do dispositivo".',
   emptyScenes: 'Nenhuma cena ainda.',
   emptyScenesAdmin: 'Toque no lápis para adicionar uma cena, ou dê a uma cena do Home Assistant o rótulo hubb_cena.',
   panelError: 'Não foi possível montar o painel.',
@@ -252,7 +253,17 @@ export const REVIEW = {
     origin ? `Outro item deste cômodo tem o mesmo nome. Este vem de ${origin}.` : 'Outro item deste cômodo tem o mesmo nome.',
   noClass: 'Não aparece no painel até você escolher como mostrar.',
   applianceFound: 'Toque em Aparelho para mostrar no painel.',
-  noArea: 'Não aparece no painel porque não está em nenhuma área. Ponha numa área em Configurações > Áreas.',
+  noArea: 'Não aparece no painel porque não está em nenhuma área. Escolha o cômodo abaixo: ele vale só para esta entidade, não para o dispositivo.',
+  room: 'Cômodo',
+  pickRoom: 'Escolha o cômodo',
+  move: 'Mover',
+  noRooms: 'Crie os cômodos em Configurações > Áreas, rótulos e zonas.',
+  areaFailed: 'Não deu para mudar o cômodo. Confira a conexão e tente de novo.',
+  noDevice: 'Sem dispositivo',
+  showQuiet: (n: number): string => `Mostrar interruptores sem cômodo (${n})`,
+  hideQuiet: 'Esconder interruptores sem cômodo',
+  quietHint:
+    'Interruptor sem área fica fora do painel sem aviso, porque uma casa tem dezenas de interruptores de sistema. Os canais de uma placa de relés estão aqui: escolha o cômodo de cada um e depois, em "Escolha como mostrar", o que ele é.',
   silentSince: (when: string): string => `Sem resposta desde ${when}.`,
   key: (n: number): string =>
     n === 0 ? 'Revisar o painel' : n === 1 ? 'Revisar o painel: 1 pendência' : `Revisar o painel: ${n} pendências`,

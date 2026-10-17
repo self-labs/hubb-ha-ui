@@ -1,7 +1,9 @@
 import { mdiChevronLeft } from '@mdi/js';
 import { css, html, nothing, type PropertyValues } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
 import { copyText } from '../actions/clipboard';
 import { putBack, putBackRooms, putBackTabs, setEntity, setRoles, setRooms, setTabs } from '../actions/dashboard-config';
+import { setEntityArea } from '../actions/entity-area';
 import { haptic } from '../actions/haptic';
 import { loadUsers, type HaUser } from '../actions/people';
 import { goBack } from '../actions/navigate';
@@ -9,10 +11,11 @@ import { define } from '../elements/define';
 import { icon } from '../elements/icon';
 import '../elements/nav-bar';
 import type { Role } from '../model/config';
-import { REVIEW_GROUPS, reviewItems, suggestedLines, yamlBlock, yamlLine, type ReviewItem } from '../model/review';
+import { REVIEW_GROUPS, reviewItems, roomlessSwitches, suggestedLines, yamlBlock, yamlLine, type ReviewItem } from '../model/review';
+import type { HassArea } from '../ha/types';
 import type { HubbConfig, Shared } from '../model/types';
 import { staleEntries, type StaleEntry } from '../model/visibility';
-import { REVIEW, ROLE_LABELS, S } from '../strings';
+import { EDIT, REVIEW, ROLE_LABELS, S } from '../strings';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 
@@ -27,8 +30,12 @@ export interface ReviewScreenConfig {
 
 /** How long "Linha copiada" stays. */
 const NOTICE_MS = 2000;
+/** How long a failure stays: longer, it has to be read. */
+const FAILED_NOTICE_MS = 5000;
 /** One object for a missing configuration, so the cached review keeps its key. */
 const NO_OPTIONS: HubbConfig = {};
+
+const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
 /** "Revisar o painel": what stayed off the panel and why, with the line of YAML to paste. Administrators only. */
 export class HubbReviewScreen extends HubbScreen {
@@ -37,6 +44,8 @@ export class HubbReviewScreen extends HubbScreen {
     notice: { state: true },
     manual: { state: true },
     users: { state: true },
+    picked: { state: true },
+    quietOpen: { state: true },
   };
 
   declare config: ReviewScreenConfig | undefined;
@@ -45,6 +54,10 @@ export class HubbReviewScreen extends HubbScreen {
   declare manual: string | null;
   /** Every user of Home Assistant, to find the ids of `hidden_for` that are gone; null until read. */
   declare users: HaUser[] | null;
+  /** The room chosen for each entity, waiting for Mover: choosing alone writes nothing. */
+  declare picked: Readonly<Record<string, string>>;
+  /** Whether "Interruptores sem cômodo" is open. */
+  declare quietOpen: boolean;
 
   #loadingUsers = false;
 
@@ -56,6 +69,8 @@ export class HubbReviewScreen extends HubbScreen {
     this.notice = null;
     this.manual = null;
     this.users = null;
+    this.picked = {};
+    this.quietOpen = false;
   }
 
   setConfig(config: ReviewScreenConfig): void {
@@ -112,16 +127,21 @@ export class HubbReviewScreen extends HubbScreen {
     this.#timer = null;
   }
 
-  async #copy(text: string, done: string): Promise<void> {
-    const ok = await copyText(text);
-    haptic(ok ? 'success' : 'warning');
-    this.manual = ok ? null : text;
-    this.notice = ok ? done : REVIEW.copyFailed;
+  /** One notice at a time, for its own time: a newer one never goes with the timer of an older one. */
+  #say(text: string, ms: number): void {
+    this.notice = text;
     if (this.#timer) clearTimeout(this.#timer);
     this.#timer = setTimeout(() => {
       this.#timer = null;
       this.notice = null;
-    }, NOTICE_MS);
+    }, ms);
+  }
+
+  async #copy(text: string, done: string): Promise<void> {
+    const ok = await copyText(text);
+    haptic(ok ? 'success' : 'warning');
+    this.manual = ok ? null : text;
+    this.#say(ok ? done : REVIEW.copyFailed, NOTICE_MS);
   }
 
   /**
@@ -141,13 +161,92 @@ export class HubbReviewScreen extends HubbScreen {
     } else await this.#copy(text, copied);
   }
 
-  #item(item: ReviewItem) {
+  /**
+   * The room of an entity with none, in Home Assistant itself and with Desfazer: the area of the
+   * entity, so the other channels of its board stay where they are. Home Assistant rebuilds the panel
+   * when the registry changes, and the item leaves this list. The focus goes to `focus`, since the
+   * button that had it is about to go.
+   */
+  async #placeIn(entityId: string, name: string, areaId: string, focus: string): Promise<void> {
+    const room = this.hass?.areas[areaId]?.name;
+    if (!room) return;
+    const before = this.hass?.entities[entityId]?.area_id ?? null;
+    const ok = await this.saveChange(EDIT.movedTo(name, room), async (hass) => {
+      await setEntityArea(hass, entityId, areaId);
+      return (h) => setEntityArea(h, entityId, before);
+    });
+    if (!ok) return this.#say(REVIEW.areaFailed, FAILED_NOTICE_MS);
+    const { [entityId]: _done, ...rest } = this.picked;
+    this.picked = rest;
+    await this.updateComplete;
+    (this.shadowRoot?.querySelector(focus) as HTMLElement | null)?.focus();
+  }
+
+  /** The rooms of the house, by name, without those the panel hides: a choice there would vanish. */
+  #rooms(): HassArea[] {
+    const rooms = this.config?.options?.rooms ?? {};
+    return Object.values(this.hass?.areas ?? {})
+      .filter((a) => !rooms[a.area_id]?.hidden)
+      .sort((a, b) => collator.compare(a.name, b.name));
+  }
+
+  /**
+   * "Cômodo" and Mover. Choosing writes nothing: the arrows of a keyboard change a closed list and fire
+   * its change event at once, and each would move the entity.
+   */
+  #roomPicker(entityId: string, name: string, areas: readonly HassArea[], focus: string) {
+    if (!areas.length) return html`<div class="place"><p class="none">${REVIEW.noRooms}</p></div>`;
+    const id = `room-${entityId}`;
+    const chosen = this.picked[entityId] ?? '';
+    return html`<div class="place">
+      <label for=${id}>${REVIEW.room}</label>
+      <div class="pick">
+        <select id=${id} class="room" @change=${(e: Event) => (this.picked = { ...this.picked, [entityId]: (e.target as HTMLSelectElement).value })}>
+          <option value="" disabled ?selected=${!chosen}>${REVIEW.pickRoom}</option>
+          ${areas.map((a) => html`<option value=${a.area_id} ?selected=${a.area_id === chosen}>${a.name}</option>`)}
+        </select>
+        <button class="role move" ?disabled=${!chosen} @click=${() => void this.#placeIn(entityId, name, chosen, focus)}>${REVIEW.move}</button>
+      </div>
+    </div>`;
+  }
+
+  /** "Interruptores sem cômodo", behind a button: out of the count, but where the channels of a board are. */
+  #quiet(areas: readonly HassArea[]) {
+    const groups = roomlessSwitches(this.hass!, this.config?.options ?? NO_OPTIONS);
+    const count = groups.reduce((n, g) => n + g.switches.length, 0);
+    if (!count) return nothing;
+    return html`<button class="role quiet" aria-expanded=${this.quietOpen ? 'true' : 'false'} @click=${() => (this.quietOpen = !this.quietOpen)}>
+        ${this.quietOpen ? REVIEW.hideQuiet : REVIEW.showQuiet(count)}
+      </button>
+      ${this.quietOpen
+        ? html`<div class="quiet-list">
+            <p class="hint">${REVIEW.quietHint}</p>
+            ${groups.map(
+              (g) => html`<h3>${g.name}</h3>
+                <ul>
+                  ${repeat(
+                    g.switches,
+                    (s) => s.entityId,
+                    (s) => html`<li class="item">
+                      <strong>${s.name}</strong>
+                      <span class="where">${s.entityId}</span>
+                      ${this.#roomPicker(s.entityId, s.name, areas, 'button.quiet')}
+                    </li>`,
+                  )}
+                </ul>`,
+            )}
+          </div>`
+        : nothing}`;
+  }
+
+  #item(item: ReviewItem, areas: readonly HassArea[]) {
     const where = [item.areaName, item.group === 'config' ? null : item.entityId].filter(Boolean).join(' · ');
     const entityId = item.entityId;
     return html`<li class="item">
       <strong>${item.name}</strong>
       ${where ? html`<span class="where">${where}</span>` : nothing}
       <span class="why">${item.reason}</span>
+      ${entityId && item.group === 'area' ? this.#roomPicker(entityId, item.name, areas, '#group-area') : nothing}
       ${entityId && item.roles.length
         ? html`<div class="roles">
             ${item.roles.map(
@@ -175,6 +274,7 @@ export class HubbReviewScreen extends HubbScreen {
     // An empty list means the users could not be read (an administrator always exists): nothing is stale then.
     const stale = admin && this.users?.length ? staleEntries(this.config?.options ?? NO_OPTIONS, new Set(this.users.map((u) => u.id))) : [];
     const lines = suggestedLines(items);
+    const areas = admin ? this.#rooms() : [];
     const suggested: Record<string, Role> = Object.fromEntries(
       items
         .filter((i) => (i.group === 'role' || i.group === 'appliance') && i.entityId !== null && i.suggested !== null)
@@ -199,12 +299,17 @@ export class HubbReviewScreen extends HubbScreen {
         ${REVIEW_GROUPS.map((group) => {
           const mine = items.filter((i) => i.group === group);
           return mine.length
-            ? html`<h2>${REVIEW.groups[group]} (${mine.length})</h2>
+            ? html`<h2 id=${`group-${group}`} tabindex="-1">${REVIEW.groups[group]} (${mine.length})</h2>
                 <ul>
-                  ${mine.map((i) => this.#item(i))}
+                  ${repeat(
+                    mine,
+                    (i) => `${i.entityId ?? ''}|${i.name}|${i.reason}`,
+                    (i) => this.#item(i, areas),
+                  )}
                 </ul>`
             : nothing;
         })}
+        ${admin ? this.#quiet(areas) : nothing}
         ${stale.length
           ? html`<h2>${REVIEW.stalePeople} (${stale.length})</h2>
               <ul>
@@ -343,6 +448,69 @@ export class HubbReviewScreen extends HubbScreen {
       .role.suggested {
         background: var(--hubb-primary-bg);
         color: var(--hubb-primary-ink);
+      }
+      .place {
+        display: grid;
+        gap: 4px;
+        margin-top: 8px;
+      }
+      .pick {
+        display: flex;
+        gap: 6px;
+      }
+      .pick .room {
+        flex: 1;
+        min-width: 0;
+      }
+      .role[disabled] {
+        cursor: default;
+        opacity: 0.45;
+      }
+      .none,
+      .hint {
+        margin: 0;
+        color: var(--hubb-text-2);
+      }
+      .quiet {
+        width: 100%;
+        justify-content: center;
+        margin-top: 16px;
+      }
+      .quiet-list .hint {
+        margin: 10px 2px;
+        font-size: 12px;
+      }
+      h2:focus,
+      h3:focus {
+        outline: none;
+      }
+      h3 {
+        margin: 14px 2px 8px;
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .place label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--hubb-text-2);
+      }
+      .room {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 44px;
+        padding: 0 12px;
+        border: 1.5px solid color-mix(in srgb, var(--hubb-text-2) 35%, transparent);
+        border-radius: 12px;
+        background: var(--hubb-surface-2);
+        color: var(--hubb-text);
+        font-family: var(--hubb-font);
+        font-size: 16px;
+      }
+      .room:focus-visible {
+        outline: 2px solid var(--hubb-focus);
+        outline-offset: 1px;
       }
     `,
   ];

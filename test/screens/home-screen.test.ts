@@ -101,7 +101,7 @@ describe('hubb-home-screen', () => {
     expect($(resident, '.empty span')).toBeNull();
     document.body.replaceChildren();
     const admin = await mount(makeHass({ user: { id: 'a', name: 'Gustavo', is_admin: true } }));
-    expect($(admin, '.empty span')!.textContent).toContain('Configurações');
+    expect($(admin, '.empty span')!.textContent).toContain('Revisar o painel');
   });
 
   it('still shows a house saved by 2026.10.2, before drawings and outlets existed', async () => {

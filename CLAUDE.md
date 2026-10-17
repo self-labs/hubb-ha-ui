@@ -30,7 +30,8 @@ src/
   summary.ts           the home headline, room lines and room sensors
   strings.ts           every resident string
   actions/             light (by domain), colour, switch, action, scene, pending (3 s window),
-                       undo (5 s), clipboard, dashboard-config (the review saves roles), haptic,
+                       undo (5 s), clipboard, dashboard-config (the review saves roles), people
+                       (the users, for hidden_for), entity-area (the one registry write), haptic,
                        navigate, climate and media (feature bits and the words of a state), energy
                        (watts, today's kWh from the statistics)
   theme/               CSS tokens (screens only) and the embedded Manrope font
@@ -65,6 +66,11 @@ test/                  Vitest + happy-dom; helpers/fake-hass.ts; fixtures: sampl
 - Cards never read the registries; the strategy passes entity ids in the card config.
 - Never call `config/*_registry/list` from the frontend: admin only. Use `hass.areas`,
   `hass.devices`, `hass.entities`.
+- The one registry write is `config/entity_registry/update` with the `area_id` of one entity
+  (`actions/entity-area.ts`, from Revisar, administrators only). Never the area of a device: a relay
+  board is one device for all its channels, and its area moves every one of them. Roomless switches
+  (`roomlessSwitches` in `model/review.ts`) stay out of `reviewItems` and its count: they are behind
+  "Mostrar interruptores sem cômodo" only.
 - Dashboard URLs need a hyphen in Home Assistant (`hubb-casa`), so screens derive their base path
   from `location.pathname`.
 - The `h.` glyph never appears in the panel.

@@ -251,3 +251,42 @@ export function reviewItems(hass: HomeAssistant, config: HubbConfig, now: number
   const base = cachedStaticReview(hass, config);
   return [...base.items, ...silentReview(hass, base.watched, now)];
 }
+
+/** The switches of one device with no room, for "Interruptores sem cômodo". */
+export interface RoomlessDevice {
+  name: string;
+  switches: { entityId: string; name: string }[];
+}
+
+const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
+let roomlessMemo: { key: readonly unknown[]; result: RoomlessDevice[] } | null = null;
+
+/**
+ * The switches with no room, by device, in channel order. They stay out of the review and its count
+ * (spec, Section 3 step 1: a house has dozens of system switches), but the channels of a relay board
+ * are among them, and the installer has to reach them to give each one its room.
+ */
+export function roomlessSwitches(hass: HomeAssistant, config: HubbConfig): RoomlessDevice[] {
+  const key = [hass.entities, hass.devices, hass.areas, config];
+  if (roomlessMemo && roomlessMemo.key.every((k, i) => k === key[i])) return roomlessMemo.result;
+  const cfg = readConfig(hass, config);
+  const ctx = classifyContext(hass, cfg, config.hide_entities);
+  const byDevice = new Map<string, RoomlessDevice>();
+  for (const entityId of Object.keys(hass.entities)) {
+    if (!entityId.startsWith('switch.')) continue;
+    const reg = hass.entities[entityId]!;
+    if (reg.platform === 'browser_mod') continue;
+    const placed = classify(hass, entityId, ctx);
+    if (placed.block !== null || placed.why !== 'unsupported' || placed.areaId !== null) continue;
+    const deviceName = reg.device_id ? hass.devices[reg.device_id]?.name_by_user || hass.devices[reg.device_id]?.name || null : null;
+    const name = deviceName ?? REVIEW.noDevice;
+    const group = byDevice.get(name) ?? { name, switches: [] };
+    group.switches.push({ entityId, name: cfg.entities[entityId]?.name ?? displayName(hass, entityId, null) });
+    byDevice.set(name, group);
+  }
+  const result = [...byDevice.values()]
+    .sort((a, b) => (a.name === REVIEW.noDevice ? 1 : 0) - (b.name === REVIEW.noDevice ? 1 : 0) || collator.compare(a.name, b.name))
+    .map((g) => ({ ...g, switches: g.switches.sort((a, b) => collator.compare(a.entityId, b.entityId)) }));
+  roomlessMemo = { key, result };
+  return result;
+}

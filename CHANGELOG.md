@@ -8,6 +8,21 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Added
+
+- **Cômodo** in Revisar o painel: an item with no room gets a list of the rooms and **Mover**, and
+  the choice is saved in Home Assistant as the area of that entity, with Desfazer, never as the area
+  of its device. On a relay board, one device for its 16 channels, the area of the device moved every
+  channel to the same room. **Mostrar interruptores sem cômodo** lists the switches with no room by
+  device (they stay out of the count on the wrench), so the channels of a board get their room there
+  too. The notices of the review and of the empty home say so.
+
+### Changed
+
+- The README says how to make the panel everyone's default dashboard (**Set as default** on
+  Settings → Dashboards), so that residents open Home Assistant straight on it, also with
+  kiosk-mode hiding the sidebar.
+
 ## [2026.10.13] - 2026-10-16
 
 ### Added

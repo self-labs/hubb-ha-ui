@@ -29,12 +29,12 @@ drives the relays, and one HACS update reaches them all.
 
 A polished Home Assistant dashboard is usually built by hand, and that is where it stops scaling:
 
-| Approach                                       | Problem                                                                                  |
-| :--------------------------------------------- | :--------------------------------------------------------------------------------------- |
-| Hand-built YAML (Mushroom, Bubble Card, ...)   | One copy per client: a fix has to be pasted into every house, one by one                 |
-| Styling through `card-mod`                     | The premium look rides on CSS overrides that break when the frontend changes             |
-| Entity ids written into the cards              | Swapping the relay board (ControlArt for KinCony, say) means rebuilding the dashboard     |
-| Home Assistant's own area dashboard            | Generic look, every entity shown, nothing designed for the person living in the house    |
+| Approach                                     | Problem                                                                               |
+| :------------------------------------------- | :------------------------------------------------------------------------------------ |
+| Hand-built YAML (Mushroom, Bubble Card, ...) | One copy per client: a fix has to be pasted into every house, one by one              |
+| Styling through `card-mod`                   | The premium look rides on CSS overrides that break when the frontend changes          |
+| Entity ids written into the cards            | Swapping the relay board (ControlArt for KinCony, say) means rebuilding the dashboard |
+| Home Assistant's own area dashboard          | Generic look, every entity shown, nothing designed for the person living in the house |
 
 This takes a different route. A **dashboard strategy** (`custom:hubb`) reads the areas, devices and
 entities at load time and generates the screens. The cards only receive entity ids, so the house is
@@ -168,8 +168,9 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
 
 - **Revisar o painel** (the wrench, administrators only) lists what the panel cannot place by itself:
   switches with no role, **items with the same name in the same room** (one device seen by two
-  integrations, with where each comes from), appliances found, what has no room, mistakes in the
-  configuration and what has not answered for a day. One tap saves the choice; "Aceitar todas as
+  integrations, with where each comes from), appliances found, what has no room (with a **Cômodo**
+  list that puts that one entity in an area), mistakes in the configuration and what has not
+  answered for a day. One tap saves the choice; "Aceitar todas as
   sugestões" saves them all.
 - **Edit mode** (the pencil): every item says what it is and **the integration it comes from**
   ("Ar-condicionado · LG ThinQ"); its editor adds the entity id and the name Home Assistant gives it.
@@ -184,26 +185,26 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
 <details>
 <summary>Every interaction, in detail</summary>
 
-| Interaction               | Behaviour                                                                                         |
-| :------------------------ | :------------------------------------------------------------------------------------------------ |
-| Tap a light               | Changes at once and vibrates; if Home Assistant does not confirm in 3 s, it says "Sem resposta"   |
-| Tap a light that is down  | Says since when it stopped answering                                                               |
-| Long press a dimmer       | Opens the light sheet: drag the column or pick 25, 50, 75 and 100; a colour light adds up to 9 colours, a white-temperature light adds its whites and a slider |
-| Tap an outlet             | Switches it like a light; "Apagar tudo", "Apagar todas" and Desfazer never touch outlets          |
-| Outlet with a power sensor | Says how much it draws ("Ligada · 120 W"); a long press opens Consumo: Agora and Hoje             |
-| Arm or disarm the alarm   | Arming is a tap on Em casa, Ausente, Noite or Férias; disarming asks for the code, or takes a slide when the alarm has none |
-| Tap a camera              | Opens the live view in Home Assistant's own window. The still image is taken once, when the tab opens |
-| Alert strip               | Vibrates once, leads to the room; it stays while the sensor is on                                 |
-| House out of reach        | "Sem conexão com a casa. Tentando de novo…"; the controls dim and take no tap until it is back    |
-| Open a gate or a lock     | Slide to the end ("Deslize para abrir"); letting go earlier does nothing, and a tap never opens. Fechar and Trancar are a tap |
-| Tap an air conditioner    | Opens its sheet: − and + for the temperature, the mode, the ventilation, the swing and the preset it has; the round button turns it on and off |
-| Tap a fan                 | Switches it; a long press opens its speeds                                                         |
-| Tap a curtain             | Opens or closes it, and stops it while it moves; a long press opens Abrir, Parar, Fechar and the position |
-| Tap a TV or a speaker     | Opens its sheet: play and pause, the tracks, the volume, mute, the source, Ligar or Desligar        |
-| Infrared device           | Its sheet says the state is the last command sent, not what the device reports                    |
-| Bulk action or scene      | Runs at once and offers **Desfazer** for 5 s, even on another screen: the lights that changed go back, and a running script stops |
-| Back                      | The in-app arrow and the Android back gesture stay in step                                         |
-| Keyboard and readers      | A focus ring on every button; Escape closes the sheet; arrows, Page, Home and End set the brightness; right click or Shift+F10 opens the light sheet |
+| Interaction                | Behaviour                                                                                                                                                      |
+| :------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tap a light                | Changes at once and vibrates; if Home Assistant does not confirm in 3 s, it says "Sem resposta"                                                                |
+| Tap a light that is down   | Says since when it stopped answering                                                                                                                           |
+| Long press a dimmer        | Opens the light sheet: drag the column or pick 25, 50, 75 and 100; a colour light adds up to 9 colours, a white-temperature light adds its whites and a slider |
+| Tap an outlet              | Switches it like a light; "Apagar tudo", "Apagar todas" and Desfazer never touch outlets                                                                       |
+| Outlet with a power sensor | Says how much it draws ("Ligada · 120 W"); a long press opens Consumo: Agora and Hoje                                                                          |
+| Arm or disarm the alarm    | Arming is a tap on Em casa, Ausente, Noite or Férias; disarming asks for the code, or takes a slide when the alarm has none                                    |
+| Tap a camera               | Opens the live view in Home Assistant's own window. The still image is taken once, when the tab opens                                                          |
+| Alert strip                | Vibrates once, leads to the room; it stays while the sensor is on                                                                                              |
+| House out of reach         | "Sem conexão com a casa. Tentando de novo…"; the controls dim and take no tap until it is back                                                                 |
+| Open a gate or a lock      | Slide to the end ("Deslize para abrir"); letting go earlier does nothing, and a tap never opens. Fechar and Trancar are a tap                                  |
+| Tap an air conditioner     | Opens its sheet: − and + for the temperature, the mode, the ventilation, the swing and the preset it has; the round button turns it on and off                 |
+| Tap a fan                  | Switches it; a long press opens its speeds                                                                                                                     |
+| Tap a curtain              | Opens or closes it, and stops it while it moves; a long press opens Abrir, Parar, Fechar and the position                                                      |
+| Tap a TV or a speaker      | Opens its sheet: play and pause, the tracks, the volume, mute, the source, Ligar or Desligar                                                                   |
+| Infrared device            | Its sheet says the state is the last command sent, not what the device reports                                                                                 |
+| Bulk action or scene       | Runs at once and offers **Desfazer** for 5 s, even on another screen: the lights that changed go back, and a running script stops                              |
+| Back                       | The in-app arrow and the Android back gesture stay in step                                                                                                     |
+| Keyboard and readers       | A focus ring on every button; Escape closes the sheet; arrows, Page, Home and End set the brightness; right click or Shift+F10 opens the light sheet           |
 
 </details>
 
@@ -224,7 +225,7 @@ It works through [my.home-assistant.io](https://my.home-assistant.io/). The firs
 the address of your Home Assistant (for example `http://192.168.1.10:8123`) and keeps it in that
 browser, not in Home Assistant: another browser or computer asks again, and the network settings of
 Home Assistant play no part. To change the saved address, open
-[my.home-assistant.io/redirect/_change](https://my.home-assistant.io/redirect/_change/).
+[my.home-assistant.io/redirect/\_change](https://my.home-assistant.io/redirect/_change/).
 
 **For the residents, also install [kiosk-mode](https://github.com/NemesisRE/kiosk-mode)** from HACS
 (Frontend). The panel asks it to hide the header and the sidebar of Home Assistant for every user who
@@ -256,9 +257,14 @@ in the Companion app: set up notifications and location on their phone before.
 
 [![Open your Home Assistant instance and show your dashboards.](https://my.home-assistant.io/badges/lovelace_dashboards.svg)](https://my.home-assistant.io/redirect/lovelace_dashboards/)
 
-1. **Add dashboard** and pick **Hubb** under *Community dashboards*.
+1. **Add dashboard** and pick **Hubb** under _Community dashboards_.
 2. Give it a URL with a hyphen, for example `hubb-casa` (Home Assistant requires the hyphen).
-3. Open it. That is all; everything below is optional.
+3. Make it everyone's default: back on **Settings → Dashboards**, the three-dot menu on its row →
+   **Set as default**. Every user then opens Home Assistant on the panel, in the Companion app and
+   in any browser, which matters once kiosk-mode hides the sidebar. Home Assistant keeps this on the
+   server since 2025.12. Someone who picked a dashboard in their own profile keeps it until they set
+   it back to **Auto (use system settings)**, and an admin-only dashboard cannot be the default.
+4. Open it. That is all; everything below is optional.
 
 Or start from a blank dashboard and paste this into the raw configuration editor:
 
@@ -270,32 +276,32 @@ strategy:
 
 ### Options
 
-| Option                | Default                            | Meaning                                                    |
-| :-------------------- | :--------------------------------- | :--------------------------------------------------------- |
-| `name`                | The location name in Home Assistant | House name under the greeting                             |
-| `scenes`              | Alphabetical                       | Scene order; the first four go to the home screen          |
-| `rooms.<area>.order`  | Alphabetical                       | Room order                                                 |
-| `rooms.<area>.photo`  | The area picture                   | Photo for the room card and the room page                  |
-| `rooms.<area>.art`    | Picked from the area name, then its icon | Drawing for a room with no photo: one of the ids in [the list of drawings](docs/drawings.md) |
-| `rooms.<area>.hidden` | `false`                            | Leaves a room out                                          |
-| `rooms.<area>.floor`  | The floor of the area              | Moves a room to another floor without touching Home Assistant |
-| `profile`             | `home`                             | Kind of place: `home`, `clinic`, `restaurant`, `office`, `store`, `gym`, `salon` or `hotel`. See [Places and floors](#places-and-floors) |
-| `entities.<id>.role`  | From the entity type               | `light`, `outlet`, `equipment`, `appliance`, `action`, `gate` or `hidden`. See [Roles](#roles) |
-| `entities.<id>.name`  | The entity name                    | Name on the panel                                          |
-| `entities.<id>.order` | By name                            | Place of the item inside its block, lower first            |
-| `entities.<id>.icon`  | The icon of the role               | An `mdi:` icon for equipment and actions                   |
-| `entities.<id>.area`  | The area of the entity, then of its device (an appliance: its device first) | Room of the entity on the panel |
-| `entities.<id>.hide`  | none                               | Appliance or air conditioner: entities of its device left out of its sheet |
-| `rooms.<area>.hidden_for` | none | User ids of Home Assistant the room is hidden for (not administrators). See [Who sees what](#who-sees-what) |
-| `entities.<id>.hidden_for` | none | User ids the item is hidden for; danger alerts still show |
-| `entities.<id>.size` | Tiles `small`, scenes of Cenas `medium` | How wide the card is: `small` (a third of the row), `medium` (half) or `large` (all of it). Air conditioners, TVs, gates, locks and appliances always take the whole row |
-| `entities.<id>.sensor` | none | A gate on a pulse relay (`role: gate` on a `switch`, `button`, `input_button` or `script`): the `binary_sensor` of class `door`, `garage_door` or `opening`, or the gate `cover`, that says whether it is open, from any room (the editor offers those of the gate's room). A contact of the gate's room shows in Sensores only in edit mode and still counts as open; a cover used as the sensor leaves Acesso |
-| `tabs.scenes.hidden_for`, `tabs.security.hidden_for` | none | User ids Cenas or Segurança is hidden for. See [Who sees what](#who-sees-what) |
-| `entities.<id>.remaining`, `.progress` | Found on the device | Appliance only: the time left and the progress sensors, when the automatic pick is wrong |
-| `entities.<id>.power`, `.energy` | Found on the device | Outlet or equipment: its power and energy sensors, when the automatic match fails. See [Sensors, security and consumption](#sensors-security-and-consumption) |
-| `entities.<id>.modes` | Every mode it has | Air conditioner (`climate.*`) only: the modes its sheet offers, for example `[cool, dry]`; turning on without `turn_on` picks among them |
-| `entities.<id>.controls` | Every setting it has | Air conditioner (`climate.*`) only: which of `fan`, `swing` and `preset` show under Mais ajustes, as a list (`[fan, swing]`) |
-| `hide_entities`       | none                               | Lights and outlets left out even though they have an area (the fridge or the router plug) |
+| Option                                               | Default                                                                     | Meaning                                                                                                                                                                                                                                                                                                                                                                                                         |
+| :--------------------------------------------------- | :-------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                                               | The location name in Home Assistant                                         | House name under the greeting                                                                                                                                                                                                                                                                                                                                                                                   |
+| `scenes`                                             | Alphabetical                                                                | Scene order; the first four go to the home screen                                                                                                                                                                                                                                                                                                                                                               |
+| `rooms.<area>.order`                                 | Alphabetical                                                                | Room order                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `rooms.<area>.photo`                                 | The area picture                                                            | Photo for the room card and the room page                                                                                                                                                                                                                                                                                                                                                                       |
+| `rooms.<area>.art`                                   | Picked from the area name, then its icon                                    | Drawing for a room with no photo: one of the ids in [the list of drawings](docs/drawings.md)                                                                                                                                                                                                                                                                                                                    |
+| `rooms.<area>.hidden`                                | `false`                                                                     | Leaves a room out                                                                                                                                                                                                                                                                                                                                                                                               |
+| `rooms.<area>.floor`                                 | The floor of the area                                                       | Moves a room to another floor without touching Home Assistant                                                                                                                                                                                                                                                                                                                                                   |
+| `profile`                                            | `home`                                                                      | Kind of place: `home`, `clinic`, `restaurant`, `office`, `store`, `gym`, `salon` or `hotel`. See [Places and floors](#places-and-floors)                                                                                                                                                                                                                                                                        |
+| `entities.<id>.role`                                 | From the entity type                                                        | `light`, `outlet`, `equipment`, `appliance`, `action`, `gate` or `hidden`. See [Roles](#roles)                                                                                                                                                                                                                                                                                                                  |
+| `entities.<id>.name`                                 | The entity name                                                             | Name on the panel                                                                                                                                                                                                                                                                                                                                                                                               |
+| `entities.<id>.order`                                | By name                                                                     | Place of the item inside its block, lower first                                                                                                                                                                                                                                                                                                                                                                 |
+| `entities.<id>.icon`                                 | The icon of the role                                                        | An `mdi:` icon for equipment and actions                                                                                                                                                                                                                                                                                                                                                                        |
+| `entities.<id>.area`                                 | The area of the entity, then of its device (an appliance: its device first) | Room of the entity on the panel                                                                                                                                                                                                                                                                                                                                                                                 |
+| `entities.<id>.hide`                                 | none                                                                        | Appliance or air conditioner: entities of its device left out of its sheet                                                                                                                                                                                                                                                                                                                                      |
+| `rooms.<area>.hidden_for`                            | none                                                                        | User ids of Home Assistant the room is hidden for (not administrators). See [Who sees what](#who-sees-what)                                                                                                                                                                                                                                                                                                     |
+| `entities.<id>.hidden_for`                           | none                                                                        | User ids the item is hidden for; danger alerts still show                                                                                                                                                                                                                                                                                                                                                       |
+| `entities.<id>.size`                                 | Tiles `small`, scenes of Cenas `medium`                                     | How wide the card is: `small` (a third of the row), `medium` (half) or `large` (all of it). Air conditioners, TVs, gates, locks and appliances always take the whole row                                                                                                                                                                                                                                        |
+| `entities.<id>.sensor`                               | none                                                                        | A gate on a pulse relay (`role: gate` on a `switch`, `button`, `input_button` or `script`): the `binary_sensor` of class `door`, `garage_door` or `opening`, or the gate `cover`, that says whether it is open, from any room (the editor offers those of the gate's room). A contact of the gate's room shows in Sensores only in edit mode and still counts as open; a cover used as the sensor leaves Acesso |
+| `tabs.scenes.hidden_for`, `tabs.security.hidden_for` | none                                                                        | User ids Cenas or Segurança is hidden for. See [Who sees what](#who-sees-what)                                                                                                                                                                                                                                                                                                                                  |
+| `entities.<id>.remaining`, `.progress`               | Found on the device                                                         | Appliance only: the time left and the progress sensors, when the automatic pick is wrong                                                                                                                                                                                                                                                                                                                        |
+| `entities.<id>.power`, `.energy`                     | Found on the device                                                         | Outlet or equipment: its power and energy sensors, when the automatic match fails. See [Sensors, security and consumption](#sensors-security-and-consumption)                                                                                                                                                                                                                                                   |
+| `entities.<id>.modes`                                | Every mode it has                                                           | Air conditioner (`climate.*`) only: the modes its sheet offers, for example `[cool, dry]`; turning on without `turn_on` picks among them                                                                                                                                                                                                                                                                        |
+| `entities.<id>.controls`                             | Every setting it has                                                        | Air conditioner (`climate.*`) only: which of `fan`, `swing` and `preset` show under Mais ajustes, as a list (`[fan, swing]`)                                                                                                                                                                                                                                                                                    |
+| `hide_entities`                                      | none                                                                        | Lights and outlets left out even though they have an area (the fridge or the router plug)                                                                                                                                                                                                                                                                                                                       |
 
 ```yaml
 strategy:
@@ -316,16 +322,16 @@ Clima, a `cover` goes to Cortinas (to Acesso when its class is gate, garage or d
 class and its name says "portão"; out of the panel when it is the `sensor` of a gate), a `lock` goes to Acesso and a `media_player` to Mídia (Browser Mod players stay out). A
 role puts it somewhere else:
 
-| Role        | Takes                                | Shows as                                                       |
-| :---------- | :----------------------------------- | :------------------------------------------------------------- |
-| `light`     | `light`, `switch`                    | A light, counted by "Apagar tudo", the home sentence and Desfazer |
-| `outlet`    | `switch`                             | An outlet ("Ligada"/"Desligada")                               |
-| `equipment` | `switch`                             | Equipment ("Ligado"/"Desligado"), with its `icon` or a power icon |
-| `appliance` | any entity with a device             | The device becomes an appliance card, with a full sheet        |
-| `action`    | `button`, `input_button`, `script`   | A button in "Ações" that says "Feito"                          |
+| Role        | Takes                                                 | Shows as                                                                                                                                   |
+| :---------- | :---------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------- |
+| `light`     | `light`, `switch`                                     | A light, counted by "Apagar tudo", the home sentence and Desfazer                                                                          |
+| `outlet`    | `switch`                                              | An outlet ("Ligada"/"Desligada")                                                                                                           |
+| `equipment` | `switch`                                              | Equipment ("Ligado"/"Desligado"), with its `icon` or a power icon                                                                          |
+| `appliance` | any entity with a device                              | The device becomes an appliance card, with a full sheet                                                                                    |
+| `action`    | `button`, `input_button`, `script`                    | A button in "Ações" that says "Feito"                                                                                                      |
 | `gate`      | `switch`, `button`, `input_button`, `script`, `cover` | A gate in "Acesso", opened with a slide ("Deslize para acionar" for a pulse relay; with a `sensor`, Aberto or Fechado and a Fechar button) |
-| `scene`     | `scene`, `script`                    | A scene in Cenas, with or without a room, like one labelled `hubb_cena` |
-| `hidden`    | anything                             | Left out                                                       |
+| `scene`     | `scene`, `script`                                     | A scene in Cenas, with or without a room, like one labelled `hubb_cena`                                                                    |
+| `hidden`    | anything                                              | Left out                                                                                                                                   |
 
 ```yaml
 strategy:
@@ -334,7 +340,8 @@ strategy:
     switch.luz_varanda: { role: light }
     switch.bomba_piscina: { role: equipment, name: Bomba, icon: mdi:pool }
     switch.jet_mode: { role: hidden }
-    switch.portao_social: { role: gate, sensor: binary_sensor.portao_social_contato }
+    switch.portao_social:
+      { role: gate, sensor: binary_sensor.portao_social_contato }
     button.reiniciar_roteador: { role: action }
     sensor.electrolux_lavadora_appliancestate:
       role: appliance
@@ -347,14 +354,14 @@ A `switch` with no class and no role stays out of the panel and waits on **Revis
 
 These need no role; their class says where they go:
 
-| Entity | Shows as |
-| :----- | :------- |
-| `binary_sensor` `smoke`, `gas`, `carbon_monoxide`, `moisture` | The red strip on every screen, with or without a room |
+| Entity                                                                 | Shows as                                                                                                                                                                                               |
+| :--------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `binary_sensor` `smoke`, `gas`, `carbon_monoxide`, `moisture`          | The red strip on every screen, with or without a room                                                                                                                                                  |
 | `binary_sensor` `door`, `window`, `garage_door`, `opening` with a room | A card in Sensores (in edit mode only when it is the `sensor` of a gate of its room), a chip on the home while open, and the security tab. With no room it stays out (the doors of a fridge have none) |
-| `binary_sensor` `motion`, `occupancy`, `presence` with a room | A card in Sensores, and "Ocupado" on the room card |
-| `sensor` `temperature`, `humidity` with a room | A card in Sensores, and "24° · 61%" under the room name; a dedicated thermometer wins over the one inside an air conditioner |
-| `camera`, `alarm_control_panel` | The security tab, with or without a room |
-| `sensor` `power`, `energy` on the device of an outlet or equipment | The power on its tile and the consumption sheet |
+| `binary_sensor` `motion`, `occupancy`, `presence` with a room          | A card in Sensores, and "Ocupado" on the room card                                                                                                                                                     |
+| `sensor` `temperature`, `humidity` with a room                         | A card in Sensores, and "24° · 61%" under the room name; a dedicated thermometer wins over the one inside an air conditioner                                                                           |
+| `camera`, `alarm_control_panel`                                        | The security tab, with or without a room                                                                                                                                                               |
+| `sensor` `power`, `energy` on the device of an outlet or equipment     | The power on its tile and the consumption sheet                                                                                                                                                        |
 
 The class `problem` raises no alert: integrations use it for device faults. Only a sensor that reads
 `on` counts: one that is down or unknown says nothing. A multi-channel device matches each switch to
@@ -365,7 +372,8 @@ were renamed, name the sensors:
 strategy:
   type: custom:hubb
   entities:
-    switch.quarto_tomada: { power: sensor.rele_duplo_power_1, energy: sensor.rele_duplo_energy_1 }
+    switch.quarto_tomada:
+      { power: sensor.rele_duplo_power_1, energy: sensor.rele_duplo_energy_1 }
 ```
 
 "Hoje" reads the long-term statistics of the energy sensor, which every user of the dashboard may
@@ -406,6 +414,14 @@ answered for more than a day. A tap on a role saves it into the dashboard config
 for 5 seconds. "Aplicar sugestões" saves every suggested role together. On a dashboard frozen with
 "Take control" it copies the line of YAML instead, to paste under `strategy:` by hand.
 
+An item with no room gets a **Cômodo** list and **Mover** (choosing alone saves nothing). The choice is
+saved in Home Assistant as the area of that entity, with "Desfazer", and never as the area of its
+device: a relay board is one device for its 16 channels, and an area on the device moves all of them.
+A switch with no room stays out of the list and of the number on the wrench, since a house has dozens
+of system switches; **Mostrar interruptores sem cômodo** lists them by device, so the channels of a
+board get their room the same way, and then wait under "Escolha como mostrar" for their role.
+The room chosen in the editor of an item takes precedence over the area of Home Assistant.
+
 ### Edit the panel
 
 Administrators also get a pencil, on the home and on each room page. In the edit mode:
@@ -445,7 +461,7 @@ strategy:
   type: custom:hubb
   rooms:
     kitnet:
-      hidden_for: [8f3c0d2a1b9e4f7a]   # user id in Home Assistant
+      hidden_for: [8f3c0d2a1b9e4f7a] # user id in Home Assistant
   entities:
     camera.portao:
       hidden_for: [8f3c0d2a1b9e4f7a]
@@ -465,18 +481,18 @@ strategy:
 
 The strategy shows what Home Assistant knows, so the work happens in Home Assistant, once per house:
 
-| What                      | Why                                                       | How                                                                                                   |
-| :------------------------ | :-------------------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
-| **Every light in an area** | A light with no area is left out on purpose              | Settings → Areas, labels & zones, or the area field of each entity                                    |
-| **Lights as `light.*`**   | Relays exposed as switches or helpers are not lights      | A switch that is a light: entity settings, **Show as** Light. ControlArt: the [ControlArt integration](https://github.com/tompsonpecini/controlart). KinCony with Tasmota: `SetOption30 1`. Anything else: a template light |
-| **Outlets as outlets**    | Only a switch shown as an outlet reaches the panel on its own | Entity settings, **Show as** Outlet, or a [role](#roles). Any other switch waits on **Revisar o painel** |
-| **Short, client names**   | The tile shows the name as is                             | "Sofá", not "Saída 1". A room name at the start or the end is dropped ("LED Sala" in the Sala shows "LED") |
-| **Scenes in Cenas**       | Only scenes and scripts put in Cenas reach the panel      | **Adicionar cena** on Cenas in edit mode, or the label **`hubb_cena`** on a `scene.*` or `script.*`; give it an area to show it on that room too |
-| **Area pictures** (optional) | Without one, the card shows a drawing picked from the area name or icon ([list](docs/drawings.md)) | The picture field of each area                                                  |
-| **Devices in an area**    | Air conditioners, fans, curtains, TVs, gates and locks show on the room page of their area | The area field. A gate `cover` needs the class gate, garage or door, or "portão" in its name; a pulse relay gets the [role](#roles) `gate` |
-| **Sensors with their class** | Doors, windows, motion, temperature and humidity show on their room; smoke, gas, leaks, cameras and the alarm work with or without an area | The area field, and the right class (entity settings, **Show as** Door, Window, Motion, Smoke, Moisture) |
-| **Consumption matched**   | The power of an outlet shows when its sensor sits on the same device | Nothing for a plug; a multi-channel relay whose switches were renamed needs `power` and `energy` in the [YAML](#sensors-security-and-consumption) |
-| **Remote control on**     | An Electrolux appliance refuses commands while its remote control is off | The remote control button on the appliance itself; the panel says when it is off |
+| What                         | Why                                                                                                                                        | How                                                                                                                                                                                                                         |
+| :--------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Every light in an area**   | A light with no area is left out on purpose                                                                                                | The **Cômodo** list in Revisar o painel, or the entity settings with **Use device area** off. Never the area of a relay board's device: it moves all its channels                                                           |
+| **Lights as `light.*`**      | Relays exposed as switches or helpers are not lights                                                                                       | A switch that is a light: entity settings, **Show as** Light. ControlArt: the [ControlArt integration](https://github.com/tompsonpecini/controlart). KinCony with Tasmota: `SetOption30 1`. Anything else: a template light |
+| **Outlets as outlets**       | Only a switch shown as an outlet reaches the panel on its own                                                                              | Entity settings, **Show as** Outlet, or a [role](#roles). Any other switch waits on **Revisar o painel**                                                                                                                    |
+| **Short, client names**      | The tile shows the name as is                                                                                                              | "Sofá", not "Saída 1". A room name at the start or the end is dropped ("LED Sala" in the Sala shows "LED")                                                                                                                  |
+| **Scenes in Cenas**          | Only scenes and scripts put in Cenas reach the panel                                                                                       | **Adicionar cena** on Cenas in edit mode, or the label **`hubb_cena`** on a `scene.*` or `script.*`; give it an area to show it on that room too                                                                            |
+| **Area pictures** (optional) | Without one, the card shows a drawing picked from the area name or icon ([list](docs/drawings.md))                                         | The picture field of each area                                                                                                                                                                                              |
+| **Devices in an area**       | Air conditioners, fans, curtains, TVs, gates and locks show on the room page of their area                                                 | The area field. A gate `cover` needs the class gate, garage or door, or "portão" in its name; a pulse relay gets the [role](#roles) `gate`                                                                                  |
+| **Sensors with their class** | Doors, windows, motion, temperature and humidity show on their room; smoke, gas, leaks, cameras and the alarm work with or without an area | The area field, and the right class (entity settings, **Show as** Door, Window, Motion, Smoke, Moisture)                                                                                                                    |
+| **Consumption matched**      | The power of an outlet shows when its sensor sits on the same device                                                                       | Nothing for a plug; a multi-channel relay whose switches were renamed needs `power` and `energy` in the [YAML](#sensors-security-and-consumption)                                                                           |
+| **Remote control on**        | An Electrolux appliance refuses commands while its remote control is off                                                                   | The remote control button on the appliance itself; the panel says when it is off                                                                                                                                            |
 
 Hidden and diagnostic entities never show up on their own (an appliance still reads its diagnostic
 time left), and neither does anything without an area, which is why the per-browser screen lights
@@ -484,8 +500,8 @@ that Browser Mod creates stay out by themselves.
 
 ## Compatibility
 
-Requires **Home Assistant 2026.5 or newer**, the release that lists community strategies in the *Add
-dashboard* dialog. Strategies themselves are an official frontend extension point since 2021.5, and
+Requires **Home Assistant 2026.5 or newer**, the release that lists community strategies in the _Add
+dashboard_ dialog. Strategies themselves are an official frontend extension point since 2021.5, and
 the registries the panel reads (`hass.areas`, `hass.devices`, `hass.entities` with labels) are open to
 non-admin users, so residents never need admin rights.
 
