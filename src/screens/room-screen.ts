@@ -355,7 +355,7 @@ export class HubbRoomScreen extends HubbScreen {
             ></hubb-climate-panel>`
           : nothing}
         ${device?.sheet === 'cover' ? html`<hubb-cover-panel .hass=${hass} .entityId=${device.entityId}></hubb-cover-panel>` : nothing}
-        ${device?.sheet === 'media' ? html`<hubb-media-panel .hass=${hass} .entityId=${device.entityId}></hubb-media-panel>` : nothing}
+        ${device?.sheet === 'media' ? html`<hubb-media-panel .hass=${hass} .entityId=${device.entityId} .visible=${this.config?.shared?.media ?? []}></hubb-media-panel>` : nothing}
         ${device?.sheet === 'power' ? html`<hubb-power-panel .hass=${hass} .item=${[...room.outlets, ...room.equipment].find((i) => i.entityId === device.entityId)}></hubb-power-panel>` : nothing}
       </hubb-sheet>
       <hubb-sheet

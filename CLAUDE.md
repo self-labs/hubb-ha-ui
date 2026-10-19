@@ -27,6 +27,8 @@ src/
                        rule that places every entity), appliances, floors, review, buildHouse,
                        names, paths, energy (power and energy sensors of a switch), gate-sensor
                        (the sensor of a pulse gate: its position, candidates, the relay's last pulse)
+  model/media.ts       what a speaker plays (its own attributes, then the Spotify playing on it,
+                       matched by its source), who takes a command, the group and its candidates
   summary.ts           the home headline, room lines and room sensors
   strings.ts           every resident string
   actions/             light (by domain), colour, switch, action, scene, pending (3 s window),
@@ -40,7 +42,8 @@ src/
   elements/            toggle tile (light, outlet, equipment, fan), action button, appliance card and
                        panel, floor tabs, item editor, sheet, dimmer and colour panels, toast, nav bar, room card,
                        scene button; M3: slide-confirm and access tile, climate card and panel,
-                       cover tile and panel, media card and panel; M4: status strips, alarm card,
+                       cover tile and panel, media card, panel, progress and group (Tocar junto);
+                       M4: status strips, alarm card,
                        camera tile, power panel
   screens/             home, room, scenes, security, review (each is a Lovelace card filling a panel view)
   cards/               standalone light card, error card
@@ -181,6 +184,13 @@ operation.
   equipamentos, Aparelhos, Ações, Sensores). The climate, cover, media and consumption sheets are one
   `hubb-sheet.device` opened by `hubb-open-climate`, `hubb-open-cover`, `hubb-open-media` and
   `hubb-open-power`.
+- A Spotify `media_player` is never a card (classify drops it): it shows through the speaker whose
+  name is its `source`. `Shared.media` carries the players the resident sees, so Tocar junto never
+  offers a speaker hidden for them. The channel select is found by `translation_key ===
+  'output_channel'` on the speaker's device, never by entity id. A paused Spotify only fills a
+  speaker that is paused too. `volumeTarget(hass, id)` keeps one target per speaker (keyed by
+  `callService`), shared by the sheet and Volume de todas; closing the sheet sends a level still
+  gathering instead of dropping it.
 - `cachedStaticReview` keys on the identity of `hass.entities`, `hass.devices`, `hass.areas`,
   `hass.floors` and the configuration object: the frontend keeps those objects across state
   changes, so the home can count the review on every update.

@@ -98,8 +98,19 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
   value no one translated ("MiddleTop1") stays out, and the installer picks which modes, settings and
   functions show. The target moves by whole degrees, like a remote control. An infrared one says its
   state is the last command sent.
-- **Curtains** open, close and stop with a tap; **TV and sound** play, pause and turn off from the
-  card, with volume, mute and source on the sheet; **fans** switch and open their speeds.
+- **Curtains** open, close and stop with a tap; **fans** switch and open their speeds.
+- **TV and sound:** the card shows the cover of what plays (the icon when there is none), bars that
+  move while it plays, and plays, pauses and turns off. The sheet has the cover large, the title and
+  the artist, the time of the song (drag it when the player can seek), repeat, previous, play, next
+  and shuffle in five fixed places, the volume (quick taps add up and leave as one command) with a
+  bar, the source, the sound mode, the **Canal** (stereo, left or right) when the speaker's
+  integration has a select for it, and **Tocar junto**.
+- **Spotify** is never a card of its own: while it plays on a speaker of the panel (its source has
+  the speaker's name), that speaker's card and sheet show the music and send play, pause and the
+  tracks to it.
+- **Tocar junto** lists the other speakers the resident sees, of the same integration, each with a
+  switch: Home Assistant groups them (`media_player.join` and `unjoin`). A speaker in someone else's
+  group only offers Sair do grupo; the leader adds Volume de todas, one step on each speaker.
 
 ### Access and security
 
@@ -200,7 +211,7 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
 | Tap an air conditioner     | Opens its sheet: − and + for the temperature, the mode, the ventilation, the swing and the preset it has; the round button turns it on and off                 |
 | Tap a fan                  | Switches it; a long press opens its speeds                                                                                                                     |
 | Tap a curtain              | Opens or closes it, and stops it while it moves; a long press opens Abrir, Parar, Fechar and the position                                                      |
-| Tap a TV or a speaker      | Opens its sheet: play and pause, the tracks, the volume, mute, the source, Ligar or Desligar                                                                   |
+| Tap a TV or a speaker      | Opens its sheet: cover, time, the controls, volume, source, sound mode, channel, Tocar junto, Ligar or Desligar                                               |
 | Infrared device            | Its sheet says the state is the last command sent, not what the device reports                                                                                 |
 | Bulk action or scene       | Runs at once and offers **Desfazer** for 5 s, even on another screen: the lights that changed go back, and a running script stops                              |
 | Back                       | The in-app arrow and the Android back gesture stay in step                                                                                                     |
@@ -319,7 +330,7 @@ strategy:
 Without a role, an entity reaches the panel by its type: `light.*` is a light, a `switch` shown as an
 outlet is an outlet, a scene or script labelled `hubb_cena` is a scene, `climate` and `fan` go to
 Clima, a `cover` goes to Cortinas (to Acesso when its class is gate, garage or door, or when it has no
-class and its name says "portão"; out of the panel when it is the `sensor` of a gate), a `lock` goes to Acesso and a `media_player` to Mídia (Browser Mod players stay out). A
+class and its name says "portão"; out of the panel when it is the `sensor` of a gate), a `lock` goes to Acesso and a `media_player` to Mídia (Browser Mod and Spotify players stay out). A
 role puts it somewhere else:
 
 | Role        | Takes                                                 | Shows as                                                                                                                                   |
@@ -530,8 +541,8 @@ npm run preview    # builds, then serves http://127.0.0.1:4173
 ```
 
 Draws the real bundle over a made-up house ([`dev/mock-house.js`](dev/mock-house.js)): seven rooms,
-coloured lights, an air conditioner, a curtain, a TV, a gate and a lock, a washer, an alarm and two
-cameras. Pick the screen with the address: `?view=home`, `?view=sala`, `?view=seguranca`,
+coloured lights, an air conditioner, a curtain, a TV, two speakers playing together, a gate and a lock,
+a washer, an alarm and two cameras. Pick the screen with the address: `?view=home`, `?view=sala`, `?view=seguranca`,
 `?view=revisar&admin=1`; add `theme=light`, `alert=1` (smoke in the kitchen), `offline=1`, `edit=1`,
 `code=1` (alarm with a keypad), or open a sheet with `sheet=light|climate|media|cover|power|appliance`
 and `id=<entity or device id>`. The screenshots of this README are taken from it at 390 × 844.

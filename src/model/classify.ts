@@ -186,7 +186,9 @@ export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyCon
   if (domain === 'fan') return placedAs('fan');
   if (domain === 'lock') return placedAs('lock');
   if (domain === 'cover') return placedAs(coverIsGate(hass, entityId) ? 'gate' : 'cover');
-  // Browser Mod makes a player for every browser; they are screens, not media of a room.
+  // Browser Mod makes a player for every browser; they are screens, not media of a room. Spotify is the
+  // app, not a device of the room: it shows through the speaker it plays on (model/media.ts).
+  if (domain === 'media_player' && reg.platform === 'spotify') return { block: null, why: 'unsupported', areaId };
   if (domain === 'media_player' && reg.platform !== 'browser_mod') return placedAs('media');
   const cls = String(hass.states[entityId]?.attributes.device_class ?? '');
   // Alerts, cameras and alarms belong to the house: they count with or without a room.

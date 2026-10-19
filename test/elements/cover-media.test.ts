@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import '../../src/elements/cover-tile';
 import type { HubbCoverTile } from '../../src/elements/cover-tile';
 import '../../src/elements/cover-panel';
@@ -123,21 +123,28 @@ describe('media', () => {
   });
 
   it('changes the volume, the sound and the source in its sheet', async () => {
-    const h = tv('on');
-    const el = await mount<HubbMediaPanel>('hubb-media-panel', { hass: h, entityId: 'media_player.tv' });
-    expect(text(el, '.volume')).toBe('40%');
-    click(el, '.louder');
-    click(el, '.mute');
-    const source = el.shadowRoot!.querySelector<HTMLSelectElement>('select.source')!;
-    source.value = 'Netflix';
-    source.dispatchEvent(new Event('change'));
-    click(el, '.next');
-    expect(services(h)).toEqual([
-      ['media_player.volume_set', { volume_level: 0.45 }],
-      ['media_player.volume_mute', { is_volume_muted: true }],
-      ['media_player.select_source', { source: 'Netflix' }],
-      ['media_player.media_next_track', undefined],
-    ]);
+    vi.useFakeTimers();
+    try {
+      const h = tv('on');
+      const el = await mount<HubbMediaPanel>('hubb-media-panel', { hass: h, entityId: 'media_player.tv' });
+      expect(text(el, '.volume')).toBe('40%');
+      click(el, '.louder');
+      click(el, '.mute');
+      const source = el.shadowRoot!.querySelector<HTMLSelectElement>('select.source')!;
+      source.value = 'Netflix';
+      source.dispatchEvent(new Event('change'));
+      click(el, '.next');
+      // The volume waits 300 ms for more taps before it leaves, so it arrives after the others.
+      await vi.advanceTimersByTimeAsync(300);
+      expect(services(h)).toEqual([
+        ['media_player.volume_mute', { is_volume_muted: true }],
+        ['media_player.select_source', { source: 'Netflix' }],
+        ['media_player.media_next_track', undefined],
+        ['media_player.volume_set', { volume_level: 0.45 }],
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('turns it on and off from its sheet, and shows only the power of a player that is off', async () => {

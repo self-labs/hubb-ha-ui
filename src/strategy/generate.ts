@@ -47,7 +47,12 @@ export function generateDashboard(config: HubbConfig, hass: HomeAssistant): Love
     const { homeLabel } = house;
     // One object for every screen: the alerts strip and the security tab are the same everywhere.
     // A resident's bar offers Cenas only when they have a scene; an administrator's always, to add one.
-    const shared: Shared = { alerts: house.alerts, security: hasSecurity(house), scenes: viewer === null || house.scenes.length > 0 };
+    const shared: Shared = {
+      alerts: house.alerts,
+      security: hasSecurity(house),
+      scenes: viewer === null || house.scenes.length > 0,
+      media: house.rooms.flatMap((r) => r.media.map((m) => m.entityId)),
+    };
     /** Where a tab with nothing for the resident stands: the view keeps its place and sends them home. */
     const away = [{ type: 'custom:hubb-redirect-card' }];
     // Only an administrator gets the review; for a resident its address falls back to the home.

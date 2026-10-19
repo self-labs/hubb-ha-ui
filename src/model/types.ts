@@ -143,6 +143,8 @@ export interface Shared {
   security: boolean;
   /** Whether the bar offers Cenas: always to an administrator, to a resident when they have a scene. */
   scenes: boolean;
+  /** The media players the resident sees in the house: who the sheet offers to play together with. */
+  media?: string[];
 }
 
 export interface SceneItem {

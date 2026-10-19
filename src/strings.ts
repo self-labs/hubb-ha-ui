@@ -561,6 +561,28 @@ export const MEDIA = {
   power: 'Ligar ou desligar',
   turnOn: 'Ligar',
   turnOff: 'Desligar',
+  repeat: 'Repetir',
+  /** The repeat button for a screen reader: "Repetir: desligado", "... todas", "... só esta". */
+  repeatMode: (mode: string): string => `Repetir: ${mode === 'one' ? 'só esta' : mode === 'all' ? 'todas' : 'desligado'}`,
+  shuffle: 'Ordem aleatória',
+  soundMode: 'Equalização',
+  channel: 'Canal',
+  stereo: 'Estéreo',
+  left: 'Esquerdo',
+  right: 'Direito',
+  elapsed: 'Andamento da música',
+  playTogether: 'Tocar junto',
+  allVolume: 'Volume de todas',
+  allLouder: 'Aumentar o volume de todas',
+  allQuieter: 'Diminuir o volume de todas',
+  leaveGroup: 'Sair do grupo',
+  partOf: (leader: string): string => `Faz parte do grupo de ${leader}`,
+  /** "Tocando junto com Cozinha", "... Cozinha e Quarto", "... Cozinha, Quarto e +1". */
+  together: (names: readonly string[]): string => {
+    const shown = names.length > 2 ? [...names.slice(0, 2), `+${names.length - 2}`] : names;
+    const list = shown.length > 1 ? `${shown.slice(0, -1).join(', ')} e ${shown[shown.length - 1]}` : (shown[0] ?? '');
+    return `Tocando junto com ${list}`;
+  },
 } as const;
 
 /** The sizes of a card, as the installer picks them. */

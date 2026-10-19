@@ -31,6 +31,7 @@ describe('the security view', () => {
       alerts: [{ entityId: 'alarm_control_panel.alarme', kind: 'alarm', roomName: null, path: null }],
       security: true,
       scenes: false,
+      media: [],
     });
     expect(views[2]!.cards[0]).toMatchObject({ type: 'custom:hubb-security-screen' });
   });

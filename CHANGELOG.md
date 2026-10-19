@@ -8,6 +8,25 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Added
+
+- **Mídia with the music:** the card shows the cover of what plays and bars that move while it
+  plays (still when the phone asks for less motion), and says "Tocando junto com ..." in a group.
+  The sheet has the cover large, the title and the artist with the album, the time of the song
+  (dragged to seek when the player can), repeat, previous, play, next and shuffle in five fixed
+  places, a volume bar, the sound mode when there is a choice, and **Canal** (Estéreo, Esquerdo,
+  Direito) when the speaker's integration has the channel select (WiiM, `output_channel`).
+- **Spotify on the speaker:** a Spotify player is no longer a card. While it plays on a speaker of
+  the panel, that speaker's card and sheet show its music and send it play, pause and the tracks.
+- **Tocar junto:** the sheet of a speaker lists the other speakers the resident sees, of the same
+  integration, each with a switch that groups them in Home Assistant. A speaker in another group
+  offers only Sair do grupo, naming the leader; the leader adds Volume de todas.
+
+### Fixed
+
+- Quick taps on − or + of the volume went from the volume Home Assistant had not updated yet, so
+  three taps moved it one step. They now add up from the target and leave as one command.
+
 ## [2026.10.15] - 2026-10-16
 
 ### Fixed

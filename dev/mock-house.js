@@ -96,6 +96,27 @@ export function mockHouse(q) {
     supported_features: 1 | 4 | 8 | 16 | 32 | 128 | 256 | 2048 | 16384,
   });
 
+  // Two speakers playing together, the varanda leading; the cover is a made-up drawing.
+  const cover = `data:image/svg+xml,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2a65a"/><stop offset="1" stop-color="#7a3b69"/></linearGradient></defs><rect width="120" height="120" fill="url(#g)"/><circle cx="60" cy="60" r="28" fill="none" stroke="#fff" stroke-width="6" opacity=".85"/></svg>',
+  )}`;
+  const group = ['media_player.varanda_caixa', 'media_player.cozinha_caixa'];
+  const song = {
+    media_title: 'Fim de Tarde',
+    media_artist: 'Banda Imaginária',
+    media_album_name: 'Varanda',
+    entity_picture: cover,
+    media_duration: 214,
+    media_position: 61,
+    media_position_updated_at: new Date().toISOString(),
+    shuffle: false,
+    repeat: 'off',
+    group_members: group,
+    supported_features: 1 | 2 | 4 | 8 | 16 | 32 | 128 | 256 | 16384 | 32768 | 262144 | 524288,
+  };
+  add('media_player.varanda_caixa', 'Caixa', at('varanda'), 'playing', { ...song, volume_level: 0.4, is_volume_muted: false }, { platform: 'wiim' });
+  add('media_player.cozinha_caixa', 'Caixa', at('cozinha'), 'playing', { ...song, volume_level: 0.25, is_volume_muted: false }, { platform: 'wiim' });
+
   // Access and security
   add('cover.entrada_portao', 'Portão', at('entrada'), 'closed', { device_class: 'gate', supported_features: 3 });
   add('lock.entrada_fechadura', 'Fechadura', at('entrada'), 'locked', {});

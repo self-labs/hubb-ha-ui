@@ -1,9 +1,11 @@
 import type { HassEntityState } from '../ha/types';
+import type { MediaView } from '../model/media';
 import { MEDIA, S } from '../strings';
 
 /** Features of a `media_player` (MediaPlayerEntityFeature). */
 export const MEDIA_FEATURE = {
   pause: 1,
+  seek: 2,
   volumeSet: 4,
   mute: 8,
   previous: 16,
@@ -13,16 +15,26 @@ export const MEDIA_FEATURE = {
   volumeStep: 1024,
   source: 2048,
   play: 16384,
+  shuffle: 32768,
+  soundMode: 65536,
+  repeat: 262144,
+  grouping: 524288,
 } as const;
 
-/** What a player is doing, in words: "Tocando · Jornal", "Pausado", "Desligado". */
-export function mediaLine(st: HassEntityState | undefined): string {
+/**
+ * What a player is doing, in words: "Tocando · Jornal · Banda", "Pausado", "Desligado". The music comes
+ * from the view (the speaker, filled in by the Spotify playing on it); the rest from its state.
+ */
+export function mediaLine(view: MediaView, st: HassEntityState | undefined): string {
   if (!st || st.state === 'unavailable') return S.noResponse;
   // An infrared TV before its first command: there is nothing true to say.
   if (st.state === 'unknown') return '';
   const a = st.attributes;
-  const what = [a.media_title, a.app_name, a.source].find((v): v is string => typeof v === 'string' && v.trim() !== '');
-  if (st.state === 'playing') return what ? `${MEDIA.playing} · ${what}` : MEDIA.playing;
+  const what = [view.title, a.app_name, a.source].find((v): v is string => typeof v === 'string' && v.trim() !== '');
+  if (st.state === 'playing') {
+    if (!what) return MEDIA.playing;
+    return view.title && view.artist ? `${MEDIA.playing} · ${view.title} · ${view.artist}` : `${MEDIA.playing} · ${what}`;
+  }
   if (st.state === 'paused') return MEDIA.paused;
   if (st.state === 'off' || st.state === 'standby') return MEDIA.off;
   return typeof a.source === 'string' && a.source ? `${MEDIA.on} · ${a.source}` : MEDIA.on;
