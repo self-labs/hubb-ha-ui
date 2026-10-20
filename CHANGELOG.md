@@ -8,6 +8,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.17] - 2026-10-19
+
 ### Added
 
 - **Canal of each speaker** on the leader's sheet, in Tocar junto, and **Formar par estéreo** for a
@@ -502,7 +504,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.16...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.17...HEAD
+[2026.10.17]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.16...v2026.10.17
 [2026.10.16]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.15...v2026.10.16
 [2026.10.15]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.14...v2026.10.15
 [2026.10.14]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.13...v2026.10.14
