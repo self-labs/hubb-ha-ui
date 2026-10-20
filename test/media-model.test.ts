@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MEDIA_FEATURE, mediaLine } from '../src/actions/media';
 import { classify, classifyContext } from '../src/model/classify';
 import { readConfig } from '../src/model/config';
-import { commandTarget, groupCandidates, groupOf, linkedSpotify, mediaView } from '../src/model/media';
+import { channelSelect, commandTarget, groupCandidates, groupOf, linkedSpotify, mediaView } from '../src/model/media';
 import { area, device, makeHass, type FakeEntity, type FakeHass } from './helpers/fake-hass';
 
 const SPEAKER = MEDIA_FEATURE.pause | MEDIA_FEATURE.play | MEDIA_FEATURE.volumeSet | MEDIA_FEATURE.grouping;
@@ -96,6 +96,20 @@ describe('the group of a speaker', () => {
     expect(groupOf(h, 'media_player.caixa_cozinha')).toEqual({ leader: 'media_player.caixa_sala', members: ['media_player.caixa_sala'] });
   });
 
+  it('names the leader by the role the integration gives, whatever the order of the list', () => {
+    const both = ['media_player.caixa_cozinha', 'media_player.caixa_sala'];
+    const h = house({ sala: { group_members: both, group_role: 'master' }, cozinha: { group_members: both, group_role: 'slave' } });
+    expect(groupOf(h, 'media_player.caixa_sala').leader).toBe('media_player.caixa_sala');
+    expect(groupOf(h, 'media_player.caixa_cozinha').leader).toBe('media_player.caixa_sala');
+  });
+
+  it('finds the channel select on the device of the speaker by its translation key', () => {
+    const channel: FakeEntity = { entity_id: 'select.qualquer_nome', device_id: 'd_sala', platform: 'wiim', translation_key: 'output_channel', state: 'Left', attributes: { options: ['Stereo', 'Left', 'Right'] } };
+    const other: FakeEntity = { entity_id: 'select.caixa_sala_eq', device_id: 'd_sala', platform: 'wiim', translation_key: 'equalizer', state: 'Pop', attributes: {} };
+    expect(channelSelect(house({}, [channel, other]), 'media_player.caixa_sala')).toBe('select.qualquer_nome');
+    expect(channelSelect(house({}, [channel]), 'media_player.caixa_cozinha')).toBeNull();
+  });
+
   it('offers the visible speakers of the same integration that can group', () => {
     const echo: FakeEntity = { entity_id: 'media_player.echo', area_id: 'sala', platform: 'alexa_media', name: 'Echo', state: 'idle', attributes: { supported_features: SPEAKER } };
     const h = house({ sala: { group_members: ['media_player.caixa_sala', 'media_player.caixa_cozinha'] } }, [echo]);
@@ -112,5 +126,22 @@ describe('Spotify on the panel', () => {
     const ctx = classifyContext(h, readConfig(h, {}), undefined);
     expect(classify(h, 'media_player.spotify_lia', ctx).block).toBeNull();
     expect(classify(h, 'media_player.caixa_sala', ctx).block).toBe('media');
+  });
+
+  it('never shows the group player WiiM adds to a leader, which repeats the leader', () => {
+    const master: FakeEntity = {
+      entity_id: 'media_player.caixa_sala_group_master',
+      device_id: 'd_sala',
+      platform: 'wiim',
+      name: 'Caixa Sala Group Master',
+      state: 'playing',
+      attributes: { supported_features: SPEAKER, group_leader: 'Caixa Sala', group_status: 'active' },
+    };
+    const h = house({}, [master]);
+    const ctx = classifyContext(h, readConfig(h, {}), undefined);
+    expect(classify(h, 'media_player.caixa_sala_group_master', ctx).block).toBeNull();
+    // Unavailable it loses its attributes; its id still says what it is.
+    const down = house({}, [{ ...master, state: 'unavailable', attributes: {} }]);
+    expect(classify(down, 'media_player.caixa_sala_group_master', classifyContext(down, readConfig(down, {}), undefined)).block).toBeNull();
   });
 });

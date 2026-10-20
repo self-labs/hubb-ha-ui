@@ -186,8 +186,11 @@ operation.
   `hubb-open-power`.
 - A Spotify `media_player` is never a card (classify drops it): it shows through the speaker whose
   name is its `source`. `Shared.media` carries the players the resident sees, so Tocar junto never
-  offers a speaker hidden for them. The channel select is found by `translation_key ===
-  'output_channel'` on the speaker's device, never by entity id. A paused Spotify only fills a
+  offers a speaker hidden for them. The channel select is found by `channelSelect` (`translation_key
+  === 'output_channel'` on the speaker's device), never by entity id. WiiM's "Group Master" player
+  (attributes `group_leader` and `group_status`) is dropped by classify: WiiM unhides it whenever a
+  group forms. A member's sheet reads and commands the leader (`group_role: master`), whose copy on
+  the member goes stale. A paused Spotify only fills a
   speaker that is paused too. `volumeTarget(hass, id)` keeps one target per speaker (keyed by
   `callService`), shared by the sheet and Volume de todas; closing the sheet sends a level still
   gathering instead of dropping it.

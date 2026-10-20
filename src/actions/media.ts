@@ -39,3 +39,8 @@ export function mediaLine(view: MediaView, st: HassEntityState | undefined): str
   if (st.state === 'off' || st.state === 'standby') return MEDIA.off;
   return typeof a.source === 'string' && a.source ? `${MEDIA.on} · ${a.source}` : MEDIA.on;
 }
+
+/** A channel option of the WiiM select in the words of the house; an unknown one as it comes. */
+export function channelWord(option: string): string {
+  return option === 'Stereo' ? MEDIA.stereo : option === 'Left' ? MEDIA.left : option === 'Right' ? MEDIA.right : option;
+}

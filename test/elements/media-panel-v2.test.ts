@@ -223,6 +223,13 @@ describe('the media sheet', () => {
     expect(group.visible).toEqual(['media_player.caixa_sala', 'media_player.caixa_cozinha']);
   });
 
+  it('fits a phone: a smaller cover and no status word under the music', async () => {
+    const el = await mount(speaker({ entity_picture: '/api/capa.jpg', media_title: 'Música' }));
+    expect($(el, '.now')).toBeNull();
+    const css = ([] as unknown[]).concat(HubbMediaPanel.styles).map((s) => (s as { cssText: string }).cssText).join('\n');
+    expect(css).toMatch(/\.cover\s*\{[^}]*width: min\(180px/);
+  });
+
   it('centres the controls and the volume on one axis', () => {
     const css = ([] as unknown[]).concat(HubbMediaPanel.styles).map((s) => (s as { cssText: string }).cssText).join('\n');
     expect(css).toMatch(/\.controls\s*\{[^}]*justify-content: center/);

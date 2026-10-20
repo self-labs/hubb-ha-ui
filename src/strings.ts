@@ -576,6 +576,9 @@ export const MEDIA = {
   allLouder: 'Aumentar o volume de todas',
   allQuieter: 'Diminuir o volume de todas',
   leaveGroup: 'Sair do grupo',
+  stereoPair: 'Formar par estéreo',
+  /** The channel select of one speaker of the group, for a screen reader. */
+  channelOf: (name: string): string => `Canal de ${name}`,
   partOf: (leader: string): string => `Faz parte do grupo de ${leader}`,
   /** "Tocando junto com Cozinha", "... Cozinha e Quarto", "... Cozinha, Quarto e +1". */
   together: (names: readonly string[]): string => {

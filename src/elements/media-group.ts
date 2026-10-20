@@ -1,10 +1,11 @@
 import { mdiMinus, mdiPlus } from '@mdi/js';
 import { LitElement, css, html, nothing } from 'lit';
 import { haptic } from '../actions/haptic';
+import { channelWord } from '../actions/media';
 import { PendingTracker } from '../actions/pending';
 import { volumeTarget } from '../actions/volume';
 import type { HomeAssistant } from '../ha/types';
-import { groupCandidates, groupOf } from '../model/media';
+import { channelSelect, groupCandidates, groupOf } from '../model/media';
 import { displayName } from '../model/names';
 import { MEDIA } from '../strings';
 import { define } from './define';
@@ -57,14 +58,46 @@ export class HubbMediaGroup extends LitElement {
     this.#wake = null;
   }
 
-  #call(service: string, target: string, data?: Record<string, unknown>): void {
+  #call(service: string, target: string, data?: Record<string, unknown>, domain = 'media_player'): void {
     haptic('light');
-    this.hass?.callService('media_player', service, data, { entity_id: target }).catch(() => haptic('failure'));
+    this.hass?.callService(domain, service, data, { entity_id: target }).catch(() => haptic('failure'));
+  }
+
+  #setChannel(speakerId: string, option: string): void {
+    const select = this.hass ? channelSelect(this.hass, speakerId) : null;
+    if (select) this.#call('select_option', select, { option }, 'select');
+  }
+
+  /** A speaker alone on one side plays half the music: whoever ends up alone goes back to stereo. */
+  #backToStereo(speakerId: string): void {
+    const select = this.hass ? channelSelect(this.hass, speakerId) : null;
+    const st = select ? this.hass!.states[select] : undefined;
+    const options = st?.attributes.options;
+    if (st && st.state !== 'Stereo' && Array.isArray(options) && options.includes('Stereo')) this.#setChannel(speakerId, 'Stereo');
+  }
+
+  /**
+   * `speakerId` leaves the group `leader` leads. Once Home Assistant takes the unjoin, it goes back to
+   * stereo, and so does the leader when nobody else stays: the speakers already leaving (a switch
+   * waiting on Home Assistant) do not count, since `group_members` still lists them.
+   */
+  #leave(speakerId: string, leader: string): void {
+    const hass = this.hass;
+    if (!hass) return;
+    const staying = groupOf(hass, leader).members.filter((m) => m !== speakerId && this.#pending.expected(m) !== 'off');
+    haptic('light');
+    hass
+      .callService('media_player', 'unjoin', undefined, { entity_id: speakerId })
+      .then(() => {
+        this.#backToStereo(speakerId);
+        if (!staying.length) this.#backToStereo(leader);
+      })
+      .catch(() => haptic('failure'));
   }
 
   #toggle(id: string, joined: boolean): void {
     this.#pending.start(id, joined ? 'off' : 'on');
-    if (joined) this.#call('unjoin', id);
+    if (joined) this.#leave(id, this.entityId);
     else this.#call('join', this.entityId, { group_members: [id] });
     this.requestUpdate();
   }
@@ -96,25 +129,37 @@ export class HubbMediaGroup extends LitElement {
     if (leader !== null && leader !== this.entityId) {
       return html`<p class="label">${MEDIA.playTogether}</p>
         <p class="part">${MEDIA.partOf(displayName(hass, leader, null))}</p>
-        <button class="leave" @click=${() => this.#call('unjoin', this.entityId)}>${MEDIA.leaveGroup}</button>`;
+        <button class="leave" @click=${() => this.#leave(this.entityId, leader)}>${MEDIA.leaveGroup}</button>`;
     }
     const candidates = groupCandidates(hass, this.entityId, this.visible);
     // A leader keeps the section for its group even when the resident sees none of the others.
     if (!candidates.length && !members.length) return nothing;
     const group = [this.entityId, ...members];
+    const settled = members.every((m) => this.#pending.expected(m) === null);
+    const pair = members.length === 1 && settled && candidates.some((c) => c.entityId === members[0]) ? this.#pairOf(hass, members[0]!) : null;
     return html`<p class="label">${MEDIA.playTogether}</p>
       ${candidates.length ? html`<ul class="members">
         ${candidates.map((c) => {
           const status = this.#pending.status(c.entityId, c.joined ? 'on' : 'off');
           const on = status === 'pending' ? this.#pending.expected(c.entityId) === 'on' : c.joined;
+          const channel = c.joined ? channelSelect(hass, c.entityId) : null;
           return html`<li class="member">
-            <span class="words"><span class="name">${c.name}</span>${c.areaName ? html`<span class="area">${c.areaName}</span>` : nothing}</span>
-            <button class="switch ${on ? 'on' : ''}" role="switch" aria-checked=${on ? 'true' : 'false'} aria-label=${c.areaName ? `${c.name}, ${c.areaName}` : c.name} @click=${() => this.#toggle(c.entityId, on)}>
-              <i></i>
-            </button>
+            <div class="row">
+              <span class="words"><span class="name">${c.name}</span>${c.areaName ? html`<span class="area">${c.areaName}</span>` : nothing}</span>
+              <button class="switch ${on ? 'on' : ''}" role="switch" aria-checked=${on ? 'true' : 'false'} aria-label=${c.areaName ? `${c.name}, ${c.areaName}` : c.name} @click=${() => this.#toggle(c.entityId, on)}>
+                <i></i>
+              </button>
+            </div>
+            ${channel ? this.#channelField(hass, c.entityId, c.name, channel) : nothing}
           </li>`;
         })}
       </ul>` : nothing}
+      ${pair
+        ? html`<button class="pair" @click=${() => {
+            this.#setChannel(this.entityId, 'Left');
+            this.#setChannel(pair, 'Right');
+          }}>${MEDIA.stereoPair}</button>`
+        : nothing}
       ${members.length
         ? html`<div class="all">
             <span>${MEDIA.allVolume}</span>
@@ -122,6 +167,23 @@ export class HubbMediaGroup extends LitElement {
             <button class="round all-louder" aria-label=${MEDIA.allLouder} @click=${() => this.#stepAll(group, 1)}>${icon(mdiPlus)}</button>
           </div>`
         : nothing}`;
+  }
+
+  /** The one other speaker of a two-speaker group, when both have a channel and are not a pair yet, either way round. */
+  #pairOf(hass: HomeAssistant, other: string): string | null {
+    const mine = channelSelect(hass, this.entityId);
+    const theirs = channelSelect(hass, other);
+    if (!mine || !theirs) return null;
+    const sides = `${hass.states[mine]?.state}/${hass.states[theirs]?.state}`;
+    return sides === 'Left/Right' || sides === 'Right/Left' ? null : other;
+  }
+
+  #channelField(hass: HomeAssistant, speakerId: string, name: string, select: string) {
+    const st = hass.states[select]!;
+    const options = Array.isArray(st.attributes.options) ? st.attributes.options.filter((o): o is string => typeof o === 'string') : [];
+    return html`<select class="member-channel" aria-label=${MEDIA.channelOf(name)} @change=${(e: Event) => this.#setChannel(speakerId, (e.target as HTMLSelectElement).value)}>
+      ${options.map((o) => html`<option value=${o} ?selected=${o === st.state}>${channelWord(o)}</option>`)}
+    </select>`;
   }
 
   static styles = css`
@@ -147,13 +209,46 @@ export class HubbMediaGroup extends LitElement {
     }
     .member,
     .all {
-      display: flex;
-      align-items: center;
-      gap: 10px;
       min-height: 52px;
       padding: 0 12px;
       border-radius: 12px;
       background: var(--hubb-surface);
+    }
+    .row,
+    .all {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .row {
+      min-height: 52px;
+    }
+    .member-channel {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 44px;
+      margin: 0 0 10px;
+      padding: 0 12px;
+      border: 1.5px solid color-mix(in srgb, var(--hubb-text-2) 35%, transparent);
+      border-radius: 12px;
+      background: var(--hubb-surface-2);
+      color: var(--hubb-text);
+      font-family: var(--hubb-font);
+      font-size: 16px;
+    }
+    .pair {
+      all: unset;
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 48px;
+      margin-top: 6px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: var(--hubb-surface-2);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
     }
     .words {
       flex: 1;
@@ -236,6 +331,8 @@ export class HubbMediaGroup extends LitElement {
       cursor: pointer;
     }
     .switch:focus-visible,
+    .pair:focus-visible,
+    .member-channel:focus-visible,
     .round:focus-visible,
     .leave:focus-visible {
       outline: 2px solid var(--hubb-focus);

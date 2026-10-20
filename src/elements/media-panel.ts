@@ -17,9 +17,9 @@ import {
 import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
 import { has } from '../actions/climate';
 import { haptic } from '../actions/haptic';
-import { MEDIA_FEATURE, mediaLine } from '../actions/media';
+import { MEDIA_FEATURE, channelWord, mediaLine } from '../actions/media';
 import { volumeTarget } from '../actions/volume';
-import { commandTarget, mediaView, type MediaView } from '../model/media';
+import { channelSelect, commandTarget, groupOf, mediaView, type MediaView } from '../model/media';
 import { isInfrared } from '../ha/infrared';
 import type { HassEntityState, HomeAssistant } from '../ha/types';
 import { MEDIA, S } from '../strings';
@@ -28,9 +28,6 @@ import { icon } from './icon';
 import './media-group';
 import './media-progress';
 
-/** The channel select the WiiM integration gives a speaker (pywiim `output_channel`), and its words. */
-const CHANNEL_KEY = 'output_channel';
-const CHANNEL_WORDS: Readonly<Record<string, string>> = { Stereo: MEDIA.stereo, Left: MEDIA.left, Right: MEDIA.right };
 const NEXT_REPEAT: Readonly<Record<string, string>> = { off: 'all', all: 'one', one: 'off' };
 
 /**
@@ -71,39 +68,27 @@ export class HubbMediaPanel extends LitElement {
     this.hass?.callService(domain, service, data, { entity_id: target }).catch(() => haptic('failure'));
   }
 
-  /** The channel select on the speaker's device, when its integration has one. */
-  #channel(hass: HomeAssistant): string | null {
-    const deviceId = hass.entities[this.entityId]?.device_id;
-    if (!deviceId) return null;
-    const found = Object.values(hass.entities).find(
-      (e) => e.device_id === deviceId && e.entity_id.startsWith('select.') && e.translation_key === CHANNEL_KEY && hass.states[e.entity_id],
-    );
-    return found?.entity_id ?? null;
-  }
-
   render() {
     const hass = this.hass;
     const st = hass?.states[this.entityId];
     if (!hass || !st) return nothing;
     if (st.state === 'unavailable') return html`<p class="now">${S.noResponse}</p>`;
-    const view = mediaView(hass, this.entityId);
+    // A member plays what its leader plays: the music, the repeat and the tracks are the leader's,
+    // whose copy on the member goes stale (seen on WiiM). Volume, channel and power stay its own.
+    const { leader } = groupOf(hass, this.entityId);
+    const member = leader !== null && leader !== this.entityId;
+    const view = mediaView(hass, member ? leader : this.entityId);
     const on = !['off', 'standby', 'unknown'].includes(st.state);
     const power = on ? has(st, MEDIA_FEATURE.turnOff) : has(st, MEDIA_FEATURE.turnOn);
     const music = on && view.title !== null;
-    return html`${music ? this.#music(view) : nothing}
-      <p class="now">${music ? this.#status(st) : mediaLine(view, st)}</p>
+    return html`${music ? this.#music(view) : html`<p class="now">${mediaLine(view, st)}</p>`}
       ${isInfrared(hass, this.entityId) ? html`<p class="infrared">${S.infrared}</p>` : nothing}
-      ${on ? this.#controls(hass, st, view) : nothing}
+      ${on ? this.#controls(hass, st, view, member) : nothing}
       ${power
         ? html`<button class="power ${on ? '' : 'primary'}" @click=${() => this.#call(on ? 'turn_off' : 'turn_on')}>
             ${icon(mdiPower)} ${on ? MEDIA.turnOff : MEDIA.turnOn}
           </button>`
         : nothing}`;
-  }
-
-  /** "Tocando" or "Pausado" under the music, which already says what plays. */
-  #status(st: HassEntityState): string {
-    return st.state === 'playing' ? MEDIA.playing : st.state === 'paused' ? MEDIA.paused : MEDIA.on;
   }
 
   /** The cover, large, then the title, and the artist with the album. */
@@ -126,7 +111,7 @@ export class HubbMediaPanel extends LitElement {
   }
 
   /** What a player that is on offers: progress, the controls, the volume, source, sound mode and channel. */
-  #controls(hass: HomeAssistant, st: HassEntityState, view: MediaView) {
+  #controls(hass: HomeAssistant, st: HassEntityState, view: MediaView, member: boolean) {
     const a = st.attributes;
     const target = (feature: number): string | null => commandTarget(hass, view, feature);
     const level = typeof a.volume_level === 'number' ? a.volume_level : null;
@@ -135,8 +120,9 @@ export class HubbMediaPanel extends LitElement {
     const muted = a.is_volume_muted === true;
     const sources = Array.isArray(a.source_list) ? a.source_list.filter((s): s is string => typeof s === 'string') : [];
     const modes = Array.isArray(a.sound_mode_list) ? a.sound_mode_list.filter((s): s is string => typeof s === 'string') : [];
-    const channel = this.#channel(hass);
-    const playing = st.state === 'playing';
+    const channel = channelSelect(hass, this.entityId);
+    // A member shows the leader's play state, since its play button commands the leader.
+    const playing = (member ? view.state : st.state) === 'playing';
     const repeat = view.repeat ?? 'off';
     const seek = target(MEDIA_FEATURE.seek);
     const slot = (t: string | null, make: (t: string) => TemplateResult) => html`<span class="slot">${t ? make(t) : nothing}</span>`;
@@ -220,7 +206,7 @@ export class HubbMediaPanel extends LitElement {
                 />`
               : nothing}`
         : nothing}
-      ${has(st, MEDIA_FEATURE.source) && sources.length
+      ${!member && has(st, MEDIA_FEATURE.source) && sources.length
         ? html`<label class="field">
             <span>${MEDIA.source}</span>
             <select class="source" @change=${(e: Event) => this.#call('select_source', { source: (e.target as HTMLSelectElement).value })}>
@@ -249,7 +235,7 @@ export class HubbMediaPanel extends LitElement {
     return html`<label class="field">
       <span>${MEDIA.channel}</span>
       <select class="channel" @change=${(e: Event) => this.#call('select_option', { option: (e.target as HTMLSelectElement).value }, channel, 'select')}>
-        ${options.map((o) => html`<option value=${o} ?selected=${o === st.state}>${CHANNEL_WORDS[o] ?? o}</option>`)}
+        ${options.map((o) => html`<option value=${o} ?selected=${o === st.state}>${channelWord(o)}</option>`)}
       </select>
     </label>`;
   }
@@ -264,10 +250,11 @@ export class HubbMediaPanel extends LitElement {
       display: grid;
       justify-items: center;
       gap: 4px;
+      margin-bottom: 6px;
       text-align: center;
     }
     .cover {
-      width: min(240px, 70vw);
+      width: min(180px, 50vw);
       aspect-ratio: 1;
       object-fit: cover;
       border-radius: 16px;
@@ -289,13 +276,6 @@ export class HubbMediaPanel extends LitElement {
       margin: 4px 2px 14px;
       font-size: 18px;
       font-weight: 800;
-    }
-    .music + .now {
-      margin-top: 6px;
-      text-align: center;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--hubb-text-2);
     }
     .infrared {
       margin: 0 0 14px;

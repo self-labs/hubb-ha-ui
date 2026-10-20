@@ -57,6 +57,39 @@ describe('the media card', () => {
     expect($(el, '.icon')).not.toBeNull();
   });
 
+  it('scrolls a line longer than its place, and keeps a short one still', async () => {
+    const el = await mount(house('playing', { media_title: 'Um nome de música bem comprido', media_artist: 'Banda' }));
+    const box = $(el, '.state')!;
+    const text = $(el, '.state .run') as HTMLElement;
+    Object.defineProperty(box, 'clientWidth', { configurable: true, value: 120 });
+    Object.defineProperty(text, 'scrollWidth', { configurable: true, value: 300 });
+    el.hass = house('playing', { media_title: 'Outro nome de música bem comprido', media_artist: 'Banda' });
+    await el.updateComplete;
+    expect(box.classList.contains('scroll')).toBe(true);
+    expect(text.style.getPropertyValue('--shift')).toBe('-180px');
+    Object.defineProperty(text, 'scrollWidth', { configurable: true, value: 100 });
+    el.hass = house('playing', { media_title: 'Curta', media_artist: 'Banda' });
+    await el.updateComplete;
+    expect(box.classList.contains('scroll')).toBe(false);
+    const css = ([] as unknown[]).concat(HubbMediaCard.styles).map((s) => (s as { cssText: string }).cssText).join('\n');
+    // The text is a box of its own, cut with an ellipsis, so a browser can measure it and a still line reads.
+    expect(css).toMatch(/\.state \.run\s*\{[^}]*display: inline-block[^}]*text-overflow: ellipsis/);
+    // A few rounds, then it rests at the start: moving text that never stops is not for everyone.
+    expect(css).toMatch(/\.state\.scroll \.run\s*\{[^}]*animation: hubb-marquee [^;]* 6 alternate/);
+    expect(css).toMatch(/prefers-reduced-motion: reduce\)\s*\{[^}]*\.run[^{]*\{[^}]*animation: none/);
+  });
+
+  it('measures the line again only when it changes, not on every update of the house', async () => {
+    const h = house('playing', { media_title: 'Uma música', media_artist: 'Banda' });
+    const el = await mount(h);
+    const text = $(el, '.state .run') as HTMLElement;
+    let reads = 0;
+    Object.defineProperty(text, 'scrollWidth', { configurable: true, get: () => (reads++, 10) });
+    el.hass = { ...h, states: { ...h.states } };
+    await el.updateComplete;
+    expect(reads).toBe(0);
+  });
+
   it('keeps the icon with no cover', async () => {
     const el = await mount(house('playing'));
     expect($(el, 'img.art')).toBeNull();
@@ -71,7 +104,7 @@ describe('the media card', () => {
     expect(css).toMatch(/prefers-reduced-motion: reduce\)\s*\{[^}]*\.bars i\s*\{[^}]*animation: none/);
   });
 
-  it('says who it plays with', async () => {
+  it('says the music in a group too, and who it plays with on the group mark', async () => {
     const ids = ['media_player.caixa_sala', 'media_player.caixa_cozinha', 'media_player.caixa_quarto', 'media_player.caixa_varanda'];
     const others = [speaker(ids[1]!, 'Caixa Cozinha'), speaker(ids[2]!, 'Caixa Quarto'), speaker(ids[3]!, 'Caixa Varanda')];
     const cases: [number, string][] = [
@@ -80,8 +113,9 @@ describe('the media card', () => {
       [4, 'Tocando junto com Caixa Cozinha, Caixa Quarto e +1'],
     ];
     for (const [n, expected] of cases) {
-      const el = await mount(house('playing', { group_members: ids.slice(0, n) }, others));
-      expect(stateText(el)).toBe(expected);
+      const el = await mount(house('playing', { group_members: ids.slice(0, n), media_title: 'Soul Food', media_artist: 'Plüm' }, others));
+      expect(stateText(el)).toBe('Tocando · Soul Food · Plüm');
+      expect($(el, '.grouped')!.getAttribute('aria-label')).toBe(expected);
       document.body.replaceChildren();
     }
   });

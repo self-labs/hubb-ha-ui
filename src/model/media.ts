@@ -85,12 +85,29 @@ export function commandTarget(hass: HomeAssistant, view: MediaView, feature: num
   return null;
 }
 
-/** The group a speaker is in: its leader (the first of `group_members`) and the others; alone when none. */
+/**
+ * The group a speaker is in: its leader and the others; alone when none. The leader is the one the
+ * integration calls `master` (WiiM's `group_role`), else the first of `group_members`.
+ */
 export function groupOf(hass: HomeAssistant, speakerId: string): { leader: string | null; members: string[] } {
   const raw = hass.states[speakerId]?.attributes.group_members;
   const all = Array.isArray(raw) ? raw.filter((m): m is string => typeof m === 'string') : [];
   if (all.length < 2 || !all.includes(speakerId)) return { leader: null, members: [] };
-  return { leader: all[0]!, members: all.filter((m) => m !== speakerId) };
+  const leader = all.find((m) => hass.states[m]?.attributes.group_role === 'master') ?? all[0]!;
+  return { leader, members: all.filter((m) => m !== speakerId) };
+}
+
+/** The translation key of the channel select the WiiM integration gives a speaker (pywiim `output_channel`). */
+export const CHANNEL_KEY = 'output_channel';
+
+/** The channel select on the speaker's device, found by its translation key, never by its id. */
+export function channelSelect(hass: HomeAssistant, speakerId: string): string | null {
+  const deviceId = hass.entities[speakerId]?.device_id;
+  if (!deviceId) return null;
+  const found = Object.values(hass.entities).find(
+    (e) => e.device_id === deviceId && domainOf(e.entity_id) === 'select' && e.translation_key === CHANNEL_KEY && hass.states[e.entity_id],
+  );
+  return found?.entity_id ?? null;
 }
 
 /**

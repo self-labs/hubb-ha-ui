@@ -189,6 +189,16 @@ export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyCon
   // Browser Mod makes a player for every browser; they are screens, not media of a room. Spotify is the
   // app, not a device of the room: it shows through the speaker it plays on (model/media.ts).
   if (domain === 'media_player' && reg.platform === 'spotify') return { block: null, why: 'unsupported', areaId };
+  // WiiM adds a "Group Master" player to every speaker and shows it while that speaker leads a group:
+  // it repeats the leader, whose sheet already plays the group (Tocar junto). Unavailable, it loses its
+  // attributes, and its id (`<speaker>_group_master`) still says what it is.
+  const groupPlayer = hass.states[entityId]?.attributes ?? {};
+  if (
+    domain === 'media_player' &&
+    (('group_leader' in groupPlayer && 'group_status' in groupPlayer) || (reg.platform === 'wiim' && entityId.endsWith('_group_master')))
+  ) {
+    return { block: null, why: 'unsupported', areaId };
+  }
   if (domain === 'media_player' && reg.platform !== 'browser_mod') return placedAs('media');
   const cls = String(hass.states[entityId]?.attributes.device_class ?? '');
   // Alerts, cameras and alarms belong to the house: they count with or without a room.

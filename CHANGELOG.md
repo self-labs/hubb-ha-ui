@@ -8,6 +8,31 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Added
+
+- **Canal of each speaker** on the leader's sheet, in Tocar junto, and **Formar par estéreo** for a
+  group of two (left on the leader, right on the other).
+- A group mark next to the name of a grouped speaker, which says who it plays with.
+
+### Changed
+
+- The card of a speaker in a group shows the song again, not "Tocando junto com ..."; a line longer
+  than the card scrolls to its end and back (still when the phone asks for less motion).
+- The sheet fits a phone better: a smaller cover and no "Tocando" under the music, which the pause
+  button already says.
+
+### Fixed
+
+- WiiM's "Group Master" player showed as a second card of the leader, with the same music.
+- The sheet of a speaker in someone else's group showed its own stale repeat and shuffle (seen on
+  WiiM: "repeat all" on the member while the leader repeated nothing): its sheet and the play button
+  of its card now show and command the leader's music.
+- The sheet of a member offered its source list, whose choice takes it out of the group.
+- A speaker that left a group kept playing one side only (left or right): it goes back to stereo,
+  and so does a leader left alone.
+- The leader of a group is the one the integration calls `master` (`group_role`), no longer the
+  first speaker of the list.
+
 ## [2026.10.16] - 2026-10-19
 
 ### Added

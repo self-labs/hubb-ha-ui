@@ -100,7 +100,8 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
   state is the last command sent.
 - **Curtains** open, close and stop with a tap; **fans** switch and open their speeds.
 - **TV and sound:** the card shows the cover of what plays (the icon when there is none), bars that
-  move while it plays, and plays, pauses and turns off. The sheet has the cover large, the title and
+  move while it plays, and the song, which scrolls to its end and back when it is longer than the
+  card; it plays, pauses and turns off. The sheet has the cover, the title and
   the artist, the time of the song (drag it when the player can seek), repeat, previous, play, next
   and shuffle in five fixed places, the volume (quick taps add up and leave as one command) with a
   bar, the source, the sound mode, the **Canal** (stereo, left or right) when the speaker's
@@ -109,8 +110,14 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
   the speaker's name), that speaker's card and sheet show the music and send play, pause and the
   tracks to it.
 - **Tocar junto** lists the other speakers the resident sees, of the same integration, each with a
-  switch: Home Assistant groups them (`media_player.join` and `unjoin`). A speaker in someone else's
-  group only offers Sair do grupo; the leader adds Volume de todas, one step on each speaker.
+  switch: Home Assistant groups them (`media_player.join` and `unjoin`), and the card of a grouped
+  speaker shows a group mark that says who it plays with. A speaker in someone else's group plays the
+  leader's music and commands, offers no source (it would leave the group) and only Sair do grupo;
+  the leader adds Volume de todas, one step on each speaker, the **Canal** of each speaker of the
+  group and, with two speakers, **Formar par estéreo** (left on the leader, right on the other). A
+  speaker that ends up alone goes back to stereo.
+- WiiM adds a "Group Master" player to every speaker and shows it while that speaker leads a group;
+  the panel leaves it out, since it repeats the leader.
 
 ### Access and security
 

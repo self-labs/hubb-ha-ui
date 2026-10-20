@@ -1,9 +1,9 @@
-import { mdiPause, mdiPlay, mdiPower, mdiSpeaker, mdiTelevision } from '@mdi/js';
+import { mdiPause, mdiPlay, mdiPower, mdiSpeaker, mdiSpeakerMultiple, mdiTelevision } from '@mdi/js';
 import { LitElement, css, html, nothing } from 'lit';
 import { has } from '../actions/climate';
 import { haptic } from '../actions/haptic';
 import { MEDIA_FEATURE, mediaLine } from '../actions/media';
-import { commandTarget, groupOf, mediaView, type MediaView } from '../model/media';
+import { commandTarget, groupOf, mediaView } from '../model/media';
 import { displayName } from '../model/names';
 import type { HomeAssistant } from '../ha/types';
 import type { MediaItem } from '../model/types';
@@ -37,11 +37,52 @@ export class HubbMediaCard extends LitElement {
     this.hass.callService('media_player', service, undefined, { entity_id: target }).catch(() => haptic('failure'));
   }
 
-  /** The line under the name: who it plays with, when in a group; else what it plays. */
-  #line(hass: HomeAssistant, view: MediaView): string {
-    const { members } = groupOf(hass, view.entityId);
-    if (members.length) return MEDIA.together(members.map((m) => displayName(hass, m, null)));
-    return mediaLine(view, hass.states[view.entityId]);
+  #resize: ResizeObserver | null = null;
+  /** The line on screen, and the one last measured: the house updates often, the song seldom. */
+  #line = '';
+  #fitted: string | null = null;
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.#resize?.disconnect();
+    this.#resize = null;
+  }
+
+  protected updated(): void {
+    if (this.#line !== this.#fitted) {
+      this.#fitted = this.#line;
+      this.#fit(true);
+    }
+    if (!this.#resize && typeof ResizeObserver !== 'undefined') {
+      const box = this.renderRoot.querySelector('.state');
+      if (box) (this.#resize = new ResizeObserver(() => this.#fit(false))).observe(box);
+    }
+  }
+
+  /**
+   * A line longer than its place scrolls to its end and back a few times, like music apps do; a short
+   * one stays. `.run` is an inline block so the browser can measure it; a new song starts the rounds over.
+   */
+  #fit(restart: boolean): void {
+    const box = this.renderRoot.querySelector<HTMLElement>('.state');
+    const run = box?.querySelector<HTMLElement>('.run');
+    if (!box || !run) return;
+    const over = run.scrollWidth - box.clientWidth;
+    box.classList.toggle('scroll', over > 0);
+    if (over <= 0) return;
+    run.style.setProperty('--shift', `-${over}px`);
+    run.style.setProperty('--marquee', `${(4 + over / 30).toFixed(1)}s`);
+    if (restart) {
+      run.style.animation = 'none';
+      void run.offsetWidth;
+      run.style.animation = '';
+    }
+  }
+
+  /** Who it plays with, said by the group mark next to the name. */
+  #together(hass: HomeAssistant, entityId: string): string | null {
+    const { members } = groupOf(hass, entityId);
+    return members.length ? MEDIA.together(members.map((m) => displayName(hass, m, null))) : null;
   }
 
   #open = (): void => {
@@ -59,10 +100,16 @@ export class HubbMediaCard extends LitElement {
     const playable = on && (st.state === 'playing' || st.state === 'paused');
     const power = !down && (on ? has(st, MEDIA_FEATURE.turnOff) : has(st, MEDIA_FEATURE.turnOn));
     const tv = st?.attributes.device_class === 'tv' || /tv|televis/i.test(item.name);
-    const view = mediaView(hass, item.entityId);
+    // A member plays what its leader plays, and its play button commands the leader.
+    const { leader } = groupOf(hass, item.entityId);
+    const member = leader !== null && leader !== item.entityId;
+    const view = mediaView(hass, member ? leader : item.entityId);
+    const playing = (member ? view.state : st?.state) === 'playing';
     // Off, a speaker may still report its last cover: the icon says it is off.
     const picture = on && view.picture && view.picture !== this.broken ? view.picture : null;
     const playPause = commandTarget(hass, view, MEDIA_FEATURE.pause) ?? commandTarget(hass, view, MEDIA_FEATURE.play);
+    const together = this.#together(hass, item.entityId);
+    this.#line = mediaLine(view, st);
     return html`<div class="card ${on ? 'on' : ''} ${down ? 'na' : ''}">
       <button class="body" @click=${this.#open}>
         ${picture
@@ -70,13 +117,15 @@ export class HubbMediaCard extends LitElement {
           : html`<span class="icon">${icon(tv ? mdiTelevision : mdiSpeaker)}</span>`}
         <span class="text"
           ><span class="name"
-            >${item.name}${st?.state === 'playing' ? html`<span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>` : nothing}</span
-          ><span class="state">${this.#line(hass, view)}</span></span
+            >${item.name}${together ? html`<span class="grouped" role="img" aria-label=${together} title=${together}>${icon(mdiSpeakerMultiple)}</span>` : nothing}${playing
+              ? html`<span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>`
+              : nothing}</span
+          ><span class="state"><span class="run">${this.#line}</span></span></span
         >
       </button>
       ${playable && playPause
-        ? html`<button class="play round" aria-label=${st!.state === 'playing' ? MEDIA.pause : MEDIA.play} @click=${() => this.#call('media_play_pause', playPause)}>
-            ${icon(st!.state === 'playing' ? mdiPause : mdiPlay)}
+        ? html`<button class="play round" aria-label=${playing ? MEDIA.pause : MEDIA.play} @click=${() => this.#call('media_play_pause', playPause)}>
+            ${icon(playing ? mdiPause : mdiPlay)}
           </button>`
         : nothing}
       ${power
@@ -208,6 +257,47 @@ export class HubbMediaCard extends LitElement {
     }
     .card.on .state {
       color: var(--hubb-amber-text);
+    }
+    .state .run {
+      display: inline-block;
+      max-width: 100%;
+      overflow: hidden;
+      vertical-align: top;
+      text-overflow: ellipsis;
+    }
+    .state.scroll .run {
+      max-width: none;
+      overflow: visible;
+      animation: hubb-marquee var(--marquee, 8s) ease-in-out 6 alternate;
+    }
+    @keyframes hubb-marquee {
+      0%,
+      20% {
+        transform: translateX(0);
+      }
+      80%,
+      100% {
+        transform: translateX(var(--shift, 0));
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .state.scroll .run {
+        animation: none;
+        max-width: 100%;
+        overflow: hidden;
+      }
+    }
+    .grouped {
+      display: inline-grid;
+      place-items: center;
+      margin-left: 6px;
+      vertical-align: -2px;
+      color: var(--hubb-amber-text);
+    }
+    .grouped svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
     }
     .round {
       all: unset;
