@@ -435,6 +435,9 @@ for 5 seconds. "Aplicar sugestões" saves every suggested role together. On a da
 An item with no room gets a **Cômodo** list and **Mover** (choosing alone saves nothing). The choice is
 saved in Home Assistant as the area of that entity, with "Desfazer", and never as the area of its
 device: a relay board is one device for its 16 channels, and an area on the device moves all of them.
+The exception is an entity named after its device, with no name of its own (a one-channel switch, a
+speaker): Home Assistant 2026.10 refuses an area on it, so Mover puts the area on that device, which
+holds nothing else.
 A switch with no room stays out of the list and of the number on the wrench, since a house has dozens
 of system switches; **Mostrar interruptores sem cômodo** lists them by device, so the channels of a
 board get their room the same way, and then wait under "Escolha como mostrar" for their role.

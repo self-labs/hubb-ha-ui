@@ -8,6 +8,13 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Fixed
+
+- **Mover** in Revisar o painel failed on an entity named after its device (a one-channel switch, a
+  speaker): Home Assistant 2026.10 refuses an area on an entity with no name of its own ("set the area
+  on its device instead"). Mover now puts the area on that device, with the same Desfazer; the
+  channels of a relay board, which have their own names, still get the area of the entity.
+
 ## [2026.10.17] - 2026-10-19
 
 ### Added

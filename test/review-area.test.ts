@@ -42,10 +42,10 @@ const SWITCHES: FakeEntity[] = [
 function withRegistry(h: FakeHass, fail = false): Record<string, unknown>[] {
   const writes: Record<string, unknown>[] = [];
   h.callWS = vi.fn(async (msg: Record<string, unknown>) => {
-    if (msg.type === 'config/entity_registry/update') {
+    if (msg.type === 'config/entity_registry/update' || msg.type === 'config/device_registry/update') {
       if (fail) throw new Error('timeout');
       writes.push(msg);
-      return { entity_entry: {} };
+      return msg.type === 'config/entity_registry/update' ? { entity_entry: {} } : {};
     }
     throw new Error(`unexpected ${String(msg.type)}`);
   }) as FakeHass['callWS'];
@@ -129,6 +129,22 @@ describe('choosing the room of an entity in Revisar o painel', () => {
     (toast(el).shadowRoot!.querySelector('.toast button') as HTMLButtonElement).click();
     await flush();
     expect(writes[1]).toEqual({ type: 'config/entity_registry/update', entity_id: 'light.hubb_m1_output01', area_id: null });
+  });
+
+  it('puts a device named after it in the room through the device, which Home Assistant 2026.10 demands', async () => {
+    // A one-channel switch whose entity has no name of its own: Home Assistant refuses an area on it
+    // ("set the area on its device instead"), and moving its device moves nothing else.
+    const sonoff: FakeEntity = { entity_id: 'light.sonoff_varanda', device_id: 'd_sonoff', name: null, state: 'off', attributes: { friendly_name: 'Sonoff Varanda' } };
+    const h = board([sonoff]);
+    h.devices = { ...h.devices, d_sonoff: device('d_sonoff', null, 'Sonoff Varanda') };
+    const writes = withRegistry(h);
+    const el = await mount(h);
+    await move(el, 'Sonoff Varanda', 'quarto');
+    expect(writes).toEqual([{ type: 'config/device_registry/update', device_id: 'd_sonoff', area_id: 'quarto' }]);
+    await toast(el).updateComplete;
+    (toast(el).shadowRoot!.querySelector('.toast button') as HTMLButtonElement).click();
+    await flush();
+    expect(writes[1]).toEqual({ type: 'config/device_registry/update', device_id: 'd_sonoff', area_id: null });
   });
 
   it('leaves the list once Home Assistant has the area, with the focus on the next room list', async () => {
