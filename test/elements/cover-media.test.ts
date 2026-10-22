@@ -108,7 +108,7 @@ describe('media', () => {
   it('says what is on, and plays, pauses and turns it off from the card', async () => {
     const h = tv('playing', { media_title: 'Jornal', app_name: 'Globoplay' });
     const el = await mount<HubbMediaCard>('hubb-media-card', { hass: h, item: { entityId: 'media_player.tv', name: 'TV' } });
-    expect(text(el, '.state')).toBe('Tocando · Jornal');
+    expect(text(el, '.state')).toBe('Jornal');
     click(el, '.play');
     click(el, '.power');
     expect(services(h)).toEqual([

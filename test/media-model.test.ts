@@ -76,9 +76,14 @@ describe('the view of a speaker', () => {
     expect(commandTarget(house(), mediaView(house(), 'media_player.caixa_sala'), MEDIA_FEATURE.next)).toBeNull();
   });
 
-  it('says a line with the artist while playing', () => {
+  it('says the song and the artist while playing, with no "Tocando" before them', () => {
     const h = house({ sala: { media_title: 'Música', media_artist: 'Banda' } });
-    expect(mediaLine(mediaView(h, 'media_player.caixa_sala'), h.states['media_player.caixa_sala'])).toBe('Tocando · Música · Banda');
+    expect(mediaLine(mediaView(h, 'media_player.caixa_sala'), h.states['media_player.caixa_sala'])).toBe('Música · Banda');
+  });
+
+  it('says "Tocando" only when there is nothing else to say: the card already shows it plays (Gustavo, 21/10)', () => {
+    const h = house({ sala: {} });
+    expect(mediaLine(mediaView(h, 'media_player.caixa_sala'), h.states['media_player.caixa_sala'])).toBe('Tocando');
   });
 });
 

@@ -114,7 +114,7 @@ describe('the media card', () => {
     ];
     for (const [n, expected] of cases) {
       const el = await mount(house('playing', { group_members: ids.slice(0, n), media_title: 'Soul Food', media_artist: 'Plüm' }, others));
-      expect(stateText(el)).toBe('Tocando · Soul Food · Plüm');
+      expect(stateText(el)).toBe('Soul Food · Plüm');
       expect($(el, '.grouped')!.getAttribute('aria-label')).toBe(expected);
       document.body.replaceChildren();
     }

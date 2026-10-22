@@ -39,6 +39,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 ### Changed
 
 - On a tablet, a scene with no size chosen is Pequeno (four a row) instead of half the row.
+- A player playing says what plays ("Pieces · KVSH"), not "Tocando" before it: the card already shows
+  it plays. "Tocando" stays only when there is nothing else to say.
 - The display light of an air conditioner reads **Luz do display** on its sheet and in its editor:
   LG ThinQ calls it "Iluminação", which read like the lights of the room.
 - A fan offers its own speeds: 33, 66 and 100% for a fan of three, instead of 25, 50, 75 and 100,

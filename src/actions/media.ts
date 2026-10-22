@@ -22,8 +22,10 @@ export const MEDIA_FEATURE = {
 } as const;
 
 /**
- * What a player is doing, in words: "Tocando · Jornal · Banda", "Pausado", "Desligado". The music comes
- * from the view (the speaker, filled in by the Spotify playing on it); the rest from its state.
+ * What a player is doing, in words: "Jornal · Banda", "Pausado", "Desligado". Playing, it says what
+ * plays and not that it plays: the card already shows it (the pause button, the bars), and "Tocando"
+ * only stays when there is nothing else to say. The music comes from the view (the speaker, filled in
+ * by the Spotify playing on it); the rest from its state.
  */
 export function mediaLine(view: MediaView, st: HassEntityState | undefined): string {
   if (!st || st.state === 'unavailable') return S.noResponse;
@@ -33,7 +35,7 @@ export function mediaLine(view: MediaView, st: HassEntityState | undefined): str
   const what = [view.title, a.app_name, a.source].find((v): v is string => typeof v === 'string' && v.trim() !== '');
   if (st.state === 'playing') {
     if (!what) return MEDIA.playing;
-    return view.title && view.artist ? `${MEDIA.playing} · ${view.title} · ${view.artist}` : `${MEDIA.playing} · ${what}`;
+    return view.title && view.artist ? `${view.title} · ${view.artist}` : what;
   }
   if (st.state === 'paused') return MEDIA.paused;
   if (st.state === 'off' || st.state === 'standby') return MEDIA.off;
