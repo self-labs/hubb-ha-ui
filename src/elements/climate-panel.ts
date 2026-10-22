@@ -9,12 +9,30 @@ import { CLIMATE, S } from '../strings';
 import { define } from './define';
 import './equipment-tile';
 import { icon } from './icon';
+import { unlisted } from './unlisted';
 
 /** The target goes out once the taps on − and + stop for this long. */
 const SEND_AFTER_MS = 800;
 /** The target asked stays on screen at most this long, waiting for Home Assistant to show it. */
 const HOLD_MS = 4000;
-const SPEEDS = [25, 50, 75, 100];
+/** More speeds than this do not fit a row: four of them, spread out, are offered. */
+const MAX_SPEEDS = 6;
+
+/**
+ * The speeds a fan offers, in percent: its own (`percentage_step`, 100 divided by how many it has), each
+ * as Home Assistant reports it (speed 2 of 3 is 66), which every integration takes back as that speed.
+ * A fan that does not say how many it has is continuous: 25, 50, 75 and 100. `near` is half a step:
+ * the speed the fan is at, when its percentage is not one of these.
+ */
+function fanSpeeds(st: HassEntityState): { speeds: number[]; near: number } {
+  const step = Number(st.attributes.percentage_step);
+  const count = step > 0 && step <= 100 ? Math.round(100 / step) : 100;
+  const picked =
+    count <= MAX_SPEEDS
+      ? Array.from({ length: count }, (_, i) => i + 1)
+      : [...new Set([1, 2, 3, 4].map((k) => Math.max(1, Math.round((count * k) / 4))))];
+  return { speeds: picked.map((n) => Math.floor((n * 100) / count)), near: 50 / count };
+}
 
 const TIME_UNITS: ReadonlySet<string> = new Set(['s', 'min', 'h']);
 
@@ -196,10 +214,12 @@ export class HubbClimatePanel extends LitElement {
   #extraSelect(hass: HomeAssistant, x: ClimateExtra) {
     const st = hass.states[x.entityId]!;
     const word = (o: string): string => hass.formatEntityState?.(st, o) ?? o;
+    const options = listOf(st.attributes.options);
     return html`<label class="field">
       <span>${x.name}</span>
       <select class="extra-select" @change=${(e: Event) => this.#extra(hass, 'select', 'select_option', { option: (e.target as HTMLSelectElement).value }, x.entityId)}>
-        ${listOf(st.attributes.options).map((o) => html`<option value=${o} ?selected=${o === st.state}>${word(o)}</option>`)}
+        ${unlisted(st.state, options, word)}
+        ${options.map((o) => html`<option value=${o} ?selected=${o === st.state}>${word(o)}</option>`)}
       </select>
     </label>`;
   }
@@ -240,13 +260,15 @@ export class HubbClimatePanel extends LitElement {
 
   #select(st: HassEntityState, attribute: string, values: [string, string][], service: string, cls: string, label: string) {
     const current = st.attributes[attribute];
-    // A value with no name is still where the device is: showing the first choice instead would lie,
-    // and that choice could then not be picked (no change event).
-    const named = values.some(([v]) => v === current);
+    // A value with no name is still where the device is: "Outra opção", never the first choice.
     return html`<label class="field">
       <span>${label}</span>
       <select class=${cls} @change=${(e: Event) => this.#call(service, { [attribute]: (e.target as HTMLSelectElement).value })}>
-        ${named ? nothing : html`<option value="" disabled selected>${CLIMATE.otherValue}</option>`}
+        ${unlisted(
+          current,
+          values.map(([v]) => v),
+          () => CLIMATE.otherValue,
+        )}
         ${values.map(([v, word]) => html`<option value=${v} ?selected=${v === current}>${word}</option>`)}
       </select>
     </label>`;
@@ -263,12 +285,15 @@ export class HubbClimatePanel extends LitElement {
 
   #fan(st: HassEntityState) {
     if (!has(st, FAN_FEATURE.speed)) return nothing;
+    const { speeds, near } = fanSpeeds(st);
+    if (speeds.length < 2) return nothing;
     const now = Number(st.attributes.percentage);
+    const current = (p: number): boolean => Number.isFinite(now) && Math.abs(p - now) < near;
     return html`<p class="label">${CLIMATE.speed}</p>
       <div class="row">
-        ${SPEEDS.map(
+        ${speeds.map(
           (p) =>
-            html`<button class="speed ${p === now ? 'current' : ''}" aria-pressed=${p === now ? 'true' : 'false'} @click=${() => this.#call('set_percentage', { percentage: p })}>
+            html`<button class="speed ${current(p) ? 'current' : ''}" aria-pressed=${current(p) ? 'true' : 'false'} @click=${() => this.#call('set_percentage', { percentage: p })}>
               ${p}%
             </button>`,
         )}

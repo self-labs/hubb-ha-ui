@@ -40,7 +40,7 @@ describe('what each person sees', () => {
 
   it('still warns the resident of smoke in a room hidden from them, naming it, with no page to open (decision B)', () => {
     expect(buildHouse(resident(), kitnetHidden).alerts).toEqual([
-      { entityId: 'binary_sensor.kitnet_fumaca', kind: 'smoke', roomName: 'Kitnet', path: null },
+      { entityId: 'binary_sensor.kitnet_fumaca', kind: 'smoke', name: 'Fumaça', roomName: 'Kitnet', path: null },
     ]);
   });
 

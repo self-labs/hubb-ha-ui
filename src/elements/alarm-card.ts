@@ -131,7 +131,9 @@ export class HubbAlarmCard extends LitElement {
       this.error = null;
       this.code = `${this.code}${key}`;
     };
-    return html`<p class="code" aria-label=${ALARM.code}>${'•'.repeat(this.code.length)}</p>
+    // A screen reader ignores a label on a paragraph and reads the dots as bullets: it hears the count.
+    return html`<p class="code" aria-hidden="true">${'•'.repeat(this.code.length)}</p>
+      <p class="code-said" role="status">${ALARM.codeLength(this.code.length)}</p>
       <div class="keys">
         ${DIGITS.map((d) => html`<button class="key" data-key=${d} @click=${() => press(d)}>${d}</button>`)}
         <button class="erase" @click=${() => (this.code = this.code.slice(0, -1))}>${ALARM.erase}</button>
@@ -299,6 +301,16 @@ export class HubbAlarmCard extends LitElement {
       text-align: center;
       font-size: 24px;
       letter-spacing: 0.3em;
+    }
+    /* Said, not shown: the dots above are what the eye reads. */
+    .code-said {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
     }
     .keys {
       display: grid;

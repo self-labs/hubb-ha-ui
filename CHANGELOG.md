@@ -8,12 +8,51 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Added
+
+- **Alertas** on the Segurança tab: the smoke, gas, carbon monoxide and leak sensors that are on now,
+  each by its name and room, in red. The strip of an alert with no room leads there, and the tab
+  used to show nothing of it.
+
+### Changed
+
+- The display light of an air conditioner reads **Luz do display** on its sheet and in its editor:
+  LG ThinQ calls it "Iluminação", which read like the lights of the room.
+- A fan offers its own speeds: 33, 66 and 100% for a fan of three, instead of 25, 50, 75 and 100,
+  which matched none of them; a fan with many speeds offers four of them, and one with a single speed
+  none.
+- An air conditioner, a fan, a curtain, a TV, a gate or a lock named only after its room (the device
+  "Sala" in the Sala) shows what it is ("Ar", "Cortina 1"), like lights and outlets do.
+
 ### Fixed
 
 - **Mover** in Revisar o painel failed on an entity named after its device (a one-channel switch, a
   speaker): Home Assistant 2026.10 refuses an area on an entity with no name of its own ("set the area
   on its device instead"). Mover now puts the area on that device, with the same Desfazer; the
   channels of a relay board, which have their own names, still get the area of the entity.
+
+- − and + on a player that does not report its volume set it to 5% or to zero: they now take the
+  player's own step, and the volume bar stays out until the level is known. Volume de todas too.
+- A list of the media sheet (source, sound mode, channel) or a function of an air conditioner with no
+  current value showed its first choice, which then could not be picked; an app on the TV that is not
+  among its inputs shows by its name. A setting of an air conditioner with no value no longer reads
+  "Outra opção".
+- A slide moved forward with the arrow keys kept its place after the focus left it: one press much
+  later opened the gate. Leaving the slide now takes it back.
+- A tap on a curtain closing, when it cannot stop, sent close again and nothing happened: it turns
+  back, as one opening does.
+- While the house is out of reach, the dimmed page and an open sheet still took the keyboard and
+  screen readers, and the sheet took taps: both are out of reach now; the strips, the bar and closing
+  the sheet still work.
+- A Tasmota plug never showed **Hoje**: it has three energy sensors (today, yesterday, total). The
+  one that keeps statistics and only grows is picked.
+- The keypad of the alarm told a screen reader nothing about the code: it now says how many digits
+  it holds ("Código: 2 dígitos").
+- A tap on the alert strip of the page already open stacked a second entry, so the back gesture
+  stayed on the same page.
+- The first badge of the README showed as a broken image inside HACS. HACS rewrites a relative link
+  by prefixing the first `(` of the line, and the badge line ended in `./LICENSE`, so the prefix
+  landed on the first badge's image. The licence badge now links with an absolute URL.
 
 ## [2026.10.17] - 2026-10-19
 

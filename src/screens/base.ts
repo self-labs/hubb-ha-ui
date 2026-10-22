@@ -125,8 +125,10 @@ export abstract class HubbScreen extends LitElement {
       font-family: var(--hubb-font);
       -webkit-font-smoothing: antialiased;
     }
-    /* Out of reach: nothing on screen would answer, so nothing takes a tap. */
-    :host([offline]) main {
+    /* Out of reach: nothing on screen would answer, so nothing takes a tap (and inert, set in
+       updated(), keeps the keyboard and screen readers out too), an open sheet included. */
+    :host([offline]) main,
+    :host([offline]) hubb-sheet > * {
       opacity: 0.45;
       pointer-events: none;
     }
@@ -270,6 +272,13 @@ export abstract class HubbScreen extends LitElement {
       this.#reopened = true;
       this.peopleTarget ??= keptSheet<PeopleTarget>(this.localName);
     } else if (changed.has('peopleTarget')) keepSheet(this.localName, this.peopleTarget);
+  }
+
+  protected updated(changed: PropertyValues<this>): void {
+    super.updated(changed);
+    // Out of reach, the page and what an open sheet holds take no key and reach no screen reader
+    // either; the strips that say so, the bar and closing a sheet still work.
+    for (const el of this.renderRoot.querySelectorAll('main, hubb-sheet > *')) el.toggleAttribute('inert', this.offline);
   }
 
   /** The strips of every screen (alerts, the house out of reach), from the slice the strategy shares. */

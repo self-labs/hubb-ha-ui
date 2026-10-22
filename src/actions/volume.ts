@@ -30,9 +30,13 @@ export class VolumeTarget {
     return this.#target !== null && this.#now() - this.#at < HOLD_MS ? this.#target : null;
   }
 
-  /** One tap of − or +, from the target while it stands, else from `current`. Returns the new target. */
-  step(current: number | null, direction: 1 | -1): number {
-    return this.set((this.#live() ?? current ?? 0) + direction * VOLUME_STEP);
+  /**
+   * One tap of − or +, from the target while it stands, else from `current`. Returns the new target,
+   * or null with nothing to add to: a level never comes from zero, which would drop the music to 5%.
+   */
+  step(current: number | null, direction: 1 | -1): number | null {
+    const from = this.#live() ?? current;
+    return from === null ? null : this.set(from + direction * VOLUME_STEP);
   }
 
   /** A level picked on the bar. Returns it, rounded and kept between 0 and 1. */
@@ -84,4 +88,13 @@ export function volumeTarget(hass: HomeAssistant, entityId: string): VolumeTarge
     byId.set(entityId, target);
   }
   return target;
+}
+
+/**
+ * One tap of − or + on a speaker: added up on its target from the level it reports; a player that
+ * does not say its level takes its own step (`volume_up`, `volume_down`).
+ */
+export function stepVolume(hass: HomeAssistant, entityId: string, level: number | null, direction: 1 | -1): void {
+  if (volumeTarget(hass, entityId).step(level, direction) !== null) return;
+  hass.callService('media_player', direction > 0 ? 'volume_up' : 'volume_down', undefined, { entity_id: entityId }).catch(() => haptic('failure'));
 }

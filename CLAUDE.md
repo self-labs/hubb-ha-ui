@@ -159,7 +159,8 @@ operation.
 - The switches, selects and numbers of a device with an air conditioner on the panel are its
   functions (`classify` gives them `part`): `climateExtras` in `build-house.ts` puts them on its sheet,
   leaving out the power switch (`isPowerTwin`), diagnostics and entities with a role. Names an
-  integration leaves in English get a word in `CLIMATE.extraWords`.
+  integration leaves in English, or that mislead (LG ThinQ's "Iluminação" is the light of the
+  display: "Luz do display"), get a word in `CLIMATE.extraWords`, by translation key or by name.
 - Who sees what is decided in the model, never in a screen: `viewerOf` (`src/model/visibility.ts`)
   is null for an administrator, so nothing is filtered for them; `buildHouse` drops rooms and items
   for the resident looking, `classify` returns `viewer`, `generateDashboard` skips the view. Danger
@@ -180,6 +181,8 @@ operation.
   rule as weak as `.grid > *`.
 - happy-dom miscounts the options Lit renders in a `<select>` (`selectedIndex` lands on the wrong
   one): tests read the `selected` attribute instead.
+- A select of a device starts with `unlisted(...)` (`src/elements/unlisted.ts`): with no value, or one
+  that is none of its choices, the browser would show the first choice, and picking it sends nothing.
 - Block order on a room page is fixed (Acesso, Luzes, Clima, Cortinas, Mídia, Tomadas e
   equipamentos, Aparelhos, Ações, Sensores). The climate, cover, media and consumption sheets are one
   `hubb-sheet.device` opened by `hubb-open-climate`, `hubb-open-cover`, `hubb-open-media` and

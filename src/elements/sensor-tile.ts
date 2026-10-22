@@ -1,4 +1,6 @@
 import {
+  mdiAlert,
+  mdiAlertOutline,
   mdiDoorClosed,
   mdiDoorOpen,
   mdiGarage,
@@ -14,12 +16,15 @@ import { LitElement, css, html, nothing } from 'lit';
 import { degreeSign, degrees } from '../actions/climate';
 import { haptic } from '../actions/haptic';
 import type { HomeAssistant } from '../ha/types';
-import type { SensorItem, SensorKind } from '../model/types';
-import { S, SENSE } from '../strings';
+import type { DangerKind, SensorItem, SensorKind } from '../model/types';
+import { S, SENSE, STRIP } from '../strings';
 import { define } from './define';
 import { icon } from './icon';
 
-const ICONS: Readonly<Record<SensorKind, [on: string, off: string]>> = {
+/** A sensor of a room, or a danger sensor that is on, listed on the security tab. */
+export type TileItem = Omit<SensorItem, 'kind'> & { kind: SensorKind | DangerKind };
+
+const ICONS: Readonly<Record<SensorKind | DangerKind, [on: string, off: string]>> = {
   door: [mdiDoorOpen, mdiDoorClosed],
   window: [mdiWindowOpenVariant, mdiWindowClosedVariant],
   garage_door: [mdiGarageOpen, mdiGarage],
@@ -27,13 +32,19 @@ const ICONS: Readonly<Record<SensorKind, [on: string, off: string]>> = {
   presence: [mdiMotionSensor, mdiMotionSensorOff],
   temperature: [mdiThermometer, mdiThermometer],
   humidity: [mdiWaterPercent, mdiWaterPercent],
+  smoke: [mdiAlert, mdiAlertOutline],
+  gas: [mdiAlert, mdiAlertOutline],
+  carbon_monoxide: [mdiAlert, mdiAlertOutline],
+  moisture: [mdiAlert, mdiAlertOutline],
 };
 
-/** The icon of a door or window sensor in its state, for the chips of the home. */
-export const sensorIcon = (kind: SensorKind, on: boolean): string => ICONS[kind][on ? 0 : 1];
+const DANGER: ReadonlySet<string> = new Set<DangerKind>(['smoke', 'gas', 'carbon_monoxide', 'moisture']);
 
-/** What a sensor reads, in words: "Aberta", "Ocupado", "24,4°", "61%"; null when it says nothing. */
-export function sensorWords(hass: HomeAssistant, item: SensorItem): { text: string; on: boolean } {
+/** The icon of a door or window sensor in its state, for the chips of the home. */
+export const sensorIcon = (kind: SensorKind | DangerKind, on: boolean): string => ICONS[kind][on ? 0 : 1];
+
+/** What a sensor reads, in words: "Aberta", "Ocupado", "24,4°", "61%", "Fumaça detectada". */
+export function sensorWords(hass: HomeAssistant, item: TileItem): { text: string; on: boolean } {
   const st = hass.states[item.entityId];
   if (!st || st.state === 'unavailable' || st.state === 'unknown' || st.state === '') return { text: S.noResponse, on: false };
   if (item.kind === 'temperature' || item.kind === 'humidity') {
@@ -43,6 +54,8 @@ export function sensorWords(hass: HomeAssistant, item: SensorItem): { text: stri
   }
   const on = st.state === 'on';
   if (item.kind === 'presence') return { text: on ? SENSE.occupied : SENSE.free, on };
+  // A danger sensor that went quiet says it in Home Assistant's words: the tab lists only those on.
+  if (DANGER.has(item.kind)) return { text: on ? (STRIP.detected[item.kind] ?? st.state) : (hass.formatEntityState?.(st) ?? st.state), on };
   return { text: (on ? SENSE.openState : SENSE.closedState)[item.kind] ?? st.state, on };
 }
 
@@ -57,7 +70,7 @@ export class HubbSensorTile extends LitElement {
   };
 
   declare hass: HomeAssistant | undefined;
-  declare item: SensorItem | undefined;
+  declare item: TileItem | undefined;
 
   constructor() {
     super();
@@ -76,7 +89,9 @@ export class HubbSensorTile extends LitElement {
     if (!hass || !item) return nothing;
     const { text, on } = sensorWords(hass, item);
     const down = text === S.noResponse;
-    return html`<button class="sensor ${on ? 'on' : ''} ${down ? 'na' : ''}" @click=${this.#open}>
+    // Smoke, gas or a leak is the red of the strip, not the amber of an open door.
+    const alert = on && DANGER.has(item.kind);
+    return html`<button class="sensor ${on ? 'on' : ''} ${alert ? 'alert' : ''} ${down ? 'na' : ''}" @click=${this.#open}>
       <span class="icon">${icon(sensorIcon(item.kind, on))}</span>
       <span class="text"><span class="name">${item.name}</span><span class="state">${text}</span></span>
     </button>`;
@@ -146,6 +161,21 @@ export class HubbSensorTile extends LitElement {
     .sensor.na .state {
       font-size: 12px;
       color: var(--hubb-text-2);
+    }
+    .sensor.alert {
+      background: var(--hubb-alert-bg);
+      color: var(--hubb-alert-ink);
+    }
+    .sensor.alert .icon {
+      background: color-mix(in srgb, var(--hubb-alert-ink) 20%, transparent);
+      color: inherit;
+    }
+    .sensor.alert .state {
+      color: inherit;
+    }
+    /* The focus colour vanishes on the red: the words of the red ring it. */
+    .sensor.alert:focus-visible {
+      outline-color: var(--hubb-alert-ink);
     }
   `;
 }

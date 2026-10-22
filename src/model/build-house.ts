@@ -55,13 +55,23 @@ function sceneDescription(hass: HomeAssistant, entityId: string, hiddenHere: (ar
 
 /**
  * A name that is only the room's (the device "Banheiro" in the Banheiro) says nothing on the room page:
- * the kind of item takes its place, numbered when there are several. A name from the YAML stays.
+ * the kind of item takes its place, numbered when there are several of that kind. A name from the YAML
+ * stays.
  */
-function plainNames(items: { entityId: string; name: string }[], roomName: string, word: string, named: (id: string) => boolean): void {
+function plainNames<T extends { entityId: string; name: string }>(
+  items: T[],
+  roomName: string,
+  word: string | ((item: T) => string),
+  named: (id: string) => boolean,
+): void {
+  const wordOf = (i: T): string => (typeof word === 'string' ? word : word(i));
   const bare = items.filter((i) => !named(i.entityId) && collator.compare(i.name, roomName) === 0);
-  bare.forEach((i, n) => {
-    i.name = bare.length === 1 ? word : `${word} ${n + 1}`;
-  });
+  for (const w of new Set(bare.map(wordOf))) {
+    const same = bare.filter((i) => wordOf(i) === w);
+    same.forEach((i, n) => {
+      i.name = same.length === 1 ? w : `${w} ${n + 1}`;
+    });
+  }
 }
 
 /** An area as a room with nothing in it yet; buildHouse fills it. */
@@ -111,7 +121,7 @@ export function hasSecurity(house: House): boolean {
 }
 
 /**
- * The functions of an air conditioner that its device keeps in entities of their own: Iluminação,
+ * The functions of an air conditioner that its device keeps in entities of their own: Luz do display,
  * Economia de energia, the timers. Each model has its own; the power switch repeats the button of the
  * sheet, and a diagnostic entity or one the installer placed elsewhere is not one of them.
  */
@@ -221,13 +231,13 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
       const path = home?.path ?? null;
       const name = s?.name ?? displayName(hass, entityId, roomName);
       const cls = String(hass.states[entityId]?.attributes.device_class ?? '');
-      if (placed.block === 'alert') alerts.push({ entityId, kind: cls as AlertKind, roomName, path });
+      if (placed.block === 'alert') alerts.push({ entityId, kind: cls as AlertKind, name, roomName, path });
       else if (placed.block === 'camera') {
         if (!securityHidden) cameras.push({ entityId, name, roomName });
       } else if (placed.block === 'alarm') {
         // Decision B: whoever the alarm is hidden for loses its card, never the warning that it went off.
         if (!securityHidden && !ctx.viewerHidden.has(entityId)) alarms.push({ entityId, name });
-        alerts.push({ entityId, kind: 'alarm', roomName: null, path: null });
+        alerts.push({ entityId, kind: 'alarm', name, roomName: null, path: null });
       } else {
         const opening: OpeningItem = { entityId, name, kind: cls as OpeningKind, roomName, path };
         if (!securityHidden) openings.push(opening);
@@ -329,6 +339,10 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     plainNames(room.lights, room.name, S.lightWord, named);
     plainNames(room.outlets, room.name, S.outletWord, named);
     plainNames(room.equipment, room.name, S.equipmentWord, named);
+    plainNames(room.climate, room.name, (c) => (c.kind === 'climate' ? S.climateWord : KIND_LABELS[c.kind]), named);
+    plainNames(room.covers, room.name, KIND_LABELS.cover, named);
+    plainNames(room.media, room.name, KIND_LABELS.media, named);
+    plainNames(room.access, room.name, (a) => (a.kind === 'lock' ? KIND_LABELS.lock : KIND_LABELS.gate), named);
     room.lights.sort(byOrder);
     room.outlets.sort(byOrder);
     room.equipment.sort(byOrder);

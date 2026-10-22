@@ -76,7 +76,11 @@ export class HubbStatusStrips extends LitElement {
     // A roomless alert or the alarm lead to the security tab, where the alarm and the house are; for
     // someone without that tab, the strip only says what happened.
     const target = this.security ? (active[0]?.path ?? 'seguranca') : (active.find((a) => a.path)?.path ?? null);
-    const go = (): void => navigate(`${basePath()}/${target}`);
+    // Already on that page, a tap stacks nothing: the back gesture would land on the same page.
+    const go = (): void => {
+      const path = `${basePath()}/${target}`;
+      if (window.location.pathname !== path) navigate(path);
+    };
     return html`${active.length
       ? html`<div role="alert">
           ${target

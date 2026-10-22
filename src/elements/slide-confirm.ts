@@ -87,6 +87,14 @@ export class HubbSlideConfirm extends LitElement {
     }
   };
 
+  /**
+   * The focus left the slide: the keyboard's progress goes back, like a finger let go before the end,
+   * so a press much later (or by someone else) never finishes three made before.
+   */
+  #blur = (): void => {
+    if (!this.#start) this.progress = 0;
+  };
+
   render() {
     const pct = Math.round(this.progress * 100);
     return html`<div
@@ -99,6 +107,7 @@ export class HubbSlideConfirm extends LitElement {
       aria-valuenow=${pct}
       aria-disabled=${this.disabled ? 'true' : 'false'}
       @keydown=${this.#key}
+      @blur=${this.#blur}
     >
       <span class="fill" style="width: calc((100% - 52px) * ${this.progress} + 52px)"></span>
       <span class="label">${this.label}</span>

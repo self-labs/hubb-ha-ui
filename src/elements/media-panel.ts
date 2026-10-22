@@ -18,7 +18,7 @@ import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
 import { has } from '../actions/climate';
 import { haptic } from '../actions/haptic';
 import { MEDIA_FEATURE, channelWord, mediaLine } from '../actions/media';
-import { volumeTarget } from '../actions/volume';
+import { stepVolume, volumeTarget } from '../actions/volume';
 import { channelSelect, commandTarget, groupOf, mediaView, type MediaView } from '../model/media';
 import { isInfrared } from '../ha/infrared';
 import type { HassEntityState, HomeAssistant } from '../ha/types';
@@ -27,6 +27,7 @@ import { define } from './define';
 import { icon } from './icon';
 import './media-group';
 import './media-progress';
+import { unlisted } from './unlisted';
 
 const NEXT_REPEAT: Readonly<Record<string, string>> = { off: 'all', all: 'one', one: 'off' };
 
@@ -102,11 +103,14 @@ export class HubbMediaPanel extends LitElement {
     </div>`;
   }
 
-  /** − or +: with a level the taps add up on a target; a player with steps only gets one step per tap. */
+  /**
+   * − or +: with a level the taps add up on a target; a player with steps only, or one that does not
+   * say its level, gets one step of its own per tap.
+   */
   #step(direction: 1 | -1, level: number | null, canSet: boolean): void {
     if (!canSet) return this.#call(direction > 0 ? 'volume_up' : 'volume_down');
     haptic('light');
-    volumeTarget(this.hass!, this.entityId).step(level, direction);
+    stepVolume(this.hass!, this.entityId, level, direction);
     this.requestUpdate();
   }
 
@@ -191,13 +195,14 @@ export class HubbMediaPanel extends LitElement {
                   </button>`
                 : nothing}
             </div>
-            ${canSet
-              ? html`<input
+            ${canSet && shown !== null
+              ? // A level nobody reported has no place on the bar: it would show the music at zero.
+                html`<input
                   class="volume-bar"
                   type="range"
                   min="0"
                   max="100"
-                  .value=${String(Math.round((shown ?? 0) * 100))}
+                  .value=${String(Math.round(shown * 100))}
                   aria-label=${MEDIA.volume}
                   @change=${(e: Event) => {
                     volumeTarget(hass, this.entityId).set(Number((e.target as HTMLInputElement).value) / 100);
@@ -210,6 +215,7 @@ export class HubbMediaPanel extends LitElement {
         ? html`<label class="field">
             <span>${MEDIA.source}</span>
             <select class="source" @change=${(e: Event) => this.#call('select_source', { source: (e.target as HTMLSelectElement).value })}>
+              ${unlisted(a.source, sources, (s) => s)}
               ${sources.map((s) => html`<option value=${s} ?selected=${s === a.source}>${s}</option>`)}
             </select>
           </label>`
@@ -218,6 +224,7 @@ export class HubbMediaPanel extends LitElement {
         ? html`<label class="field">
             <span>${MEDIA.soundMode}</span>
             <select class="sound-mode" @change=${(e: Event) => this.#call('select_sound_mode', { sound_mode: (e.target as HTMLSelectElement).value })}>
+              ${unlisted(a.sound_mode, modes, (m) => m)}
               ${modes.map((m) => html`<option value=${m} ?selected=${m === a.sound_mode}>${m}</option>`)}
             </select>
           </label>`
@@ -235,6 +242,7 @@ export class HubbMediaPanel extends LitElement {
     return html`<label class="field">
       <span>${MEDIA.channel}</span>
       <select class="channel" @change=${(e: Event) => this.#call('select_option', { option: (e.target as HTMLSelectElement).value }, channel, 'select')}>
+        ${unlisted(st.state, options, channelWord)}
         ${options.map((o) => html`<option value=${o} ?selected=${o === st.state}>${channelWord(o)}</option>`)}
       </select>
     </label>`;

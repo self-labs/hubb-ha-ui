@@ -85,9 +85,9 @@ describe('M4 house data', () => {
   it('lists the alerts of the house, a roomless one leading to the security tab', () => {
     const built = buildHouse(house(), CONFIG);
     expect(built.alerts).toEqual([
-      { entityId: 'alarm_control_panel.alarme', kind: 'alarm', roomName: null, path: null },
-      { entityId: 'binary_sensor.fumaca', kind: 'smoke', roomName: 'Cozinha', path: 'cozinha' },
-      { entityId: 'binary_sensor.vazamento', kind: 'moisture', roomName: null, path: null },
+      { entityId: 'alarm_control_panel.alarme', kind: 'alarm', name: 'Alarme', roomName: null, path: null },
+      { entityId: 'binary_sensor.fumaca', kind: 'smoke', name: 'Fumaça', roomName: 'Cozinha', path: 'cozinha' },
+      { entityId: 'binary_sensor.vazamento', kind: 'moisture', name: 'Vazamento', roomName: null, path: null },
     ]);
   });
 

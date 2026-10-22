@@ -102,7 +102,7 @@ describe('the final review of who sees what', () => {
     const emptied: HubbConfig = { entities: { 'light.kitnet': { hidden_for: [LIA] } } };
     const h = house(false, [{ entity_id: 'switch.kitnet_velha', area_id: 'kitnet', name: 'Velha', state: 'off' }]);
     const config: HubbConfig = { ...emptied, entities: { ...emptied.entities, 'switch.kitnet_velha': { role: 'hidden' } } };
-    expect(buildHouse(h, config).alerts).toEqual([{ entityId: 'binary_sensor.kitnet_fumaca', kind: 'smoke', roomName: 'Kitnet', path: null }]);
+    expect(buildHouse(h, config).alerts).toEqual([{ entityId: 'binary_sensor.kitnet_fumaca', kind: 'smoke', name: 'Fumaça', roomName: 'Kitnet', path: null }]);
     // A role:hidden item there gives the installer a page, never the resident.
     expect(areaViews(config, h).map((v) => v.path)).toEqual(['vazio-1', 'sala']);
   });

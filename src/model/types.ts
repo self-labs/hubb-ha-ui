@@ -101,12 +101,17 @@ export interface SensorItem {
   pairedWith?: string;
 }
 
-/** What lights the red strip: a smoke, gas, carbon monoxide or leak sensor, or an alarm going off. */
-export type AlertKind = 'smoke' | 'gas' | 'carbon_monoxide' | 'moisture' | 'alarm';
+/** A smoke, gas, carbon monoxide or leak sensor. */
+export type DangerKind = 'smoke' | 'gas' | 'carbon_monoxide' | 'moisture';
+
+/** What lights the red strip: a danger sensor, or an alarm going off. */
+export type AlertKind = DangerKind | 'alarm';
 
 export interface AlertItem {
   entityId: string;
   kind: AlertKind;
+  /** Its name, which says where a sensor with no room is; missing on a dashboard frozen before it came. */
+  name?: string;
   roomName: string | null;
   /** The room page the strip leads to; null leads to the security tab. */
   path: string | null;

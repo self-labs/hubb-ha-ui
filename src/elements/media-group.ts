@@ -3,13 +3,14 @@ import { LitElement, css, html, nothing } from 'lit';
 import { haptic } from '../actions/haptic';
 import { channelWord } from '../actions/media';
 import { PendingTracker } from '../actions/pending';
-import { volumeTarget } from '../actions/volume';
+import { stepVolume, volumeTarget } from '../actions/volume';
 import type { HomeAssistant } from '../ha/types';
 import { channelSelect, groupCandidates, groupOf } from '../model/media';
 import { displayName } from '../model/names';
 import { MEDIA } from '../strings';
 import { define } from './define';
 import { icon } from './icon';
+import { unlisted } from './unlisted';
 
 /** How long a switch holds what was asked before it follows Home Assistant again. */
 const PENDING_MS = 5000;
@@ -102,14 +103,14 @@ export class HubbMediaGroup extends LitElement {
     this.requestUpdate();
   }
 
-  /** One step for every speaker of the group, each from its own volume. */
+  /** One step for every speaker of the group, each from its own volume (its own step when it does not say it). */
   #stepAll(ids: readonly string[], direction: 1 | -1): void {
     const hass = this.hass;
     if (!hass) return;
     haptic('light');
     for (const id of ids) {
       const level = hass.states[id]?.attributes.volume_level;
-      volumeTarget(hass, id).step(typeof level === 'number' ? level : null, direction);
+      stepVolume(hass, id, typeof level === 'number' ? level : null, direction);
       this.#stepped.add(id);
     }
   }
@@ -182,6 +183,7 @@ export class HubbMediaGroup extends LitElement {
     const st = hass.states[select]!;
     const options = Array.isArray(st.attributes.options) ? st.attributes.options.filter((o): o is string => typeof o === 'string') : [];
     return html`<select class="member-channel" aria-label=${MEDIA.channelOf(name)} @change=${(e: Event) => this.#setChannel(speakerId, (e.target as HTMLSelectElement).value)}>
+      ${unlisted(st.state, options, channelWord)}
       ${options.map((o) => html`<option value=${o} ?selected=${o === st.state}>${channelWord(o)}</option>`)}
     </select>`;
   }

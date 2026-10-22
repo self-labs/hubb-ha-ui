@@ -51,6 +51,8 @@ export const S = {
   weather: 'Previsão do tempo',
   outletWord: 'Tomada',
   equipmentWord: 'Equipamento',
+  /** An air conditioner named only after its room: "Ar", as "Ar da sala" already reads. */
+  climateWord: 'Ar',
   noState: 'Sem estado',
   start: 'Início',
   otherFloor: 'Outros',
@@ -167,6 +169,8 @@ export const ALARM = {
   slideDisarm: 'Deslize para desarmar',
   disarm: 'Desarmar',
   code: 'Código',
+  /** What the keypad holds, for a screen reader, which would read the dots as bullets. */
+  codeLength: (n: number): string => (n === 0 ? 'Código vazio' : n === 1 ? 'Código: 1 dígito' : `Código: ${n} dígitos`),
   enterCode: 'Digite o código',
   erase: 'Apagar',
   wrongCode: 'Código incorreto',
@@ -177,6 +181,8 @@ export const POWER = { title: 'Consumo', now: 'Agora', today: 'Hoje' } as const;
 
 /** The security tab. */
 export const SECURITY = {
+  /** The smoke, gas and leak sensors that are on now: where the strip of one with no room leads. */
+  alerts: 'Alertas',
   openNow: 'Abertos agora',
   allClosed: 'Tudo fechado',
   access: 'Acesso',
@@ -467,9 +473,12 @@ export const CLIMATE = {
   timerOff: 'Desligado',
   /**
    * Names of the functions an integration leaves in English, by translation key or by name. LG ThinQ
-   * translates Iluminação and Economia de energia but not its timers; SmartThinQ translates nothing.
+   * translates Economia de energia but not its timers; SmartThinQ translates nothing. The light of the
+   * display is "Iluminação" in LG ThinQ, which reads like the lights of the room (Gustavo, 20/10).
    */
   extraWords: {
+    display_light: 'Luz do display',
+    'iluminação': 'Luz do display',
     sleep_timer_relative_hour_to_stop: 'Modo dormir',
     relative_hour_to_start: 'Ligar daqui a',
     relative_hour_to_stop: 'Desligar daqui a',

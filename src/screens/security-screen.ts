@@ -8,9 +8,10 @@ import '../elements/sensor-tile';
 import { define } from '../elements/define';
 import { icon } from '../elements/icon';
 import '../elements/nav-bar';
-import type { HubbConfig, Security, Shared } from '../model/types';
+import { alertActive } from '../elements/status-strips';
+import type { AlertItem, DangerKind, HubbConfig, Security, Shared } from '../model/types';
 import { hiddenForList } from '../model/visibility';
-import { ALARM, EDIT, S, SECURITY } from '../strings';
+import { ALARM, EDIT, S, SECURITY, STRIP } from '../strings';
 import { openNow } from '../summary';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
@@ -27,7 +28,7 @@ export interface SecurityScreenConfig {
 
 const list = <T>(value: T[] | undefined): T[] => (Array.isArray(value) ? value : []);
 
-/** The security tab: the alarm, what is open in the house, its gates and locks, and the cameras. */
+/** The security tab: the alerts on now, the alarm, what is open in the house, its gates and locks, and the cameras. */
 export class HubbSecurityScreen extends HubbScreen {
   static properties = { config: { attribute: false } };
 
@@ -75,7 +76,11 @@ export class HubbSecurityScreen extends HubbScreen {
     const open = openNow(hass, openings);
     // One that does not answer may be open: no all-clear while any of them says nothing.
     const unread = openings.filter((o) => !['on', 'off'].includes(hass.states[o.entityId]?.state ?? ''));
-    const empty = alarms.length + cameras.length + openings.length + access.length === 0;
+    // The smoke, gas and leaks that are on: the strip of one with no room leads here. The alarm has its card.
+    const alerts = (this.config?.shared?.alerts ?? []).filter(
+      (a): a is AlertItem & { kind: DangerKind } => a.kind !== 'alarm' && alertActive(hass, a),
+    );
+    const empty = alarms.length + cameras.length + openings.length + access.length + alerts.length === 0;
     const options = this.config?.options;
     const editable = this.canEdit(options);
     const editing = editable && isEditing();
@@ -98,6 +103,18 @@ export class HubbSecurityScreen extends HubbScreen {
               </div>`
           : nothing}
         ${empty ? html`<p class="empty"><strong>${SECURITY.empty}</strong></p>` : nothing}
+        ${alerts.length && !editing
+          ? html`<h2>${SECURITY.alerts}</h2>
+              <div class="openings alerts">
+                ${alerts.map(
+                  (a) =>
+                    html`<hubb-sensor-tile
+                      .hass=${hass}
+                      .item=${{ entityId: a.entityId, name: SECURITY.at(a.name ?? STRIP.kind[a.kind] ?? a.kind, a.roomName), kind: a.kind }}
+                    ></hubb-sensor-tile>`,
+                )}
+              </div>`
+          : nothing}
         ${alarms.length
           ? html`<h2>${ALARM.title}</h2>
               <div class="stack">

@@ -28,7 +28,7 @@ describe('the security view', () => {
     const shared = views.map((v) => (v.cards[0] as { shared?: unknown }).shared).filter((s) => s !== undefined);
     expect(shared.every((s) => s === shared[0])).toBe(true);
     expect(shared[0]).toEqual({
-      alerts: [{ entityId: 'alarm_control_panel.alarme', kind: 'alarm', roomName: null, path: null }],
+      alerts: [{ entityId: 'alarm_control_panel.alarme', kind: 'alarm', name: 'Alarme', roomName: null, path: null }],
       security: true,
       scenes: false,
       media: [],

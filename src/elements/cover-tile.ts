@@ -73,7 +73,17 @@ export class HubbCoverTile extends LitElement {
     if (!hass || !item || !st || st.state === 'unavailable') return;
     const moving = st.state === 'opening' || st.state === 'closing';
     const open = st.state === 'open' || (typeof st.attributes.current_position === 'number' && st.attributes.current_position > 0);
-    const service = moving && has(st, COVER_FEATURE.stop) ? 'stop_cover' : open ? 'close_cover' : 'open_cover';
+    // On its way, it stops; one that cannot stop turns back, whatever its position says: asking a
+    // closing curtain to close did nothing.
+    const service = moving
+      ? has(st, COVER_FEATURE.stop)
+        ? 'stop_cover'
+        : st.state === 'closing'
+          ? 'open_cover'
+          : 'close_cover'
+      : open
+        ? 'close_cover'
+        : 'open_cover';
     haptic('light');
     if (service !== 'stop_cover') {
       this.sent = { from: st, word: service === 'open_cover' ? COVER.opening : COVER.closing };

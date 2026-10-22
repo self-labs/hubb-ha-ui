@@ -70,7 +70,7 @@ describe('the functions of an air conditioner that live in entities of their own
     const house = buildHouse(office(), {});
     expect(house.rooms[0]!.climate[0]!.extras).toEqual([
       { entityId: 'switch.ar_economia', name: 'Economia de energia', kind: 'switch' },
-      { entityId: 'switch.ar_iluminacao', name: 'Iluminação', kind: 'switch' },
+      { entityId: 'switch.ar_iluminacao', name: 'Luz do display', kind: 'switch' },
       { entityId: 'number.ar_sleep_timer', name: 'Modo dormir', kind: 'number' },
     ]);
     // They belong to its sheet: no tile in the room, nothing to review.
@@ -81,7 +81,7 @@ describe('the functions of an air conditioner that live in entities of their own
   it('shows them under Mais ajustes, and the installer can leave some out', async () => {
     const el = await panel(office(), { entities: { 'climate.ar': { hide: ['switch.ar_economia'] } } });
     const more = el.shadowRoot!.querySelector('details.more')!;
-    expect([...more.querySelectorAll('hubb-equipment-tile')].map((t) => (t as unknown as { item: { name: string } }).item.name)).toEqual(['Iluminação']);
+    expect([...more.querySelectorAll('hubb-equipment-tile')].map((t) => (t as unknown as { item: { name: string } }).item.name)).toEqual(['Luz do display']);
     expect(texts(more, '.extra-number .name')).toEqual(['Modo dormir']);
     expect(texts(more, '.extra-number .value')).toEqual(['Desligado']);
   });
@@ -93,8 +93,25 @@ describe('the functions of an air conditioner that live in entities of their own
     const el = await panel(h);
     expect([...el.shadowRoot!.querySelectorAll('hubb-equipment-tile')].map((t) => (t as unknown as { item: { name: string } }).item.name)).toEqual([
       'Economia de energia',
-      'Iluminação',
+      'Luz do display',
     ]);
+  });
+
+  it('calls the display light Luz do display, by its key or by the name LG ThinQ gives it, and only on an air conditioner', () => {
+    // No translation key: the name Home Assistant shows is all there is to go by.
+    const h = office('cool', [
+      { entity_id: 'switch.ar_display', device_id: 'd_ar', platform: 'smartthinq_sensors', state: 'on', entity_category: 'config', attributes: { friendly_name: 'Ar do Escritório Display light' } },
+    ]);
+    h.entities['switch.ar_iluminacao']!.translation_key = null;
+    const names = buildHouse(h, {}).rooms[0]!.climate[0]!.extras!.map((x) => x.name);
+    expect(names.filter((n) => n === 'Luz do display')).toHaveLength(2);
+    expect(names).not.toContain('Iluminação');
+    // A light named Iluminação that is not a function of an air conditioner keeps its name.
+    const plain = makeHass({
+      areas: [area('sala', 'Sala')],
+      entities: [{ entity_id: 'light.iluminacao', area_id: 'sala', name: 'Iluminação', state: 'off', attributes: { supported_color_modes: ['onoff'] } }],
+    });
+    expect(buildHouse(plain, {}).rooms[0]!.lights.map((l) => l.name)).toEqual(['Iluminação']);
   });
 
   it('sets a timer with − and +, in the steps of the device', async () => {
@@ -121,7 +138,7 @@ describe('the functions of an air conditioner that live in entities of their own
     document.body.appendChild(editor);
     await editor.updateComplete;
     const toggles = () => [...editor.shadowRoot!.querySelectorAll('.panel-choice')] as HTMLButtonElement[];
-    expect(toggles().map((b) => b.textContent!.trim())).toEqual(['Auto', 'Frio', 'Seco', 'Ventilar', 'Economia de energia', 'Iluminação', 'Modo dormir']);
+    expect(toggles().map((b) => b.textContent!.trim())).toEqual(['Auto', 'Frio', 'Seco', 'Ventilar', 'Economia de energia', 'Luz do display', 'Modo dormir']);
     toggles()[4]!.click();
     await editor.updateComplete;
     let asked: unknown = null;

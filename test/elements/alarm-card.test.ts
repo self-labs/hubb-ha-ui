@@ -61,6 +61,57 @@ describe('hubb-alarm-card', () => {
     expect(text(el, '.code')).toBe('');
   });
 
+  it('asks for the code before arming when the alarm requires it, and arms with a tap when it does not', async () => {
+    const h = alarm('disarmed', { code_format: 'number', code_arm_required: true });
+    const el = await mount(h);
+    expect(el.shadowRoot!.querySelector('.keys')).not.toBeNull();
+    (el.shadowRoot!.querySelector('button.arm') as HTMLButtonElement).click();
+    await el.updateComplete;
+    expect(text(el, '.error')).toBe('Digite o código');
+    expect(calls(h)).toEqual([]);
+    for (const d of ['4', '2']) (el.shadowRoot!.querySelector(`button.key[data-key="${d}"]`) as HTMLButtonElement).click();
+    (el.shadowRoot!.querySelectorAll('button.arm')[1] as HTMLButtonElement).click();
+    await el.updateComplete;
+    expect(calls(h)).toEqual([['alarm_control_panel.alarm_arm_away', { code: '42' }]]);
+    expect(text(el, '.code')).toBe('');
+    document.body.replaceChildren();
+    const free = alarm('disarmed', { code_format: 'number', code_arm_required: false });
+    const el2 = await mount(free);
+    expect(el2.shadowRoot!.querySelector('.keys')).toBeNull();
+    (el2.shadowRoot!.querySelector('button.arm') as HTMLButtonElement).click();
+    expect(calls(free)).toEqual([['alarm_control_panel.alarm_arm_home', undefined]]);
+  });
+
+  it('takes a text code in a hidden field, and empties it when the code is refused', async () => {
+    const h = alarm('armed_away', { code_format: 'text' });
+    h.callService = vi.fn(() => Promise.reject(new Error('Invalid alarm code provided'))) as FakeHass['callService'];
+    const el = await mount(h);
+    const input = el.shadowRoot!.querySelector('input.code-input') as HTMLInputElement;
+    expect(input.type).toBe('password');
+    expect(el.shadowRoot!.querySelector('.keys')).toBeNull();
+    input.value = 'casa';
+    input.dispatchEvent(new Event('input'));
+    await el.updateComplete;
+    (el.shadowRoot!.querySelector('button.disarm') as HTMLButtonElement).click();
+    await flush();
+    await el.updateComplete;
+    expect((h.callService as ReturnType<typeof vi.fn>).mock.calls[0]!.slice(0, 3)).toEqual(['alarm_control_panel', 'alarm_disarm', { code: 'casa' }]);
+    expect(text(el, '.error')).toBe('Código incorreto');
+    expect((el.shadowRoot!.querySelector('input.code-input') as HTMLInputElement).value).toBe('');
+  });
+
+  it('tells a screen reader how many digits the keypad holds, in words, not the dots', async () => {
+    const el = await mount(alarm('armed_home', { code_format: 'number' }));
+    const dots = el.shadowRoot!.querySelector('.code')!;
+    expect(dots.getAttribute('aria-hidden')).toBe('true');
+    expect(dots.hasAttribute('aria-label')).toBe(false);
+    for (const d of ['1', '2']) (el.shadowRoot!.querySelector(`button.key[data-key="${d}"]`) as HTMLButtonElement).click();
+    await el.updateComplete;
+    const said = el.shadowRoot!.querySelector('.code-said')!;
+    expect(said.getAttribute('role')).toBe('status');
+    expect(said.textContent!.trim()).toBe('Código: 2 dígitos');
+  });
+
   it('shows a triggered alarm in red and an unreachable one as Sem resposta', async () => {
     expect((await mount(alarm('triggered'))).shadowRoot!.querySelector('.card.triggered')).not.toBeNull();
     document.body.replaceChildren();

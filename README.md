@@ -1,4 +1,7 @@
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5?logo=home-assistant&logoColor=white)](https://hacs.xyz/) [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.5%2B-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/) [![Release](https://img.shields.io/github/v/release/self-labs/hubb-ha-ui?color=293a44)](https://github.com/self-labs/hubb-ha-ui/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5?logo=home-assistant&logoColor=white)](https://hacs.xyz/) [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.5%2B-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/) [![Release](https://img.shields.io/github/v/release/self-labs/hubb-ha-ui?color=293a44)](https://github.com/self-labs/hubb-ha-ui/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/self-labs/hubb-ha-ui/blob/master/LICENSE)
+
+<!-- Every link on the line above stays absolute. HACS rewrites a relative link by
+prefixing the first "(" of the whole line, which was the first badge's image. -->
 
 # 🏠 Hubb HA UI
 
@@ -93,12 +96,13 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
   has it.
 - **Air conditioner:** what it is doing, the target and the temperature now. Its sheet is compact:
   − and + with the power button, the modes in one row, and ventilation, swing and preset closed under
-  **Mais ajustes**, together with the functions its device keeps in entities of its own (Iluminação,
+  **Mais ajustes**, together with the functions its device keeps in entities of its own (Luz do display,
   Economia de energia, Modo dormir, the timers to turn on and off): each model shows what it has. A
   value no one translated ("MiddleTop1") stays out, and the installer picks which modes, settings and
   functions show. The target moves by whole degrees, like a remote control. An infrared one says its
   state is the last command sent.
-- **Curtains** open, close and stop with a tap; **fans** switch and open their speeds.
+- **Curtains** open, close and stop with a tap; **fans** switch and open their own speeds (33, 66 and
+  100% for a fan of three).
 - **TV and sound:** the card shows the cover of what plays (the icon when there is none), bars that
   move while it plays, and the song, which scrolls to its end and back when it is longer than the
   card; it plays, pauses and turns off. The sheet has the cover, the title and
@@ -144,8 +148,9 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
   script, the last change of a switch). A pulse from the remote control cannot be seen, and a contact
   reads Aberto on a gate stopped halfway: on a controller that turns back after a stop, Fechar then
   opens it. Check that the card says Aberto with the gate open before relying on Fechar.
-- The **Segurança** tab gathers the alarm (arming is a tap; disarming asks for the code, or takes a
-  slide when there is none), the doors and windows open now (as cards, and "Sem resposta" for one that
+- The **Segurança** tab gathers the smoke, gas and leaks on now (where the strip of one with no room
+  leads), the alarm (arming is a tap; disarming asks for the code, or takes a slide when there is
+  none), the doors and windows open now (as cards, and "Sem resposta" for one that
   does not answer: never an all-clear by default), every gate and lock of the house (a cover used as
   the sensor of a gate stays out), and the cameras.
 - **Cameras:** one still image each time the tab opens, never refreshed while it stays open, so a
@@ -212,13 +217,13 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
 | Outlet with a power sensor | Says how much it draws ("Ligada · 120 W"); a long press opens Consumo: Agora and Hoje                                                                          |
 | Arm or disarm the alarm    | Arming is a tap on Em casa, Ausente, Noite or Férias; disarming asks for the code, or takes a slide when the alarm has none                                    |
 | Tap a camera               | Opens the live view in Home Assistant's own window. The still image is taken once, when the tab opens                                                          |
-| Alert strip                | Vibrates once, leads to the room; it stays while the sensor is on                                                                                              |
-| House out of reach         | "Sem conexão com a casa. Tentando de novo…"; the controls dim and take no tap until it is back                                                                 |
+| Alert strip                | Vibrates once, leads to the room (to Segurança, which lists it, when it has none); it stays while the sensor is on                                             |
+| House out of reach         | "Sem conexão com a casa. Tentando de novo…"; the controls dim and take no tap or key, an open sheet included, until it is back                                 |
 | Open a gate or a lock      | Slide to the end ("Deslize para abrir"); letting go earlier does nothing, and a tap never opens. Fechar and Trancar are a tap                                  |
 | Tap an air conditioner     | Opens its sheet: − and + for the temperature, the mode, the ventilation, the swing and the preset it has; the round button turns it on and off                 |
 | Tap a fan                  | Switches it; a long press opens its speeds                                                                                                                     |
-| Tap a curtain              | Opens or closes it, and stops it while it moves; a long press opens Abrir, Parar, Fechar and the position                                                      |
-| Tap a TV or a speaker      | Opens its sheet: cover, time, the controls, volume, source, sound mode, channel, Tocar junto, Ligar or Desligar                                               |
+| Tap a curtain              | Opens or closes it, and stops it while it moves (turns it back when it cannot stop); a long press opens Abrir, Parar, Fechar and the position                  |
+| Tap a TV or a speaker      | Opens its sheet: cover, time, the controls, volume, source, sound mode, channel, Tocar junto, Ligar or Desligar                                                |
 | Infrared device            | Its sheet says the state is the last command sent, not what the device reports                                                                                 |
 | Bulk action or scene       | Runs at once and offers **Desfazer** for 5 s, even on another screen: the lights that changed go back, and a running script stops                              |
 | Back                       | The in-app arrow and the Android back gesture stay in step                                                                                                     |
@@ -374,7 +379,7 @@ These need no role; their class says where they go:
 
 | Entity                                                                 | Shows as                                                                                                                                                                                               |
 | :--------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `binary_sensor` `smoke`, `gas`, `carbon_monoxide`, `moisture`          | The red strip on every screen, with or without a room                                                                                                                                                  |
+| `binary_sensor` `smoke`, `gas`, `carbon_monoxide`, `moisture`          | The red strip on every screen, with or without a room, and a card in Alertas on the security tab while it is on                                                                                        |
 | `binary_sensor` `door`, `window`, `garage_door`, `opening` with a room | A card in Sensores (in edit mode only when it is the `sensor` of a gate of its room), a chip on the home while open, and the security tab. With no room it stays out (the doors of a fridge have none) |
 | `binary_sensor` `motion`, `occupancy`, `presence` with a room          | A card in Sensores, and "Ocupado" on the room card                                                                                                                                                     |
 | `sensor` `temperature`, `humidity` with a room                         | A card in Sensores, and "24° · 61%" under the room name; a dedicated thermometer wins over the one inside an air conditioner                                                                           |
@@ -383,8 +388,9 @@ These need no role; their class says where they go:
 
 The class `problem` raises no alert: integrations use it for device faults. Only a sensor that reads
 `on` counts: one that is down or unknown says nothing. A multi-channel device matches each switch to
-the sensor with the same number at the end (`switch.x_1` with `sensor.x_power_1`); when its switches
-were renamed, name the sensors:
+the sensor with the same number at the end (`switch.x_1` with `sensor.x_power_1`). Several sensors of
+one kind on a plug (Tasmota: energy today, yesterday and total) go by their state class:
+`total_increasing` first, then `total`. When the switches were renamed, name the sensors:
 
 ```yaml
 strategy:
