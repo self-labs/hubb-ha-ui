@@ -1,5 +1,5 @@
 import { mdiCheck, mdiChevronLeft, mdiPencilOutline } from '@mdi/js';
-import { css, html, nothing, type PropertyValues } from 'lit';
+import { css, html, nothing } from 'lit';
 import { putBack, setEntity, setOrders, showEntity } from '../actions/dashboard-config';
 import { setLight } from '../actions/light';
 import { goBack } from '../actions/navigate';
@@ -42,7 +42,6 @@ import { applianceSubheading, roomClimate, roomHeroStatus } from '../summary';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 import { sizeOf, type SizedKind } from '../model/sizes';
-import { keepSheet, keptSheet } from '../sheets';
 
 export interface RoomScreenConfig {
   type: string;
@@ -120,17 +119,10 @@ export class HubbRoomScreen extends HubbScreen {
     this.config = { ...config, room: normalizeRoom(config.room) };
   }
 
-  #reopened = false;
+  static keptSheets = ['dimmer', 'appliance', 'device', 'editingItem'];
 
-  protected willUpdate(changed: PropertyValues<this>): void {
-    super.willUpdate(changed);
-    const area = this.config?.room.areaId;
-    if (!area) return;
-    // The editor of an item survives the rebuild after a "Quem vê" tap: the new page opens it again.
-    if (!this.#reopened) {
-      this.#reopened = true;
-      this.editingItem ??= keptSheet<EditItem>(`hubb-room-screen:${area}`);
-    } else if (changed.has('editingItem')) keepSheet(`hubb-room-screen:${area}`, this.editingItem);
+  protected sheetScope(): string {
+    return this.config?.room.areaId ?? '';
   }
 
   protected scope(): string[] {

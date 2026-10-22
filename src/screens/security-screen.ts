@@ -32,6 +32,8 @@ const list = <T>(value: T[] | undefined): T[] => (Array.isArray(value) ? value :
 export class HubbSecurityScreen extends HubbScreen {
   static properties = { config: { attribute: false } };
 
+  static keptSheets = ['peopleTarget'];
+
   declare config: SecurityScreenConfig | undefined;
 
   constructor() {

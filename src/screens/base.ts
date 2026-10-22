@@ -16,7 +16,7 @@ import type { PeopleChange } from '../elements/people-picker';
 import '../elements/sheet';
 import '../elements/status-strips';
 import '../elements/toast';
-import { keepSheet, keptSheet } from '../sheets';
+import { keepSheet, keptSheet, leaveSheets } from '../sheets';
 
 /** Whose "Quem vê" sheet is open on a tab screen: the tab itself or one of its items. */
 export type PeopleTarget = { kind: 'tab'; tab: TabId; name: string } | { kind: 'entity'; entityId: string; name: string };
@@ -222,6 +222,19 @@ export abstract class HubbScreen extends LitElement {
     super.disconnectedCallback();
     this.#unwatch?.();
     this.#unwatch = null;
+    leaveSheets(this);
+  }
+
+  /**
+   * The properties that hold this screen's open sheets, one per `hubb-sheet` it draws. Each one opens
+   * again on the page Home Assistant rebuilds after a tap; a sheet left out of this list closes on the
+   * first tap that changes a registry (test/sheets-rebuild.test.ts counts them).
+   */
+  static keptSheets: readonly string[] = [];
+
+  /** What tells this screen's sheets apart from another page of the same kind (the room of a room page). */
+  protected sheetScope(): string {
+    return '';
   }
 
   /**
@@ -267,11 +280,14 @@ export abstract class HubbScreen extends LitElement {
       this.offline = this.hass.connected === false;
       latest = this.hass;
     }
-    // The "Quem vê" sheet survives the rebuild after a save: the new screen opens it again.
-    if (!this.#reopened) {
-      this.#reopened = true;
-      this.peopleTarget ??= keptSheet<PeopleTarget>(this.localName);
-    } else if (changed.has('peopleTarget')) keepSheet(this.localName, this.peopleTarget);
+    // The page Home Assistant rebuilt opens the sheets the one it replaced had open.
+    const self = this as unknown as Record<string, unknown>;
+    const key = (name: string): string => `${this.localName}:${this.sheetScope()}:${name}`;
+    for (const name of (this.constructor as typeof HubbScreen).keptSheets) {
+      if (!this.#reopened) self[name] ??= keptSheet(key(name), this);
+      else if ((changed as Map<PropertyKey, unknown>).has(name)) keepSheet(key(name), this, self[name]);
+    }
+    this.#reopened = true;
   }
 
   protected updated(changed: PropertyValues<this>): void {

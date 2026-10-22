@@ -31,6 +31,11 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   on its device instead"). Mover now puts the area on that device, with the same Desfazer; the
   channels of a relay board, which have their own names, still get the area of the entity.
 
+- A sheet closed by itself when a tap inside it made Home Assistant rebuild the page: the switch of
+  **Tocar junto** (the WiiM group player shows itself when speakers join), and any action that
+  changes a registry. Every sheet of the panel (lights on, appliance, dimmer, air conditioner,
+  curtain, media, consumption, editor, Quem vê) now opens again on the rebuilt page, until it is
+  closed.
 - − and + on a player that does not report its volume set it to 5% or to zero: they now take the
   player's own step, and the volume bar stays out until the level is known. Volume de todas too.
 - A list of the media sheet (source, sound mode, channel) or a function of an air conditioner with no

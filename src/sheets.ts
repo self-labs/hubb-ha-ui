@@ -1,24 +1,49 @@
 import { isEditing, onEditingChange } from './editing';
 
 /**
- * The sheet of the edit mode that was open when a save went out, by screen. Home Assistant rebuilds
- * the views after every save and the new screen opens it again, so the installer taps one person
- * after another in "Quem vê" without opening it each time (Gustavo, 15/10). Module state, like the
- * edit mode itself; leaving the edit mode forgets it.
+ * The sheets open on each screen. Home Assistant rebuilds a strategy dashboard after every save and
+ * whenever a registry changes (the WiiM group player hides or shows itself when speakers join), and
+ * the new screen opens the same sheet again: a tap inside a sheet never closes it (Gustavo, 15/10 and
+ * 20/10). Closing it forgets it, and so does leaving the edit mode. Module state, like the edit mode.
  */
-const open = new Map<string, unknown>();
-
-onEditingChange(() => {
-  if (!isEditing()) open.clear();
-});
-
-/** Remembers what `screen` has open, or forgets it when `value` is null. */
-export function keepSheet(screen: string, value: unknown): void {
-  if (value === null || value === undefined) open.delete(screen);
-  else open.set(screen, value);
+interface Kept {
+  value: unknown;
+  /** The screen that has it open now. */
+  owner: object;
+  /** When that screen left the page; null while it is on it. */
+  left: number | null;
 }
 
-/** What `screen` had open before the rebuild, while the edit mode lasts. */
-export function keptSheet<T>(screen: string): T | null {
-  return isEditing() ? ((open.get(screen) as T | undefined) ?? null) : null;
+const kept = new Map<string, Kept>();
+
+/** A screen that comes this soon after the last one left is the same page rebuilt, not a new visit. */
+export const REBUILD_MS = 2000;
+
+onEditingChange(() => {
+  if (!isEditing()) kept.clear();
+});
+
+/** Remembers what `owner` has open under `key`, or forgets it when `value` is null. */
+export function keepSheet(key: string, owner: object, value: unknown): void {
+  if (value === null || value === undefined) kept.delete(key);
+  else kept.set(key, { value, owner, left: null });
+}
+
+/** What the page `owner` replaces had open under `key`; `owner` takes it over. */
+export function keptSheet<T>(key: string, owner: object): T | null {
+  const k = kept.get(key);
+  if (!k) return null;
+  if (k.left !== null && Date.now() - k.left > REBUILD_MS) {
+    kept.delete(key);
+    return null;
+  }
+  k.owner = owner;
+  k.left = null;
+  return k.value as T;
+}
+
+/** `owner` left the page: what it had open waits a moment for the rebuilt page. */
+export function leaveSheets(owner: object): void {
+  const now = Date.now();
+  for (const k of kept.values()) if (k.owner === owner) k.left = now;
 }

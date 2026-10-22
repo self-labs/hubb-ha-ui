@@ -14,7 +14,6 @@ import '../elements/people-picker';
 import type { PeopleChange } from '../elements/people-picker';
 import { loadUsers, type HaUser } from '../actions/people';
 import { staleEntries } from '../model/visibility';
-import { keepSheet, keptSheet } from '../sheets';
 import '../elements/room-card';
 import { sensorIcon } from '../elements/sensor-tile';
 import '../elements/scene-button';
@@ -84,6 +83,8 @@ export class HubbHomeScreen extends HubbScreen {
     peopleRoom: { state: true },
     users: { state: true },
   };
+
+  static keptSheets = ['sheetIds', 'applianceId', 'peopleRoom'];
 
   declare config: HomeScreenConfig | undefined;
   /** Lights that were on when the sheet opened; they stay listed while it is open. */
@@ -170,15 +171,8 @@ export class HubbHomeScreen extends HubbScreen {
     });
   }
 
-  #reopened = false;
-
   protected willUpdate(changed: PropertyValues<this>): void {
     super.willUpdate(changed);
-    // The "Quem vê" sheet of a room survives the rebuild after a save: the new home opens it again.
-    if (!this.#reopened) {
-      this.#reopened = true;
-      this.peopleRoom ??= keptSheet<string>('hubb-home-screen:room');
-    } else if (changed.has('peopleRoom')) keepSheet('hubb-home-screen:room', this.peopleRoom);
     if (this.hass && this.canEdit(this.config?.options) && this.users === null && !this.#loadingUsers) {
       this.#loadingUsers = true;
       void loadUsers(this.hass).then((users) => (this.users = users ?? []));

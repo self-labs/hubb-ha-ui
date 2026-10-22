@@ -171,9 +171,16 @@ operation.
   (`Shared.scenes`, `Shared.security`). Their edit mode shares `peopleSheet`, `hiddenForOf` and
   `hideItem` from `HubbScreen`. The alarm always passes `classify` (its alert reaches everyone);
   `buildHouse` drops only its card for whoever it is hidden for.
-- An open "Quem vê" sheet (and the item editor after a Quem vê tap) is module state in
-  `src/sheets.ts`, keyed by screen: Home Assistant recreates the screens after every save, and the
-  new one opens it again. Leaving the edit mode or closing the sheet forgets it.
+- **A tap inside a sheet never closes it**, unless the maintainer asks for that one by name. Home
+  Assistant regenerates a strategy dashboard after every save and whenever `hass.entities`,
+  `devices`, `areas` or `floors` change (any registry update in the house, such as the WiiM group
+  player hiding itself when speakers join), and the new screens replace the old ones. So every open
+  sheet is module state in `src/sheets.ts`: each screen lists the properties that open its sheets in
+  `static keptSheets` (one per `hubb-sheet` it draws), `HubbScreen.willUpdate` hands them to the
+  rebuilt screen, and only closing the sheet, leaving the edit mode or coming back more than
+  `REBUILD_MS` later forgets them. A new sheet adds its property there; `test/sheets-rebuild.test.ts`
+  counts the sheets of every screen against the list and reopens each one after a rebuild. A new
+  action inside a sheet gets a test that the sheet is still open after the rebuild.
 - The blocks of a room page and the list of Cenas are six-column grids: a card takes 2 (small), 3
   (medium) or all 6 (large) columns through a `size-*` class from `sizeOf` (`src/model/sizes.ts`).
   Cards with buttons or a slide only take the whole row. The span rules name the size class

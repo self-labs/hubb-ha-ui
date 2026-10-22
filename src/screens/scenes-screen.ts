@@ -31,6 +31,8 @@ export interface ScenesScreenConfig {
 export class HubbScenesScreen extends HubbScreen {
   static properties = { config: { attribute: false } };
 
+  static keptSheets = ['peopleTarget'];
+
   declare config: ScenesScreenConfig | undefined;
 
   constructor() {
