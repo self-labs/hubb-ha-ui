@@ -2,6 +2,7 @@ import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { haptic } from '../actions/haptic';
 import { loadUsers, residents, type HaUser } from '../actions/people';
 import type { HomeAssistant } from '../ha/types';
+import type { Place } from '../model/profiles';
 import { hiddenForList } from '../model/visibility';
 import { EDIT } from '../strings';
 import { define } from './define';
@@ -20,6 +21,7 @@ export interface PeopleChange {
 export class HubbPeoplePicker extends LitElement {
   static properties = {
     hass: { attribute: false },
+    place: { attribute: false },
     // Screens build the list on every render: only another list of people counts as a change, so a
     // new state of Home Assistant between two taps does not undo the first one.
     hiddenFor: { attribute: false, hasChanged: (a: unknown, b: unknown) => hiddenForList(a).join() !== hiddenForList(b).join() },
@@ -29,6 +31,8 @@ export class HubbPeoplePicker extends LitElement {
   };
 
   declare hass: HomeAssistant | undefined;
+  /** "Nesta casa" or "Neste local", when only administrators exist. */
+  declare place: Place;
   declare hiddenFor: string[];
   declare users: HaUser[] | null;
   /** Home Assistant did not give the users (a dropped connection): the picker says so. */
@@ -41,6 +45,7 @@ export class HubbPeoplePicker extends LitElement {
   constructor() {
     super();
     this.hass = undefined;
+    this.place = 'home';
     this.hiddenFor = [];
     this.users = null;
     this.failed = false;
@@ -72,7 +77,7 @@ export class HubbPeoplePicker extends LitElement {
     if (this.failed) return html`<p class="hint">${EDIT.usersFailed}</p>`;
     if (this.users === null) return nothing;
     const people = residents(this.users);
-    if (!people.length) return html`<p class="hint">${EDIT.onlyAdmins}</p>`;
+    if (!people.length) return html`<p class="hint">${EDIT.onlyAdmins(this.place)}</p>`;
     // A hidden_for written by hand as text reads as no list: it never breaks the buttons.
     const hidden = this.chosen ?? hiddenForList(this.hiddenFor);
     return html`<div class="people">

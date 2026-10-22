@@ -1,5 +1,7 @@
 import type { HomeAssistant } from '../ha/types';
 import { allLightIds, buildHouse, hasSecurity, newRoom } from '../model/build-house';
+import { PROFILES } from '../model/profiles';
+import { resolveTablet } from '../model/tablet';
 import { viewerOf } from '../model/visibility';
 import type { HubbConfig, Shared } from '../model/types';
 import { REVIEW, S } from '../strings';
@@ -52,6 +54,9 @@ export function generateDashboard(config: HubbConfig, hass: HomeAssistant): Love
       security: hasSecurity(house),
       scenes: viewer === null || house.scenes.length > 0,
       media: house.rooms.flatMap((r) => r.media.map((m) => m.entityId)),
+      // The strategy runs for the user who sees the panel: only their own tablet comes along.
+      tablet: resolveTablet(hass, config, house.rooms, hass.user?.id),
+      place: PROFILES[house.profile].place,
     };
     /** Where a tab with nothing for the resident stands: the view keeps its place and sends them home. */
     const away = [{ type: 'custom:hubb-redirect-card' }];

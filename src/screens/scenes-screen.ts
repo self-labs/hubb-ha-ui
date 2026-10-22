@@ -8,9 +8,10 @@ import '../elements/nav-bar';
 import '../elements/people-picker';
 import '../elements/scene-button';
 import type { HubbConfig, SceneCandidate, SceneItem, Shared } from '../model/types';
-import { defaultSize, sizeOf, sizesFor, type Size } from '../model/sizes';
+import { sizeOf, sizesFor, type Size } from '../model/sizes';
 import { hiddenForList } from '../model/visibility';
 import { EDIT, ROLE_LABELS, S, SIZE_LABELS } from '../strings';
+import { gridSpans, layoutStyles } from '../theme/layout';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 
@@ -57,10 +58,13 @@ export class HubbScenesScreen extends HubbScreen {
     });
   }
 
-  /** How wide a scene is on Cenas, with Desfazer; the default writes no size. */
+  /**
+   * How wide a scene is on Cenas, with Desfazer. Always written: with no size a scene is half a row
+   * on a phone and a quarter on a tablet, so the size picked here would be lost on one of them.
+   */
   #resize(scene: SceneItem, size: Size): void {
     void this.saveChange(EDIT.sizeSaved(scene.name, SIZE_LABELS[size]), async (hass, urlPath) => {
-      const before = await setEntity(hass, urlPath, scene.entityId, { size: size === defaultSize('scene') ? undefined : size });
+      const before = await setEntity(hass, urlPath, scene.entityId, { size });
       return (h) => putBack(h, urlPath, before);
     });
   }
@@ -71,7 +75,7 @@ export class HubbScenesScreen extends HubbScreen {
     const kind = scene.entityId.startsWith('scene.') ? EDIT.fromScene : EDIT.fromScript;
     // A scene and a script often share a name ("Desligar Kitnet"): the sheet says which one.
     const name = twin ? `${scene.name} · ${kind}` : scene.name;
-    const size = sizeOf(options, scene.entityId, 'scene');
+    const size = sizeOf(options, scene.entityId, 'scene', this.screenLayout);
     // In the edit mode every scene takes the row, so its tools fit; its size shows on the buttons.
     return html`<div class="scene-edit">
       <strong>${scene.name}</strong>
@@ -108,7 +112,7 @@ export class HubbScenesScreen extends HubbScreen {
 
   /** A scene off the edit mode: a tile when small (like the home), a row otherwise. */
   #scene(scene: SceneItem) {
-    const size = sizeOf(this.config?.options, scene.entityId, 'scene');
+    const size = sizeOf(this.config?.options, scene.entityId, 'scene', this.screenLayout);
     return html`<hubb-scene-button class="size-${size}" variant=${size === 'small' ? 'tile' : 'row'} .scene=${scene}></hubb-scene-button>`;
   }
 
@@ -170,14 +174,17 @@ export class HubbScenesScreen extends HubbScreen {
       <hubb-nav-bar
         current="scenes"
         home-label=${this.config?.homeLabel ?? S.home}
+        .homeIcon=${this.homeIcon()}
         ?security=${this.config?.shared?.security ?? false}
         .scenes=${this.config?.shared?.scenes ?? true}
-      ></hubb-nav-bar>`;
+      ></hubb-nav-bar>${this.restLayer()}`;
   }
 
   static styles = [
     tokens,
     HubbScreen.baseStyles,
+    layoutStyles,
+    gridSpans,
     HubbScreen.editStyles,
     css`
       h1 {

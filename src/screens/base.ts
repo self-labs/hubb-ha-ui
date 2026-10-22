@@ -4,7 +4,7 @@ import { dashboardPath, putBack, putBackTabs, setEntity, setTabs } from '../acti
 import { haptic } from '../actions/haptic';
 import { runScene } from '../actions/light';
 import { sceneLights, withUndo, type ServiceCall } from '../actions/undo';
-import type { HubbToast } from '../elements/toast';
+import { UNDO, type HubbToast } from '../elements/toast';
 import type { HomeAssistant } from '../ha/types';
 import type { HubbConfig, SceneItem, Shared, TabId } from '../model/types';
 import { SCENE_LABEL } from '../model/classify';
@@ -17,6 +17,11 @@ import '../elements/sheet';
 import '../elements/status-strips';
 import '../elements/toast';
 import { keepSheet, keptSheet, leaveSheets } from '../sheets';
+import { areaNow, layoutNow, onLayoutChange, railHidden, reportArea } from '../layout';
+import { configureRest, isResting, onRestChange, screenShown } from '../actions/rest';
+import '../elements/rest-screen';
+import type { Layout } from '../model/layout';
+import { PLACE_ICON, type Place } from '../model/profiles';
 
 /** Whose "Quem vê" sheet is open on a tab screen: the tab itself or one of its items. */
 export type PeopleTarget = { kind: 'tab'; tab: TabId; name: string } | { kind: 'entity'; entityId: string; name: string };
@@ -33,6 +38,8 @@ export abstract class HubbScreen extends LitElement {
     offline: { type: Boolean, reflect: true },
     editNotice: { state: true },
     peopleTarget: { state: true },
+    screenLayout: { reflect: true, attribute: 'screen-layout' },
+    embedded: { type: Boolean, reflect: true },
   };
 
   declare hass: HomeAssistant | undefined;
@@ -43,8 +50,17 @@ export abstract class HubbScreen extends LitElement {
   declare editNotice: string | null;
   /** The tab or the item whose "Quem vê" sheet is open (Cenas, Segurança). */
   declare peopleTarget: PeopleTarget | null;
+  /** Phone, roomy or wide, from the area of the panel (`src/layout.ts`); the styles key on it. */
+  declare screenLayout: Layout;
+  /** Drawn inside another screen (the room on the wide home): the screen that holds it measures. */
+  declare embedded: boolean;
 
   #unwatch: (() => void) | null = null;
+  #unwatchLayout: (() => void) | null = null;
+  #unwatchRest: (() => void) | null = null;
+  #observer: ResizeObserver | null = null;
+  /** Tells the rest of a wall tablet this screen left the page. */
+  #shown: (() => void) | null = null;
 
   /** The edit mode of a tab screen: the pencil by the title, the hint, and small tool buttons. */
   static editStyles = css`
@@ -125,16 +141,25 @@ export abstract class HubbScreen extends LitElement {
       font-family: var(--hubb-font);
       -webkit-font-smoothing: antialiased;
     }
+    /* Drawn inside another screen (the room on the wide home): the screen around it has the page. */
+    :host([embedded]) {
+      min-height: 0;
+      background: transparent;
+    }
+    :host([embedded]) main {
+      padding-bottom: 24px;
+    }
     /* Out of reach: nothing on screen would answer, so nothing takes a tap (and inert, set in
        updated(), keeps the keyboard and screen readers out too), an open sheet included. */
     :host([offline]) main,
+    :host([offline]) .side,
     :host([offline]) hubb-sheet > * {
       opacity: 0.45;
       pointer-events: none;
     }
     main {
       box-sizing: border-box;
-      max-width: 560px;
+      max-width: var(--hubb-col, 560px);
       margin: 0 auto;
       /* The top is Home Assistant's: its layout already sits below the status bar. Only the
          bottom needs the safe area, because the nav bar is fixed to the viewport. */
@@ -190,6 +215,8 @@ export abstract class HubbScreen extends LitElement {
   #onRunScene = (e: Event): void => {
     const hass = this.hass;
     if (!hass) return;
+    // A room drawn inside the wide home runs its own scene: the home around it must not run it again.
+    e.stopPropagation();
     const scene = (e as CustomEvent<{ scene: SceneItem }>).detail.scene;
     // A scene says which lights it sets, on the panel or not: those, and only those, go back. A script
     // does not say, so the whole panel is the scope, and a still running script is stopped first.
@@ -210,19 +237,91 @@ export abstract class HubbScreen extends LitElement {
     this.offline = false;
     this.editNotice = null;
     this.peopleTarget = null;
+    this.screenLayout = layoutNow();
+    this.embedded = false;
     this.addEventListener('hubb-run-scene', this.#onRunScene);
   }
 
   connectedCallback(): void {
     super.connectedCallback();
     this.#unwatch = onEditingChange(() => this.requestUpdate());
+    this.#unwatchLayout = onLayoutChange(() => this.#applyLayout());
+    this.#unwatchRest = onRestChange(() => this.requestUpdate());
+    if (!this.embedded) {
+      this.#shown = screenShown();
+      // Measured at once, so the first paint already has the right layout; then on every resize.
+      this.#measure();
+      if (typeof ResizeObserver !== 'undefined') {
+        this.#observer = new ResizeObserver(() => this.#measure());
+        this.#observer.observe(this);
+      }
+    }
+    this.#applyLayout();
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.#unwatch?.();
     this.#unwatch = null;
+    this.#unwatchLayout?.();
+    this.#unwatchLayout = null;
+    this.#unwatchRest?.();
+    this.#shown?.();
+    this.#shown = null;
+    this.#unwatchRest = null;
+    this.#observer?.disconnect();
+    this.#observer = null;
     leaveSheets(this);
+  }
+
+  #measure(): void {
+    const r = this.getBoundingClientRect();
+    // Where the screen starts on the page, not on the window: scrolled, its top would go negative.
+    reportArea({ left: r.left, top: r.top + window.scrollY, width: r.width, height: r.height }, window.innerHeight);
+  }
+
+  /** The layout of the panel, and where its area sits for what is fixed to it (bar, sheet, toast). */
+  #applyLayout(): void {
+    this.screenLayout = layoutNow();
+    // The rail put away (wide only): the screen takes its room, and the undo is centred without it.
+    const away = railHidden();
+    this.toggleAttribute('rail-hidden', away);
+    this.style.setProperty('--hubb-rail', away ? '0px' : '84px');
+    const area = areaNow();
+    // Not measured yet (or no layout engine): the fallbacks of the styles take the whole window.
+    for (const [name, value] of [
+      ['--hubb-area-left', area.left],
+      ['--hubb-area-top', area.top],
+      ['--hubb-area-width', area.width],
+    ] as const) {
+      if (area.width > 0) this.style.setProperty(name, `${value}px`);
+      else this.style.removeProperty(name);
+    }
+  }
+
+  /** What the strategy shares with every screen (alerts, the tablet of the viewer); missing on old dashboards. */
+  protected sharedSlice(): Shared | undefined {
+    return (this as unknown as { config?: { shared?: Shared } }).config?.shared;
+  }
+
+  /** A home or a business, after the profile of the dashboard; a home on dashboards frozen before it came. */
+  protected place(): Place {
+    return this.sharedSlice()?.place === 'business' ? 'business' : 'home';
+  }
+
+  /** The icon of the first tab of the bar: a house, or a building for a business. */
+  protected homeIcon(): string {
+    return PLACE_ICON[this.place()];
+  }
+
+  /**
+   * The rest screen of a wall tablet, over the page while it rests (src/actions/rest.ts); `line` is the
+   * summary of the house, which the home hands it (resting always opens the home).
+   */
+  protected restLayer(line = '', weather: string | null = null) {
+    return !this.embedded && isResting()
+      ? html`<hubb-rest-screen .hass=${this.hass} .line=${line} .weatherId=${weather}></hubb-rest-screen>`
+      : nothing;
   }
 
   /**
@@ -235,6 +334,12 @@ export abstract class HubbScreen extends LitElement {
   /** What tells this screen's sheets apart from another page of the same kind (the room of a room page). */
   protected sheetScope(): string {
     return '';
+  }
+
+  /** Whether one of its sheets is open: a property of `keptSheets` holds something. */
+  hasOpenSheet(): boolean {
+    const self = this as unknown as Record<string, unknown>;
+    return (this.constructor as typeof HubbScreen).keptSheets.some((k) => self[k] !== null && self[k] !== undefined && self[k] !== false);
   }
 
   /**
@@ -279,6 +384,8 @@ export abstract class HubbScreen extends LitElement {
       this.theme = this.hass.themes.darkMode ? 'dark' : 'light';
       this.offline = this.hass.connected === false;
       latest = this.hass;
+      // The screen on show hands the rest of a wall tablet its user's tablet and the newest hass.
+      if (!this.embedded) configureRest(this.sharedSlice()?.tablet ?? null, this.hass);
     }
     // The page Home Assistant rebuilt opens the sheets the one it replaced had open.
     const self = this as unknown as Record<string, unknown>;
@@ -294,12 +401,17 @@ export abstract class HubbScreen extends LitElement {
     super.updated(changed);
     // Out of reach, the page and what an open sheet holds take no key and reach no screen reader
     // either; the strips that say so, the bar and closing a sheet still work.
-    for (const el of this.renderRoot.querySelectorAll('main, hubb-sheet > *')) el.toggleAttribute('inert', this.offline);
+    for (const el of this.renderRoot.querySelectorAll('main, .side, .hero .actions, hubb-sheet > *')) el.toggleAttribute('inert', this.offline);
   }
 
   /** The strips of every screen (alerts, the house out of reach), from the slice the strategy shares. */
   protected strips(shared: Shared | undefined) {
-    return html`<hubb-status-strips .hass=${this.hass} .alerts=${shared?.alerts ?? []} .security=${shared?.security ?? true}></hubb-status-strips>`;
+    return html`<hubb-status-strips
+      .hass=${this.hass}
+      .alerts=${shared?.alerts ?? []}
+      .security=${shared?.security ?? true}
+      .place=${this.place()}
+    ></hubb-status-strips>`;
   }
 
   /** The ids `hidden_for` holds for a tab or an item, from the configuration of the dashboard. */
@@ -323,6 +435,7 @@ export abstract class HubbScreen extends LitElement {
             target.kind === 'tab' ? `tab:${target.tab}` : target.entityId,
             html`<hubb-people-picker
               .hass=${this.hass}
+              .place=${this.place()}
               .hiddenFor=${this.hiddenForOf(options, target)}
               @hubb-people=${(e: CustomEvent<PeopleChange>) => void this.#savePeople(target, e.detail)}
             ></hubb-people-picker>`,
@@ -360,8 +473,12 @@ export abstract class HubbScreen extends LitElement {
     });
   }
 
-  protected toast(): HubbToast | null {
-    return this.renderRoot.querySelector('hubb-toast');
+  /**
+   * The undo on offer. The offer is one for the whole panel (`src/elements/toast.ts`), so a room drawn
+   * inside the wide home, which has no toast of its own, shows it on the home's.
+   */
+  protected toast(): Pick<HubbToast, 'show' | 'hide'> {
+    return UNDO;
   }
 
   protected undoable(

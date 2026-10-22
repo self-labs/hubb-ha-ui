@@ -6,6 +6,7 @@ import { coverIsGate } from '../model/classify';
 import { CLIMATE_CONTROLS, ROLES, roleFits, type ItemKind, type Role } from '../model/config';
 import type { GateSensor } from '../model/gate-sensor';
 import { originOf } from '../model/origin';
+import type { Place } from '../model/profiles';
 import type { ClimateExtra, EntityConfig } from '../model/types';
 import { defaultSize, sizeOf, sizesFor, type Size } from '../model/sizes';
 import { hiddenForList } from '../model/visibility';
@@ -56,6 +57,7 @@ export class HubbItemEditor extends LitElement {
     hass: { attribute: false },
     item: { attribute: false },
     roomAreaId: { attribute: false },
+    place: { attribute: false },
     named: { attribute: false },
     settings: { attribute: false },
     extras: { attribute: false },
@@ -66,6 +68,8 @@ export class HubbItemEditor extends LitElement {
   declare hass: HomeAssistant | undefined;
   declare item: EditItem | undefined;
   declare roomAreaId: string;
+  /** A home or a business, for the words of "Quem vê". */
+  declare place: Place;
   /** Whether the YAML gives it a name, so "Usar o nome do Home Assistant" means something. */
   declare named: boolean;
   /** What the YAML says about the item, for the choices of an air conditioner. */
@@ -82,6 +86,7 @@ export class HubbItemEditor extends LitElement {
     this.hass = undefined;
     this.item = undefined;
     this.roomAreaId = '';
+    this.place = 'home';
     this.named = false;
     this.settings = undefined;
     this.extras = [];
@@ -330,7 +335,7 @@ export class HubbItemEditor extends LitElement {
       ${item.kind === 'gate' && !/^(cover|lock)\./.test(item.entityId) ? this.#sensorField(item) : nothing}
       <div class="field">
         <span class="label">${EDIT.whoSeesItem}</span>
-        <hubb-people-picker .hass=${hass} .hiddenFor=${hiddenForList(this.settings?.hidden_for)} @hubb-people=${this.#onPeople}></hubb-people-picker>
+        <hubb-people-picker .hass=${hass} .place=${this.place} .hiddenFor=${hiddenForList(this.settings?.hidden_for)} @hubb-people=${this.#onPeople}></hubb-people-picker>
       </div>
       ${item.kind === 'climate' && item.entityId.startsWith('climate.') ? this.#climateChoices(hass, item) : nothing}
       ${item.siblings.length > 1

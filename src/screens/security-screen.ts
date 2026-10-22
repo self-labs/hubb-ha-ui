@@ -13,6 +13,7 @@ import type { AlertItem, DangerKind, HubbConfig, Security, Shared } from '../mod
 import { hiddenForList } from '../model/visibility';
 import { ALARM, EDIT, S, SECURITY, STRIP } from '../strings';
 import { openNow } from '../summary';
+import { layoutStyles } from '../theme/layout';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 
@@ -104,7 +105,7 @@ export class HubbSecurityScreen extends HubbScreen {
                 <hubb-hidden-tag .hass=${hass} .ids=${hiddenForList(options?.tabs?.security?.hidden_for)}></hubb-hidden-tag>
               </div>`
           : nothing}
-        ${empty ? html`<p class="empty"><strong>${SECURITY.empty}</strong></p>` : nothing}
+        ${empty ? html`<p class="empty"><strong>${SECURITY.empty(this.place())}</strong></p>` : nothing}
         ${alerts.length && !editing
           ? html`<h2>${SECURITY.alerts}</h2>
               <div class="openings alerts">
@@ -156,13 +157,15 @@ export class HubbSecurityScreen extends HubbScreen {
         current="seguranca"
         security
         home-label=${this.config?.homeLabel ?? S.home}
+        .homeIcon=${this.homeIcon()}
         .scenes=${this.config?.shared?.scenes ?? true}
-      ></hubb-nav-bar>`;
+      ></hubb-nav-bar>${this.restLayer()}`;
   }
 
   static styles = [
     tokens,
     HubbScreen.baseStyles,
+    layoutStyles,
     HubbScreen.editStyles,
     css`
       h1 {
@@ -201,6 +204,10 @@ export class HubbSecurityScreen extends HubbScreen {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
+      }
+      :host([screen-layout='wide']) .openings,
+      :host([screen-layout='wide']) .cameras {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
       .item-edit {
         padding: 12px 14px 8px;

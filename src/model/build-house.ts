@@ -213,11 +213,13 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     const s = cfg.entities[entityId];
     if (placed.block === 'scene') {
       if (scenesHidden || hiddenHere(placed.areaId)) continue;
+      const sceneIcon = s?.icon ?? hass.states[entityId]?.attributes.icon;
       scenes.push({
         entityId,
         name: s?.name ?? displayName(hass, entityId, null),
         areaId: placed.areaId,
         description: sceneDescription(hass, entityId, hiddenHere),
+        icon: typeof sceneIcon === 'string' && sceneIcon.startsWith('mdi:') ? sceneIcon : null,
       });
       continue;
     }

@@ -26,6 +26,8 @@ export interface HassDevice {
   area_id: string | null;
   name: string | null;
   name_by_user: string | null;
+  /** "Apple" for an iPhone or iPad of the Home Assistant app: how the panel tells its commands apart. */
+  manufacturer?: string | null;
 }
 
 export interface HassArea {
@@ -74,4 +76,10 @@ export interface HomeAssistant {
   callWS?<T = unknown>(msg: Record<string, unknown>): Promise<T>;
   /** False while the frontend lost its connection to Home Assistant; the real frontend always has it. */
   connected?: boolean;
+  /** The services of Home Assistant by domain (`notify.mobile_app_*` for the wall tablet); the real frontend always has it. */
+  services?: Record<string, Record<string, unknown>>;
+  /** The WebSocket connection, for subscriptions (the forecast); the real frontend always has it. */
+  connection?: {
+    subscribeMessage<T>(cb: (msg: T) => void, msg: Record<string, unknown>): Promise<() => void>;
+  };
 }

@@ -69,7 +69,7 @@ describe('generateDashboard', () => {
       path: 'revisar',
       type: 'panel',
       subview: true,
-      cards: [{ type: 'custom:hubb-review-screen', options: config, homeLabel: 'Casa', shared: { alerts: [], security: false, scenes: true, media: [] } }],
+      cards: [{ type: 'custom:hubb-review-screen', options: config, homeLabel: 'Casa', shared: { alerts: [], security: false, scenes: true, media: [], tablet: null, place: 'home' } }],
     });
     expect(views[0]!.cards[0]).toMatchObject({ type: 'custom:hubb-home-screen', options: config });
     expect(generateDashboard(config, sampleHouseHass()).views.some((v) => v.path === 'revisar')).toBe(false);

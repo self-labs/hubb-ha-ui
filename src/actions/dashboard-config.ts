@@ -1,11 +1,15 @@
 import type { HomeAssistant } from '../ha/types';
 import type { Role } from '../model/config';
-import type { EntityConfig, HubbConfig, RoomOverride, TabId, TabOverride } from '../model/types';
+import type { EntityConfig, HubbConfig, RoomOverride, TabId, TabletOverride, TabOverride } from '../model/types';
 
 /** The entries touched by a write, as they were before it; null for an entry that did not exist. */
 export type EntityEntries = Record<string, EntityConfig | null>;
 export type RoomEntries = Record<string, RoomOverride | null>;
 export type TabEntries = Record<string, TabOverride | null>;
+export type TabletEntries = Record<string, TabletOverride | null>;
+
+/** The keys at the root of the strategy the panel itself changes (Ajustes). */
+export type RootKeys = Partial<Pick<HubbConfig, 'profile' | 'name' | 'house_power'>>;
 
 interface SavedDashboard {
   strategy?: HubbConfig;
@@ -56,7 +60,7 @@ function serial<T>(job: () => Promise<T>): Promise<T> {
 function edit<T extends object>(
   hass: HomeAssistant,
   urlPath: string | null,
-  section: 'entities' | 'rooms' | 'tabs',
+  section: 'entities' | 'rooms' | 'tabs' | 'tablets',
   ids: readonly string[],
   next: (prev: T | undefined, id: string) => T | null,
 ): Promise<Record<string, T | null>> {
@@ -112,6 +116,41 @@ export function setTabs(hass: HomeAssistant, urlPath: string | null, patches: Re
 /** Desfazer: the tab entries as they were before a write. */
 export function putBackTabs(hass: HomeAssistant, urlPath: string | null, before: TabEntries): Promise<TabEntries> {
   return edit<TabOverride>(hass, urlPath, 'tabs', Object.keys(before), (_prev, id) => before[id] ?? null);
+}
+
+/**
+ * The wall tablet of each user (`tablets.<user_id>`): keys merged into the stored entry (a key set to
+ * undefined leaves), or null to make them an ordinary user.
+ */
+export function setTablets(hass: HomeAssistant, urlPath: string | null, entries: Readonly<TabletEntries>): Promise<TabletEntries> {
+  return edit<TabletOverride>(hass, urlPath, 'tablets', Object.keys(entries), (prev, id) => {
+    const entry = entries[id];
+    return entry ? (clean({ ...(prev ?? {}), ...entry }) ?? {}) : null;
+  });
+}
+
+/** Desfazer: the tablet entries as they were before a write. */
+export function putBackTablets(hass: HomeAssistant, urlPath: string | null, before: TabletEntries): Promise<TabletEntries> {
+  return edit<TabletOverride>(hass, urlPath, 'tablets', Object.keys(before), (_prev, id) => before[id] ?? null);
+}
+
+/**
+ * Keys at the root of the strategy (the kind of place, its name, the power sensor of the house); one
+ * set to nothing leaves. Returns them as they were, for Desfazer (which is this same call).
+ */
+export function setRootKeys(hass: HomeAssistant, urlPath: string | null, patch: RootKeys): Promise<RootKeys> {
+  return serial(async () => {
+    const { saved, strategy } = await read(hass, urlPath);
+    const before: Record<string, unknown> = {};
+    const next: Record<string, unknown> = { ...strategy };
+    for (const [key, value] of Object.entries(patch)) {
+      before[key] = (strategy as Record<string, unknown>)[key];
+      if (value === undefined || value === '') delete next[key];
+      else next[key] = value;
+    }
+    await save(hass, urlPath, saved, next as HubbConfig);
+    return before as RootKeys;
+  });
 }
 
 /** Desfazer: the room entries as they were before a write. */

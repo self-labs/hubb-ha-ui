@@ -1,4 +1,5 @@
 import type { ItemKind } from './config';
+import type { Layout } from './layout';
 import type { HubbConfig } from './types';
 
 /** How wide a card is in its block: a third of the row, half of it, or all of it. */
@@ -23,14 +24,18 @@ export function wholeRowOnly(entityId: string, role: string | undefined): boolea
   return /^(climate|media_player|lock)\./.test(entityId) || role === 'gate' || role === 'appliance';
 }
 
-/** The size with no choice made: today's look, except scenes of Cenas, two to a row (Gustavo, 15/10). */
-export function defaultSize(kind: SizedKind): Size {
+/**
+ * The size with no choice made: today's look, except scenes of Cenas, two to a row on a phone
+ * (Gustavo, 15/10) and four on a tablet, where half a row is a long empty strip (Gustavo, 21/10).
+ */
+export function defaultSize(kind: SizedKind, layout: Layout = 'phone'): Size {
   if (WIDE.has(kind)) return 'large';
-  return kind === 'scene' ? 'medium' : 'small';
+  if (kind === 'scene') return layout === 'phone' ? 'medium' : 'small';
+  return 'small';
 }
 
-/** The size of a card: `entities.<id>.size` when it fits the kind, else the default. */
-export function sizeOf(options: HubbConfig | undefined, entityId: string, kind: SizedKind): Size {
+/** The size of a card: `entities.<id>.size` when it fits the kind, else the default for the layout. */
+export function sizeOf(options: HubbConfig | undefined, entityId: string, kind: SizedKind, layout: Layout = 'phone'): Size {
   const chosen = options?.entities?.[entityId]?.size;
-  return isSize(chosen) && sizesFor(kind).includes(chosen) ? chosen : defaultSize(kind);
+  return isSize(chosen) && sizesFor(kind).includes(chosen) ? chosen : defaultSize(kind, layout);
 }

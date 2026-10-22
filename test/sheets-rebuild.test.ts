@@ -114,6 +114,9 @@ describe('a sheet stays open across the rebuild Home Assistant does', () => {
     applianceId: 'd_lavadora',
     peopleRoom: 'sala',
     peopleTarget: { kind: 'tab', tab: 'scenes' },
+    settings: 'main',
+    climateSheet: true,
+    mediaId: SALA,
   };
   const SCREENS: [string, string][] = [
     ['home', 'hubb-home-screen'],

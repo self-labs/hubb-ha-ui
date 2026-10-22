@@ -1,5 +1,10 @@
+import { mdiClose } from '@mdi/js';
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
+import { LayoutWatcher } from '../layout';
+import type { Layout } from '../model/layout';
+import { S } from '../strings';
 import { define } from './define';
+import { icon } from './icon';
 
 const DRAG_CLOSE_PX = 80;
 
@@ -8,11 +13,14 @@ export class HubbSheet extends LitElement {
     open: { type: Boolean, reflect: true },
     heading: {},
     subheading: {},
+    screenLayout: { reflect: true, attribute: 'screen-layout' },
   };
 
   declare open: boolean;
   declare heading: string;
   declare subheading: string;
+  /** Wide: a window in the middle of the area, closed by its button, instead of a sheet from below. */
+  declare screenLayout: Layout;
 
   #dragStartY: number | null = null;
   /**
@@ -42,6 +50,8 @@ export class HubbSheet extends LitElement {
     this.open = false;
     this.heading = '';
     this.subheading = '';
+    this.screenLayout = 'phone';
+    new LayoutWatcher(this);
   }
 
   close(): void {
@@ -85,9 +95,11 @@ export class HubbSheet extends LitElement {
     if (!this.open) return nothing;
     return html`<div class="backdrop" @pointerdown=${this.#backdropDown} @pointercancel=${this.#backdropCancel} @click=${this.#backdropClick}></div>
       <section class="sheet" role="dialog" aria-modal="true" aria-label=${this.heading} tabindex="-1" @keydown=${this.#onKey}>
-        <div class="grab" @pointerdown=${this.#down} @pointermove=${this.#move} @pointerup=${this.#up} @pointercancel=${this.#up}>
-          <span></span>
-        </div>
+        ${this.screenLayout === 'wide'
+          ? html`<button class="close" aria-label=${S.close} @click=${() => this.close()}>${icon(mdiClose)}</button>`
+          : html`<div class="grab" @pointerdown=${this.#down} @pointermove=${this.#move} @pointerup=${this.#up} @pointercancel=${this.#up}>
+              <span></span>
+            </div>`}
         <h2>${this.heading}</h2>
         ${this.subheading ? html`<p class="sub">${this.subheading}</p>` : nothing}
         <slot></slot>
@@ -141,6 +153,45 @@ export class HubbSheet extends LitElement {
       margin: 2px 0 12px;
       font-size: 12px;
       color: var(--hubb-text-2);
+    }
+    /* Wide: a window in the middle of the area of the panel (src/theme/layout.ts). */
+    :host([screen-layout='wide']) .sheet {
+      left: calc(var(--hubb-area-left, 0px) + var(--hubb-area-width, 100vw) / 2);
+      right: auto;
+      top: calc(var(--hubb-area-top, 0px) + (100vh - var(--hubb-area-top, 0px)) / 2);
+      bottom: auto;
+      width: calc(var(--hubb-area-width, 100vw) - 48px);
+      max-width: 520px;
+      max-height: 80vh;
+      padding: 20px 20px 24px;
+      border-radius: var(--hubb-radius-sheet, 24px);
+      transform: translate(-50%, -50%);
+    }
+    :host([screen-layout='wide']) h2 {
+      padding-right: 48px;
+    }
+    .close {
+      all: unset;
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: var(--hubb-surface-2);
+      color: var(--hubb-text);
+      cursor: pointer;
+    }
+    .close:focus-visible {
+      outline: 2px solid var(--hubb-focus);
+      outline-offset: 2px;
+    }
+    .close svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
     }
   `;
 }

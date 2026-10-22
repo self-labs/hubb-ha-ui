@@ -4,6 +4,7 @@ import { CFG } from '../strings';
 import { isProfileId, type ProfileId } from './profiles';
 import { isGateSensor } from './gate-sensor';
 import { isSize, wholeRowOnly } from './sizes';
+import { readTablets } from './tablet';
 import type { HubbConfig } from './types';
 
 /** The roles an entity can be given in `entities.<id>.role`. */
@@ -237,6 +238,11 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
     if (hiddenFor !== undefined && !(Array.isArray(hiddenFor) && hiddenFor.every((u) => typeof u === 'string'))) {
       add(`${at}.hidden_for`, null, CFG.badList('hidden_for', 'id do usuário'));
     }
+  }
+
+  problems.push(...readTablets(hass, config).problems);
+  if (config.house_power !== undefined && !(typeof config.house_power === 'string' && hass.states[config.house_power])) {
+    add('house_power', null, CFG.missingEntity(String(config.house_power)));
   }
 
   return { profile, entities, problems };

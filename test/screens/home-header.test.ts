@@ -34,6 +34,6 @@ describe('the header of the home', () => {
   it('gives the temperature and the review key the same height', () => {
     const css = cssOf(HubbHomeScreen.styles);
     expect(css).toMatch(/\.weather\s*\{[^}]*height: 44px/);
-    expect(css).toMatch(/\.key\s*\{[^}]*height: 44px/);
+    expect(css).toMatch(/\.key[\s,][^{]*\{[^}]*height: 44px/);
   });
 });

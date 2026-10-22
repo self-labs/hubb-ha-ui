@@ -17,6 +17,7 @@ import type { HassArea, HomeAssistant } from '../ha/types';
 import type { HubbConfig, Shared } from '../model/types';
 import { staleEntries, type StaleEntry } from '../model/visibility';
 import { EDIT, REVIEW, ROLE_LABELS, S } from '../strings';
+import { layoutStyles } from '../theme/layout';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 
@@ -397,21 +398,23 @@ export class HubbReviewScreen extends HubbScreen {
       <hubb-nav-bar
         current="home"
         home-label=${this.config?.homeLabel ?? S.home}
+        .homeIcon=${this.homeIcon()}
         ?security=${this.config?.shared?.security ?? false}
         .scenes=${this.config?.shared?.scenes ?? true}
-      ></hubb-nav-bar>`;
+      ></hubb-nav-bar>${this.restLayer()}`;
   }
 
   static styles = [
     tokens,
     HubbScreen.baseStyles,
+    layoutStyles,
     css`
       .hero {
         box-sizing: border-box;
         display: flex;
         align-items: center;
         gap: 12px;
-        max-width: 560px;
+        max-width: var(--hubb-col, 560px);
         min-height: 76px;
         margin: 0 auto;
         padding: 12px 16px 4px;

@@ -13,6 +13,7 @@
   //   theme=light, admin=1, edit=1, alert=1, offline=1, code=1, alarm=<state>, remote=Disabled
   //   sheet=light|climate|media|cover|power|appliance & id=<entity id>
   //   nav=hide (no bottom bar, for full-page shots)
+  //   settings=1 (with admin=1&edit=1: the Ajustes sheet), rest=1 (the wall tablet resting), place=clinic
   await import('/dist/hubb-ha-ui.js');
   const { mockHouse } = await import('/dev/mock-house.js');
   const q = new URLSearchParams(location.search);
@@ -30,6 +31,17 @@
   await el.updateComplete;
   if (q.get('edit') === '1') {
     el.shadowRoot.querySelector('.edit')?.click();
+    await el.updateComplete;
+  }
+  if (q.get('settings') === '1') {
+    el.shadowRoot.querySelector('.settings-open')?.click();
+    await el.updateComplete;
+  }
+  if (q.get('rest') === '1') {
+    // The tablet rests after its minutes with no touch: the clock jumps ahead instead of waiting.
+    const now = Date.now;
+    Date.now = () => now() + 60 * 60_000;
+    document.dispatchEvent(new Event('visibilitychange'));
     await el.updateComplete;
   }
   const id = q.get('id');

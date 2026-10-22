@@ -32,6 +32,8 @@ describe('the security view', () => {
       security: true,
       scenes: false,
       media: [],
+      tablet: null,
+      place: 'home',
     });
     expect(views[2]!.cards[0]).toMatchObject({ type: 'custom:hubb-security-screen' });
   });

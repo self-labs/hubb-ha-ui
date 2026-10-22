@@ -1,7 +1,7 @@
 import { degreeSign } from './actions/climate';
 import type { HomeAssistant } from './ha/types';
 import { applianceReach, isShownOption, programOf, remainingMinutes, situation, stateText, type ApplianceItem } from './model/appliances';
-import type { House, OpeningItem, Room } from './model/types';
+import type { ClimateItem, House, OpeningItem, Room } from './model/types';
 import {
   applianceChip,
   devicesOnCount,
@@ -81,12 +81,36 @@ function reading(hass: HomeAssistant, entityId: string | null): number | null {
   return state !== undefined && state !== '' && Number.isFinite(v) ? v : null;
 }
 
+/** An air conditioner running now, with its room and the temperature it aims at. */
+export interface ClimateOn {
+  item: ClimateItem;
+  roomName: string;
+  target: number | null;
+}
+
+/** The air conditioners on, room by room: fans are not counted, and one off or out of reach neither. */
+export function climateOn(rooms: readonly Room[], hass: HomeAssistant): ClimateOn[] {
+  return rooms.flatMap((room) =>
+    room.climate
+      .filter((c) => c.kind === 'climate' && !['off', 'unavailable', 'unknown'].includes(hass.states[c.entityId]?.state ?? 'unavailable'))
+      .map((item) => {
+        const t = hass.states[item.entityId]?.attributes.temperature;
+        return { item, roomName: room.name, target: typeof t === 'number' ? t : null };
+      }),
+  );
+}
+
+/** "24°": what the thermometer of the room reads; null when it reads nothing. */
+export function roomTemperature(hass: HomeAssistant, room: Room): string | null {
+  const t = reading(hass, room.temperature);
+  const sign = degreeSign(room.temperature ? hass.states[room.temperature]?.attributes.unit_of_measurement : undefined);
+  return t !== null ? `${Math.round(t)}${sign}` : null;
+}
+
 /** "24° · 61%": what the thermometer and the hygrometer of the room read; null when they read nothing. */
 export function roomClimate(hass: HomeAssistant, room: Room): string | null {
-  const t = reading(hass, room.temperature);
   const u = reading(hass, room.humidity);
-  const sign = degreeSign(room.temperature ? hass.states[room.temperature]?.attributes.unit_of_measurement : undefined);
-  const parts = [t !== null ? `${Math.round(t)}${sign}` : null, u !== null ? `${Math.round(u)}%` : null].filter((p): p is string => p !== null);
+  const parts = [roomTemperature(hass, room), u !== null ? `${Math.round(u)}%` : null].filter((p): p is string => p !== null);
   return parts.length ? parts.join(' · ') : null;
 }
 

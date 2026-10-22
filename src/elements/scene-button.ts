@@ -1,6 +1,6 @@
-import { mdiCreationOutline } from '@mdi/js';
 import { LitElement, css, html, nothing } from 'lit';
 import { haptic } from '../actions/haptic';
+import { sceneIconPath } from '../model/scene-icon';
 import type { SceneItem } from '../model/types';
 import { define } from './define';
 import { icon } from './icon';
@@ -29,8 +29,9 @@ export class HubbSceneButton extends LitElement {
   render() {
     const scene = this.scene;
     if (!scene) return nothing;
+    // The icon Home Assistant gives the scene (drawn by its own ha-icon), else one read from its name.
     return html`<button class=${this.variant} @click=${this.#run}>
-      ${icon(mdiCreationOutline)}
+      ${scene.icon ? html`<ha-icon .icon=${scene.icon}></ha-icon>` : icon(sceneIconPath(scene.name))}
       <span class="label"><span class="name">${scene.name}</span>${this.variant === 'row' && scene.description
           ? html`<span class="desc">${scene.description}</span>`
           : nothing}</span>
@@ -62,6 +63,11 @@ export class HubbSceneButton extends LitElement {
       height: 18px;
       flex: none;
       fill: var(--hubb-amber);
+    }
+    ha-icon {
+      --mdc-icon-size: 18px;
+      flex: none;
+      color: var(--hubb-amber);
     }
     .name {
       display: block;

@@ -1,7 +1,8 @@
 import type { ArtId } from '../art/drawings';
 import type { ApplianceItem } from './appliances';
 import type { FloorItem } from './floors';
-import type { ProfileId } from './profiles';
+import type { Place, ProfileId } from './profiles';
+import type { Tablet } from './tablet';
 
 export interface LightItem {
   entityId: string;
@@ -150,6 +151,10 @@ export interface Shared {
   scenes: boolean;
   /** The media players the resident sees in the house: who the sheet offers to play together with. */
   media?: string[];
+  /** The wall tablet of the user who sees the panel (`tablets.<user_id>`); null for everyone else. */
+  tablet?: Tablet | null;
+  /** A home or a business: the icon of the first tab and "a casa" or "o local"; missing means a home. */
+  place?: Place;
 }
 
 export interface SceneItem {
@@ -158,6 +163,8 @@ export interface SceneItem {
   areaId: string | null;
   /** Rooms a scene touches ("Sala e Quarto"); null for scripts or scenes with no known room. */
   description: string | null;
+  /** The `mdi:*` icon Home Assistant gives it; missing on dashboards frozen before 21/10. */
+  icon?: string | null;
 }
 
 export interface Room {
@@ -286,4 +293,20 @@ export interface HubbConfig {
   entities?: Record<string, EntityConfig>;
   hide_entities?: string[];
   tabs?: Partial<Record<TabId, TabOverride>>;
+  /** Wall tablets, by the id of the Home Assistant user each is logged in as (src/model/tablet.ts). */
+  tablets?: Record<string, TabletOverride>;
+  /** The power sensor of the whole house, for the energy pill of the wide home; none: no pill. */
+  house_power?: string;
+}
+
+/** What the YAML says about a wall tablet (`tablets.<user_id>`), before `readTablets` checks it. */
+export interface TabletOverride {
+  /** The area the tablet hangs in: the room it opens on and wakes up to. */
+  room?: string;
+  /** Minutes with no touch before it rests: 2, 5 (the default), 10, 15, or 0 for never. */
+  rest_after?: number;
+  /** A sensor that wakes it; `none` for none; missing: the presence sensors of its room. */
+  presence?: string;
+  /** The `notify` service of its Home Assistant app (`mobile_app_*`), to dim and light the screen. */
+  notify?: string;
 }

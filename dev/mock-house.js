@@ -17,7 +17,8 @@ const PT = {
 const area = (area_id, name) => ({ area_id, name, picture: null, icon: null, floor_id: null });
 
 /**
- * @param {URLSearchParams} q  theme=light, admin=1, alert=1, offline=1, code=1 (alarm with a code), alarm=<state>
+ * @param {URLSearchParams} q  theme=light, admin=1, alert=1, offline=1, code=1 (alarm with a code), alarm=<state>,
+ *   rest=1 (seen as the wall tablet of the sala), place=clinic (a business: Início with a building)
  */
 export function mockHouse(q) {
   const entities = {};
@@ -166,8 +167,31 @@ export function mockHouse(q) {
     w(`button.lavadora_comando_${i + 1}`, 'unknown', n),
   );
 
+  // The power meter of the whole house, for the energy pill of the wide home.
+  add('sensor.casa_potencia', 'Consumo da casa', {}, '1240', { device_class: 'power', unit_of_measurement: 'W' });
+
+  // Weather with both forecasts (daily 1, hourly 2): the high and low of today, the next hours.
   entities['weather.casa'] = { entity_id: 'weather.casa', labels: [] };
-  states['weather.casa'] = { entity_id: 'weather.casa', state: 'sunny', attributes: { temperature: 24 } };
+  states['weather.casa'] = { entity_id: 'weather.casa', state: 'sunny', attributes: { temperature: 24, supported_features: 3 } };
+  const inHours = (h) => {
+    const d = new Date();
+    d.setMinutes(0, 0, 0);
+    d.setHours(d.getHours() + h);
+    return d.toISOString();
+  };
+  const forecast = {
+    daily: [{ datetime: inHours(0), condition: 'sunny', temperature: 29, templow: 18 }],
+    hourly: [25, 25, 24, 22, 21].map((temperature, i) => ({ datetime: inHours(i + 1), condition: i < 2 ? 'sunny' : 'partlycloudy', temperature })),
+  };
+
+  // The people of the house: Ana administers it, Lia lives there, Tablet is the account of the wall tablet.
+  const users = [
+    { id: 'preview', name: 'Ana Souza', is_active: true, system_generated: false, group_ids: ['system-admin'] },
+    { id: 'u_lia', name: 'Lia', is_active: true, system_generated: false, group_ids: ['system-users'] },
+    { id: 'u_tablet', name: 'Tablet', is_active: true, system_generated: false, group_ids: ['system-users'] },
+  ];
+  const business = q.get('place') === 'clinic';
+  const placeName = business ? 'Clínica Exemplo' : 'Casa Exemplo';
 
   const hass = {
     states,
@@ -175,23 +199,34 @@ export function mockHouse(q) {
     devices,
     areas,
     floors: {},
-    user: { id: 'preview', name: 'Ana Souza', is_admin: q.get('admin') === '1' },
+    user: q.get('rest') === '1' ? { id: 'u_tablet', name: 'Tablet', is_admin: false } : { id: 'preview', name: 'Ana Souza', is_admin: q.get('admin') === '1' },
     themes: { darkMode: q.get('theme') !== 'light' },
-    config: { location_name: 'Casa Exemplo' },
+    config: { location_name: placeName },
     connected: q.get('offline') !== '1',
+    connection: {
+      async subscribeMessage(cb, msg) {
+        // Like Home Assistant, the first forecast arrives after the subscription, never during it.
+        if (msg.type === 'weather/subscribe_forecast') setTimeout(() => cb({ forecast: forecast[msg.forecast_type] ?? [] }));
+        return () => {};
+      },
+    },
     async callService() {},
     async callWS(msg) {
       // The camera tile signs its image path; the consumption sheet reads today's statistics.
       if (msg.type === 'auth/sign_path') return { path: states[msg.path.split('/').pop()]?.attributes.entity_picture };
       if (msg.type === 'recorder/statistic_during_period') return { change: 1.4 };
       if (msg.type === 'lovelace/config') return { strategy: { type: 'custom:hubb' } };
+      if (msg.type === 'config/auth/list') return users;
       return {};
     },
     formatEntityState: (st, s) => PT[s ?? st.state] ?? s ?? st.state,
     formatEntityAttributeValue: (st, attribute, value) => ({ vertical: 'Vertical', off: 'Desligada' })[value] ?? value,
   };
   const config = {
-    name: 'Casa Exemplo',
+    name: placeName,
+    ...(business ? { profile: 'clinic' } : {}),
+    house_power: 'sensor.casa_potencia',
+    tablets: { u_tablet: { room: 'sala', rest_after: 5 } },
     entities: {
       'sensor.lavadora_estado': { role: 'appliance' },
       'switch.cozinha_cafeteira': { role: 'equipment', icon: 'mdi:coffee-maker' },

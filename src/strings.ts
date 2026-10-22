@@ -1,4 +1,5 @@
 import type { ApplianceKind } from './model/appliances';
+import type { Place, ProfileId } from './model/profiles';
 
 /**
  * Every resident-facing string, in Brazilian Portuguese. Gender-neutral on purpose: room names come
@@ -25,6 +26,12 @@ export const S = {
   turnAllOff: 'Apagar todas',
   turnRoomOff: 'Apagar tudo',
   back: 'Voltar',
+  /** The button of a sheet shown as a window (wide layout), which has no handle to drag down. */
+  close: 'Fechar',
+  /** The button at the foot of the rail of the wide layout that puts it away, and the handle that brings it back. */
+  railHide: 'Esconder',
+  railHideLabel: 'Esconder as abas',
+  railShowLabel: 'Mostrar as abas',
   brightness: 'Intensidade',
   color: 'Cor',
   whiteTemp: 'Temperatura do branco',
@@ -122,7 +129,7 @@ export const REACH = {
 
 /** The strips at the top of every screen. Gender-neutral: "Fumaça · Cozinha", never "na Cozinha". */
 export const STRIP = {
-  offline: 'Sem conexão com a casa. Tentando de novo…',
+  offline: (place: Place): string => `Sem conexão com ${place === 'home' ? 'a casa' : 'o local'}. Tentando de novo…`,
   kind: { smoke: 'Fumaça', gas: 'Gás', carbon_monoxide: 'Monóxido de carbono', moisture: 'Vazamento' } as Readonly<Record<string, string>>,
   alarm: 'Alarme disparado',
   /** Without a room; the participle agrees with the word ("Fumaça detectada", "Gás detectado"). */
@@ -188,7 +195,8 @@ export const SECURITY = {
   access: 'Acesso',
   cameras: 'Câmeras',
   noImage: 'Sem imagem',
-  empty: 'Nenhum alarme, câmera, portão, fechadura ou sensor de porta e janela nesta casa.',
+  empty: (place: Place): string =>
+    `Nenhum alarme, câmera, portão, fechadura ou sensor de porta e janela ${place === 'home' ? 'nesta casa' : 'neste local'}.`,
   at: (what: string, room: string | null): string => (room ? `${what} · ${room}` : what),
 } as const;
 
@@ -198,10 +206,92 @@ export function greeting(hour: number): string {
   return 'Boa noite';
 }
 
+/** The rest screen of a wall tablet. */
+export const REST = {
+  open: 'Toque para abrir',
+};
+
+/** The summary of the house in pills (the column of the wide home), and the air conditioners on. */
+export const PILLS = {
+  lightsOn: (n: number): string => (n === 1 ? '1 acesa' : `${n} acesas`),
+  where: (names: readonly string[]): string =>
+    names.length <= 2 ? names.join(' e ') : `${names[0]}, ${names[1]} e mais ${names.length - 2}`,
+  climateOn: (n: number): string => (n === 1 ? '1 ar ligado' : `${n} ares ligados`),
+  climateAt: (room: string, target: string | null): string => (target ? `${room} em ${target}°` : room),
+  allClosed: 'Tudo fechado',
+  open: (n: number): string => (n === 1 ? '1 aberto' : `${n} abertos`),
+  noAnswer: (n: number): string => `${n} sem resposta`,
+  energyNow: 'Consumo agora',
+};
+
+/** The sheet of the air conditioners on. */
+export const CLIMATE_ON = {
+  title: 'Clima ligado',
+  allOff: 'Desligar todos',
+  off: 'Desligar',
+  none: 'Nenhum ar ligado.',
+};
+
+/** The weather of the column of the wide home and of the rest screen. */
+export const WEATHER = {
+  range: (max: number, min: number): string => `Máx ${max}° · Mín ${min}°`,
+};
+
+/** Ajustes: the settings of the panel, in the edit mode of the home (administrators only). */
+export const SETTINGS = {
+  title: 'Ajustes',
+  tablets: 'Tablets de parede',
+  tabletsHint: 'Escolha a conta que fica logada no tablet da parede.',
+  notTablet: 'Não é tablet',
+  isTablet: 'Tablet de parede',
+  room: 'Cômodo do tablet',
+  restAfter: 'Descansar depois de',
+  minutes: (n: number): string => `${n} min`,
+  never: 'Nunca',
+  presence: 'Acordar com',
+  presenceRoom: 'Sensores do cômodo',
+  none: 'Nenhum',
+  device: 'Aparelho, para o brilho da tela',
+  back: 'Voltar aos ajustes',
+  summary: (room: string, rest: string): string => (room ? `${room} · descansa em ${rest}` : `Descansa em ${rest}`),
+  restNever: 'nunca descansa',
+  tabletOn: (name: string): string => `${name} agora é um tablet de parede.`,
+  tabletChanged: (name: string): string => `Tablet de ${name} atualizado.`,
+  tabletOff: (name: string): string => `${name} deixou de ser tablet de parede.`,
+  power: 'Medidor de energia',
+  powerHint: 'O sensor de potência do lugar todo, para o consumo de agora no tablet.',
+  powerSaved: 'O tablet agora mostra o consumo total.',
+  powerCleared: 'O tablet deixou de mostrar o consumo total.',
+};
+
+/** The kind of place of the dashboard: the first question when it is created, and a row of Ajustes. */
+export const PLACE = {
+  title: 'Tipo de lugar',
+  hint: 'Um comércio mostra Início na primeira aba e chama o lugar de local, não de casa.',
+  name: 'Nome do lugar',
+  nameHint: 'Vazio: o nome do local no Home Assistant.',
+  names: {
+    home: 'Casa',
+    clinic: 'Clínica',
+    restaurant: 'Restaurante',
+    office: 'Escritório',
+    store: 'Loja',
+    gym: 'Academia',
+    salon: 'Salão de beleza',
+    hotel: 'Hotel',
+  } as Readonly<Record<ProfileId, string>>,
+  saved: (name: string): string => `Tipo de lugar: ${name}.`,
+};
+
 /** Problems of the panel configuration, shown on "Revisar o painel". */
 export const CFG = {
   unknownProfile: (p: string): string => `profile: ${p} não existe; o painel usou home (Casa).`,
   missingEntity: (id: string): string => `${id} não existe no Home Assistant.`,
+  badTablets: 'tablets precisa ser uma lista por usuário, como tablets: { id_do_usuario: { room: sala } }.',
+  badTablet: (userId: string): string => `tablets.${userId} está sem nada; escreva, por exemplo, ${userId}: { room: sala }.`,
+  badRest: (v: string): string => `rest_after: ${v} não vale; use 2, 5, 10, 15 ou 0 (nunca descansa).`,
+  badNotify: (v: string): string => `notify: ${v} não existe; escolha um aparelho do app do Home Assistant (mobile_app_...).`,
+  tabletRoomHidden: (room: string): string => `${room} está oculto para a conta do tablet; ele abre no primeiro cômodo que ela vê.`,
   badEntry: (id: string): string => `${id} está sem nada; escreva, por exemplo, ${id}: { role: light }.`,
   unknownRole: (r: string): string => `role: ${r} não existe. Use light, outlet, equipment, appliance, action, gate ou hidden.`,
   roleDoesNotFit: (r: string, domain: string): string => `role: ${r} não serve para ${domain}.`,
@@ -396,7 +486,7 @@ export const EDIT = {
   fromScript: 'Script',
   sceneAdded: (name: string): string => `${name} agora está em Cenas.`,
   sceneRemoved: (name: string): string => `${name} saiu de Cenas.`,
-  onlyAdmins: 'Nesta casa só há administradores, e eles sempre veem tudo.',
+  onlyAdmins: (place: Place): string => `${place === 'home' ? 'Nesta casa' : 'Neste local'} só há administradores, e eles sempre veem tudo.`,
   usersFailed: 'Não deu para ler os usuários do Home Assistant. Feche e abra de novo.',
   hiddenForOne: (name: string): string => `Oculto para ${name}`,
   hiddenForMany: (n: number): string => (n === 1 ? 'Oculto para 1 pessoa' : `Oculto para ${n} pessoas`),

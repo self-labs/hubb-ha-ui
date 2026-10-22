@@ -5,11 +5,11 @@ prefixing the first "(" of the whole line, which was the first badge's image. --
 
 # 🏠 Hubb HA UI
 
-The panel a resident opens on the phone, built by Home Assistant itself. One dashboard strategy reads
-the areas, devices and entities of the house and draws every screen: a sentence about the house, one
-card per room, the lights, the air conditioning, the curtains, the TV, the gate, the washer, the alarm
-and the cameras. There is no card YAML per client: the same file runs on every house, whatever board
-drives the relays, and one HACS update reaches them all.
+The panel a resident opens on the phone or on the tablet on the wall, built by Home Assistant itself.
+One dashboard strategy reads the areas, devices and entities of the house and draws every screen: a
+sentence about the house, one card per room, the lights, the air conditioning, the curtains, the TV,
+the gate, the washer, the alarm and the cameras. There is no card YAML per client: the same file runs
+on every house, whatever board drives the relays, and one HACS update reaches them all.
 
 <table>
   <tr>
@@ -69,6 +69,44 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
   screen. It vibrates once, leads to the room and stays while the sensor is on. When the house is out
   of reach, a grey strip says so and the controls dim.
 - Ardósia (dark) or Areia (light), following the Home Assistant profile, with AA contrast in both.
+
+### Tablet
+
+<table>
+  <tr>
+    <td colspan="2"><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/tablet-light.png" width="520" alt="Tablet lying down: a column with the clock, the weather of the next hours, pills for the lights, the air conditioner, the open window and the power now, the scenes, the rooms and the song playing; the kitchen open on the right"></td>
+  </tr>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/tablet-portrait-dark.png" width="250" alt="Tablet upright: the home with three rooms a row and four scenes a row"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/tablet-rest.png" width="250" alt="Rest screen: the time, the date, the weather and one line about the house"></td>
+  </tr>
+  <tr>
+    <td align="center">Upright, 600 px and wider</td>
+    <td align="center">Resting, after its minutes with no touch</td>
+  </tr>
+</table>
+
+The same dashboard spreads out on a bigger screen; nothing to configure for the layout:
+
+- **Upright** (600 px and wider, or a short screen): the phone layout, wider, with three rooms and four
+  scenes a row.
+- **Lying down** (900 px wide and 600 tall, or more): a column on the left with the clock, the weather
+  now and of the next hours, a summary of the house in pills (lights on, air conditioners on, doors and
+  windows open, the power now), the scenes, the rooms and the song playing; the room picked opens on
+  the right. Each column scrolls by itself, never sideways and with no scroll bar. The bar becomes a
+  rail on the left, and a sheet opens as a window in the middle. The room picked last is remembered
+  on the tablet. **Esconder**, at the foot of the rail, puts the rail away on every screen; a handle on
+  the left edge brings it back.
+- A pill or the chip **Ar ligado** lists the air conditioners on, each with its room and temperature,
+  with **Desligar todos**. A scene shows the icon Home Assistant gives it, or one read from its name.
+
+A **wall tablet** is a Home Assistant user of its own, logged in on the tablet. An administrator marks
+it in **Ajustes** (the gear of the edit mode): the room it opens on, the minutes with no touch before
+it rests (2, 5, 10, 15 or never), the sensor that wakes it (the presence sensors of its room by
+default) and the Home Assistant app of the device. Resting shows the time, the weather and one line
+about the house, and the app dims the screen (an iPad in Kiosk mode, an Android phone or tablet that
+allows "Modify system settings"); a touch or someone passing by wakes it on its room. The edit mode
+never rests.
 
 ### Room page
 
@@ -280,7 +318,8 @@ in the Companion app: set up notifications and location on their phone before.
 
 [![Open your Home Assistant instance and show your dashboards.](https://my.home-assistant.io/badges/lovelace_dashboards.svg)](https://my.home-assistant.io/redirect/lovelace_dashboards/)
 
-1. **Add dashboard** and pick **Hubb** under _Community dashboards_.
+1. **Add dashboard** and pick **Hubb** under _Community dashboards_. Home Assistant asks the kind of
+   place first (a home, a clinic, a restaurant, ...) and, optionally, its name.
 2. Give it a URL with a hyphen, for example `hubb-casa` (Home Assistant requires the hyphen).
 3. Make it everyone's default: back on **Settings → Dashboards**, the three-dot menu on its row →
    **Set as default**. Every user then opens Home Assistant on the panel, in the Companion app and
@@ -325,6 +364,11 @@ strategy:
 | `entities.<id>.modes`                                | Every mode it has                                                           | Air conditioner (`climate.*`) only: the modes its sheet offers, for example `[cool, dry]`; turning on without `turn_on` picks among them                                                                                                                                                                                                                                                                        |
 | `entities.<id>.controls`                             | Every setting it has                                                        | Air conditioner (`climate.*`) only: which of `fan`, `swing` and `preset` show under Mais ajustes, as a list (`[fan, swing]`)                                                                                                                                                                                                                                                                                    |
 | `hide_entities`                                      | none                                                                        | Lights and outlets left out even though they have an area (the fridge or the router plug)                                                                                                                                                                                                                                                                                                                       |
+| `house_power`                                        | none                                                                        | The power sensor of the whole house, for the pill of the power now on a tablet lying down                                                                                                                                                                                                                                                                                                                       |
+| `tablets.<user id>.room`                             | none                                                                        | Marks the user as a wall tablet: the area it opens on and wakes up to. See [Tablet](#tablet)                                                                                                                                                                                                                                                                                                                    |
+| `tablets.<user id>.rest_after`                       | `5`                                                                         | Minutes with no touch before it rests: `2`, `5`, `10`, `15`, or `0` for never                                                                                                                                                                                                                                                                                                                                   |
+| `tablets.<user id>.presence`                         | The motion, occupancy and presence sensors of its room                      | The sensor that wakes it when it turns on, or `none`                                                                                                                                                                                                                                                                                                                                                            |
+| `tablets.<user id>.notify`                           | none                                                                        | The `notify` service of its Home Assistant app (`mobile_app_...`), to dim and light the screen                                                                                                                                                                                                                                                                                                                  |
 
 ```yaml
 strategy:
@@ -407,9 +451,10 @@ window is open.
 
 ### Places and floors
 
-`profile` names the first tab ("Casa" for a home, "Início" elsewhere) and picks the drawings: in a
-`clinic` a "Sala 3" is drawn as a consulting room, in an `office` as an office, in a `hotel` a
-"Quarto 12" as a hotel room. When the rooms sit on two or more floors of Home Assistant, the home
+`profile` names the first tab ("Casa" with a house for a home, "Início" with a building elsewhere),
+says "o local" where a home says "a casa", and picks the drawings: in a `clinic` a "Sala 3" is drawn as
+a consulting room, in an `office` as an office, in a `hotel` a "Quarto 12" as a hotel room. Home
+Assistant asks it when the dashboard is created, and **Ajustes** changes it later. When the rooms sit on two or more floors of Home Assistant, the home
 shows one floor at a time, with the lights on of each floor on its button; the floor picked last is
 remembered on the phone.
 
@@ -560,8 +605,10 @@ Draws the real bundle over a made-up house ([`dev/mock-house.js`](dev/mock-house
 coloured lights, an air conditioner, a curtain, a TV, two speakers playing together, a gate and a lock,
 a washer, an alarm and two cameras. Pick the screen with the address: `?view=home`, `?view=sala`, `?view=seguranca`,
 `?view=revisar&admin=1`; add `theme=light`, `alert=1` (smoke in the kitchen), `offline=1`, `edit=1`,
-`code=1` (alarm with a keypad), or open a sheet with `sheet=light|climate|media|cover|power|appliance`
-and `id=<entity or device id>`. The screenshots of this README are taken from it at 390 × 844.
+`code=1` (alarm with a keypad), `place=clinic` (a business), `rest=1` (seen as the wall tablet,
+resting), `admin=1&edit=1&settings=1` (the Ajustes sheet), or open a sheet with
+`sheet=light|climate|media|cover|power|appliance` and `id=<entity or device id>`. The screenshots of
+this README are taken from it at 390 × 844, and those of the tablet at 1280 × 800 and 768 × 1024.
 
 ## License
 

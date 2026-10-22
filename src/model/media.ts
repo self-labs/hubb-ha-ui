@@ -1,6 +1,7 @@
 import type { HassEntityState, HomeAssistant } from '../ha/types';
 import { areaOf } from './classify';
 import { displayName } from './names';
+import type { House, MediaItem } from './types';
 
 /**
  * What a speaker plays, as the card and the sheet show it: the speaker's own words first, the Spotify
@@ -127,4 +128,17 @@ export function groupCandidates(
       const areaId = areaOf(hass, id);
       return { entityId: id, name: displayName(hass, id, null), areaName: areaId ? (hass.areas[areaId]?.name ?? null) : null, joined: members.includes(id) };
     });
+}
+
+/**
+ * The speaker playing now, for the foot of the column of the wide home: the one in `preferRoom` (the
+ * room open on the right) first, then the first of the house; null when nothing plays.
+ */
+export function nowPlaying(house: House, hass: HomeAssistant, preferRoom: string | null): MediaItem | null {
+  const playing = (item: MediaItem): boolean => {
+    const view = mediaView(hass, item.entityId);
+    return view.state === 'playing' || (!!view.spotify && hass.states[view.spotify]?.state === 'playing');
+  };
+  const own = house.rooms.find((r) => r.areaId === preferRoom)?.media.find(playing);
+  return own ?? house.rooms.flatMap((r) => r.media).find(playing) ?? null;
 }

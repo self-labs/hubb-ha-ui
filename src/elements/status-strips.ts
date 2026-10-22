@@ -3,6 +3,7 @@ import { LitElement, css, html, nothing } from 'lit';
 import { haptic } from '../actions/haptic';
 import { basePath, navigate } from '../actions/navigate';
 import type { HomeAssistant } from '../ha/types';
+import type { Place } from '../model/profiles';
 import type { AlertItem } from '../model/types';
 import { STRIP } from '../strings';
 import { define } from './define';
@@ -43,18 +44,22 @@ export class HubbStatusStrips extends LitElement {
     hass: { attribute: false },
     alerts: { attribute: false },
     security: { attribute: false },
+    place: { attribute: false },
   };
 
   declare hass: HomeAssistant | undefined;
   declare alerts: AlertItem[];
   /** Whether the person has the security tab, where a roomless alert and the alarm lead. */
   declare security: boolean;
+  /** "Sem conexão com a casa" or "com o local". */
+  declare place: Place;
 
   constructor() {
     super();
     this.hass = undefined;
     this.alerts = [];
     this.security = true;
+    this.place = 'home';
   }
 
   protected updated(): void {
@@ -88,7 +93,7 @@ export class HubbStatusStrips extends LitElement {
             : html`<p class="alert">${icon(mdiAlert)}<span>${alertText(active)}</span></p>`}
         </div>`
       : nothing}${hass.connected === false
-      ? html`<p class="offline" role="status">${icon(mdiWifiOff)}<span>${STRIP.offline}</span></p>`
+      ? html`<p class="offline" role="status">${icon(mdiWifiOff)}<span>${STRIP.offline(this.place)}</span></p>`
       : nothing}`;
   }
 
@@ -107,7 +112,7 @@ export class HubbStatusStrips extends LitElement {
       align-items: center;
       gap: 8px;
       width: calc(100% - 32px);
-      max-width: 528px;
+      max-width: calc(var(--hubb-col, 560px) - 32px);
       min-height: 44px;
       margin: 8px auto 0;
       padding: 10px 14px;

@@ -10,12 +10,35 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ### Added
 
+- **Tablet layout.** On a screen 600 px or wider the panel spreads out: upright, three rooms and four
+  scenes a row; lying down (900 by 600 px or more), a column on the left with the clock, the weather
+  now and of the next hours, the house in pills (lights on, air conditioners on, doors and windows
+  open, the power now), the scenes, the rooms and the song playing, and the room picked open on the
+  right, its name, "Apagar tudo" and its scenes at the top beside its drawing. Each column scrolls by
+  itself, never sideways and with no scroll bar. The bar becomes a rail on the left and a sheet opens
+  as a window in the middle. The room picked last is remembered on the tablet. **Esconder**, at the
+  foot of the rail, puts the rail away on every screen, and a handle on the left edge brings it back;
+  the tablet remembers it.
+- **Wall tablet.** In **Ajustes** (the gear of the edit mode) an administrator marks the user logged
+  in on a wall tablet: the room it opens on, the minutes before it rests (2, 5, 10, 15 or never), the
+  sensor that wakes it and the Home Assistant app of the device. Resting shows the time, the weather
+  and one line about the house, and the app dims the screen (an iPad in Kiosk mode, an Android that
+  allows "Modify system settings"); a touch or someone passing by wakes it on its room. The YAML keys
+  are `tablets.<user id>` and `house_power`.
+- **Ar ligado**: a chip on the phone and a pill on the tablet list the air conditioners on, each with
+  its room and temperature, with **Desligar todos**.
+- A scene shows the icon Home Assistant gives it, or one read from its name (a moon for "Boa noite").
+- **Tipo de lugar.** Home Assistant asks the kind of place when the dashboard is created, and
+  **Ajustes** changes it later, with Desfazer. A business shows Início with a building on the first
+  tab and says "o local" where a home says "a casa" (out of reach, no security, only administrators).
+  A new dashboard is named after the place in Home Assistant, not "Casa".
 - **Alertas** on the Segurança tab: the smoke, gas, carbon monoxide and leak sensors that are on now,
   each by its name and room, in red. The strip of an alert with no room leads there, and the tab
   used to show nothing of it.
 
 ### Changed
 
+- On a tablet, a scene with no size chosen is Pequeno (four a row) instead of half the row.
 - The display light of an air conditioner reads **Luz do display** on its sheet and in its editor:
   LG ThinQ calls it "Iluminação", which read like the lights of the room.
 - A fan offers its own speeds: 33, 66 and 100% for a fan of three, instead of 25, 50, 75 and 100,

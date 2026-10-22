@@ -29,6 +29,8 @@ src/
                        (the sensor of a pulse gate: its position, candidates, the relay's last pulse)
   model/media.ts       what a speaker plays (its own attributes, then the Spotify playing on it,
                        matched by its source), who takes a command, the group and its candidates
+  model/               tablet: layout (layoutFor), tablet (tablets.<user>, rest rules, the app's
+                       screen commands), pick-room, pills, weather, scene-icon
   summary.ts           the home headline, room lines and room sensors
   strings.ts           every resident string
   actions/             light (by domain), colour, switch, action, scene, pending (3 s window),
@@ -39,6 +41,10 @@ src/
   theme/               CSS tokens (screens only) and the embedded Manrope font
   art/                 the 59 room drawings, the name/icon resolver, the render helper
   editing.ts           the edit mode (module state: it survives the view rebuild after a save)
+  sheets.ts, layout.ts, selection.ts, actions/rest.ts
+                       module state too: the open sheets, the layout and size of the screen, the
+                       rail put away, the room picked on the wide home, the rest of a wall
+                       tablet
   elements/            toggle tile (light, outlet, equipment, fan), action button, appliance card and
                        panel, floor tabs, item editor, sheet, dimmer and colour panels, toast, nav bar, room card,
                        scene button; M3: slide-confirm and access tile, climate card and panel,
@@ -47,7 +53,8 @@ src/
                        camera tile, power panel
   screens/             home, room, scenes, security, review (each is a Lovelace card filling a panel view)
   cards/               standalone light card, error card
-  strategy/            generateDashboard and the ll-strategy-dashboard-hubb element
+  strategy/            generateDashboard, the ll-strategy-dashboard-hubb element and
+                       place-editor (the kind of place Home Assistant asks at creation)
   hubb-ha-ui.ts        entry: registers everything, injects the font
 dev/                   preview.html + mock-house.js (a made-up house drawn by the real bundle),
                        serve.mjs; `npm run preview`. The README screenshots come from it
@@ -181,9 +188,33 @@ operation.
   `REBUILD_MS` later forgets them. A new sheet adds its property there; `test/sheets-rebuild.test.ts`
   counts the sheets of every screen against the list and reopens each one after a rebuild. A new
   action inside a sheet gets a test that the sheet is still open after the rebuild.
+- **Three layouts, by the size of the screen element, never of the window** (the sidebar of Home
+  Assistant takes part of it): `phone` under 600 px, `roomy` from 600 (or a screen under 600 px
+  tall), `wide` from 900 by 600 (`layoutFor`, `src/model/layout.ts`). A `ResizeObserver` on each
+  screen reports to `src/layout.ts`, which sets `screenLayout` on every screen and element that asks
+  through `LayoutWatcher`, and the area variables (`--hubb-area-left`, `-top`, `-width`) the fixed bar,
+  sheet and toast centre on. The attribute is `screen-layout`, never `layout`: `hui-panel-view` sets
+  `card.layout = 'panel'` on every card, which overwrote ours.
+- **Everything that must survive the rebuild is module state**, like `editing.ts`: the open sheets
+  (`sheets.ts`), the layout (`layout.ts`), the room picked on the wide home (`selection.ts`, also kept
+  in `localStorage` per dashboard) and the rest of a wall tablet (`actions/rest.ts`, by the clock, so
+  a held-back timer only fires late). A property of the screen is lost at the next registry change.
+- The wide home draws the room picked as `hubb-room-screen embedded` in its right pane. An embedded
+  screen draws no strips, back arrow, pencil, toast or bar, does not measure the screen and does not
+  run the rest. A room page opened on a wide screen picks its room and goes to the home.
+- **Screen brightness only through the Home Assistant app**, by `notify.mobile_app_*` commands built
+  in `screenCalls` (`src/model/tablet.ts`): iPadOS `kiosk_set_brightness` (`level` 0 to 100, Kiosk
+  mode on); Android `command_auto_screen_brightness` off, then `command_screen_brightness_level`
+  (0 to 255, needs "Modify system settings"), and back on at wake, plus `command_screen_on` with
+  `keep_screen_on`. A refused command is let go: resting still shows the rest screen. The screen is
+  never turned off, so presence and touch can wake it.
+- A text that names the place takes a `Place` (`STRIP.offline`, `SECURITY.empty`, `EDIT.onlyAdmins`):
+  "a casa" for a home, "o local" for a business (`Shared.place`, from the profile). A new resident
+  string that would say "casa" does the same, or says it without the place.
 - The blocks of a room page and the list of Cenas are six-column grids: a card takes 2 (small), 3
   (medium) or all 6 (large) columns through a `size-*` class from `sizeOf` (`src/model/sizes.ts`).
-  Cards with buttons or a slide only take the whole row. The span rules name the size class
+  On a tablet (`roomy`, `wide`) they are twelve columns, 3, 6 or 12 (`gridSpans`, `src/theme/layout.ts`),
+  so a small card is a quarter of the row; a scene with no size is small there. Cards with buttons or a slide only take the whole row. The span rules name the size class
   (`.grid > .size-small`): an edit tile resets its own styles with `all: unset`, which would undo a
   rule as weak as `.grid > *`.
 - happy-dom miscounts the options Lit renders in a `<select>` (`selectedIndex` lands on the wrong
@@ -191,7 +222,9 @@ operation.
 - A select of a device starts with `unlisted(...)` (`src/elements/unlisted.ts`): with no value, or one
   that is none of its choices, the browser would show the first choice, and picking it sends nothing.
 - Block order on a room page is fixed (Acesso, Luzes, Clima, Cortinas, Mídia, Tomadas e
-  equipamentos, Aparelhos, Ações, Sensores). The climate, cover, media and consumption sheets are one
+  equipamentos, Aparelhos, Ações, Sensores). One exception, wide only: a room with both an air
+  conditioner and a player draws Clima and Mídia side by side (`.pair.both`), so Cortinas comes after
+  them. The climate, cover, media and consumption sheets are one
   `hubb-sheet.device` opened by `hubb-open-climate`, `hubb-open-cover`, `hubb-open-media` and
   `hubb-open-power`.
 - A Spotify `media_player` is never a card (classify drops it): it shows through the speaker whose

@@ -1,8 +1,9 @@
 import { mdiCheck, mdiChevronLeft, mdiPencilOutline } from '@mdi/js';
-import { css, html, nothing } from 'lit';
+import { css, html, nothing, type PropertyValues } from 'lit';
 import { putBack, setEntity, setOrders, showEntity } from '../actions/dashboard-config';
 import { setLight } from '../actions/light';
-import { goBack } from '../actions/navigate';
+import { basePath, goBack, navigate } from '../actions/navigate';
+import { selectRoom } from '../selection';
 import { artStyles, roomArt } from '../art/render';
 import '../elements/access-tile';
 import '../elements/action-button';
@@ -39,6 +40,7 @@ import type { ItemKind } from '../model/config';
 import type { HiddenItem, HubbConfig, Room, Shared } from '../model/types';
 import { ACCESS, CLIMATE, COVER, EDIT, KIND_LABELS, MEDIA, POWER, roomTurnedOff, S, SENSE } from '../strings';
 import { applianceSubheading, roomClimate, roomHeroStatus } from '../summary';
+import { gridSpans, layoutStyles } from '../theme/layout';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 import { sizeOf, type SizedKind } from '../model/sizes';
@@ -125,6 +127,25 @@ export class HubbRoomScreen extends HubbScreen {
     return this.config?.room.areaId ?? '';
   }
 
+  #sentHome = false;
+
+  protected willUpdate(changed: PropertyValues<this>): void {
+    super.willUpdate(changed);
+    // Wide, a room is the right side of the home: a link (an alert, a notification) or a tablet turned
+    // on its side while a room is open lands there, with that room picked.
+    const area = this.config?.room.areaId;
+    if (!this.embedded && this.screenLayout === 'wide' && area && !this.#sentHome) {
+      this.#sentHome = true;
+      selectRoom(area);
+      navigate(`${basePath()}/home`, { replace: true });
+    }
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.#sentHome = false;
+  }
+
   protected scope(): string[] {
     return this.config?.lightIds ?? [];
   }
@@ -162,6 +183,43 @@ export class HubbRoomScreen extends HubbScreen {
     });
   }
 
+  #climateBlock(room: Room, editing: boolean) {
+    const hass = this.hass;
+    if (!room.climate.length) return nothing;
+    return html`<h2>${CLIMATE.title}</h2>
+      <div class="grid">
+        ${editing
+          ? this.#editTiles(room.climate, (c) => c.kind)
+          : room.climate.map((c) =>
+              c.kind === 'fan'
+                ? html`<hubb-fan-tile class=${this.#size(c.entityId, 'fan')} .hass=${hass} .item=${c}></hubb-fan-tile>`
+                : html`<hubb-climate-card class=${this.#size(c.entityId, 'climate')} .hass=${hass} .item=${c}></hubb-climate-card>`,
+            )}
+      </div>`;
+  }
+
+  #coversBlock(room: Room, editing: boolean) {
+    const hass = this.hass;
+    if (!room.covers.length) return nothing;
+    return html`<h2>${COVER.title}</h2>
+      <div class="grid">
+        ${editing
+          ? this.#editTiles(room.covers, 'cover')
+          : room.covers.map((c) => html`<hubb-cover-tile class=${this.#size(c.entityId, 'cover')} .hass=${hass} .item=${c}></hubb-cover-tile>`)}
+      </div>`;
+  }
+
+  #mediaBlock(room: Room, editing: boolean) {
+    const hass = this.hass;
+    if (!room.media.length) return nothing;
+    return html`<h2>${MEDIA.title}</h2>
+      <div class="grid">
+        ${editing
+          ? this.#editTiles(room.media, 'media')
+          : room.media.map((m) => html`<hubb-media-card class=${this.#size(m.entityId, 'media')} .hass=${hass} .item=${m}></hubb-media-card>`)}
+      </div>`;
+  }
+
   /** The name of the device whose sheet is open, as its card shows it. */
   #deviceName(room: Room, entityId: string): string {
     const item = [...room.climate, ...room.covers, ...room.media, ...room.outlets, ...room.equipment].find((i) => i.entityId === entityId);
@@ -185,18 +243,44 @@ export class HubbRoomScreen extends HubbScreen {
     const open = this.appliance ? (room.appliances.find((a) => a.deviceId === this.appliance) ?? null) : null;
     const device = this.device;
     const climate = roomClimate(hass, room);
-    return html`${this.strips(this.config?.shared)}<header
+    // Drawn inside the wide home, the room is only the room: the home has the strips, the pencil, the
+    // undo and the rail, and nothing to go back to.
+    const own = !this.embedded;
+    // Wide, the air conditioner and the player sit side by side when the room has both.
+    const pairUp = this.screenLayout === 'wide' && room.climate.length > 0 && room.media.length > 0;
+    const actions =
+      !editing && (room.lights.length || room.scenes.length)
+        ? html`<div class="actions">
+            ${room.lights.length
+              ? html`<!-- Always rendered when the room has lights: hiding it would push them down the moment one turns on. -->
+                  <button
+                    class="primary ${onIds.length ? '' : 'idle'}"
+                    ?disabled=${onIds.length === 0}
+                    aria-hidden=${onIds.length ? 'false' : 'true'}
+                    @click=${() => this.#turnOff(room, onIds)}
+                  >
+                    ${S.turnRoomOff}
+                  </button>`
+              : nothing}
+            ${room.scenes.map((s) => html`<hubb-scene-button variant="chip" .scene=${s}></hubb-scene-button>`)}
+          </div>`
+        : nothing;
+    // Wide, they sit in the header beside the drawing, which is tall anyway: under it they left a
+    // hole between the name of the room and its first block (the iPad Mini 5, 21/10).
+    const actionsInHero = this.screenLayout === 'wide';
+    return html`${own ? this.strips(this.config?.shared) : nothing}<header
         class="hero ${room.photo ? 'photo' : ''} ${onIds.length ? 'lit' : ''}"
         style=${room.photo ? `--photo:url("${room.photo}")` : ''}
       >
         ${room.photo ? nothing : roomArt(room.art)}
-        <button class="back" aria-label=${S.back} @click=${() => goBack()}>${icon(mdiChevronLeft)}</button>
+        ${own ? html`<button class="back" aria-label=${S.back} @click=${() => goBack()}>${icon(mdiChevronLeft)}</button>` : nothing}
         <div>
           <h1>${room.name}</h1>
           ${status ? html`<p>${status}</p>` : nothing}
           ${climate ? html`<p class="climate">${climate}</p>` : nothing}
+          ${actionsInHero ? actions : nothing}
         </div>
-        ${editable
+        ${editable && own
           ? html`<button class="edit ${editing ? 'on' : ''}" aria-label=${editing ? EDIT.done : EDIT.edit} @click=${() => setEditing(!editing)}>
               ${icon(editing ? mdiCheck : mdiPencilOutline)}
             </button>`
@@ -204,22 +288,7 @@ export class HubbRoomScreen extends HubbScreen {
       </header>
       <main>
         ${editing ? html`<p class="hint" role="status">${this.editNotice ?? EDIT.hintRoom}</p>` : nothing}
-        ${!editing && (room.lights.length || room.scenes.length)
-          ? html`<div class="actions">
-              ${room.lights.length
-                ? html`<!-- Always rendered when the room has lights: hiding it would push them down the moment one turns on. -->
-                    <button
-                      class="primary ${onIds.length ? '' : 'idle'}"
-                      ?disabled=${onIds.length === 0}
-                      aria-hidden=${onIds.length ? 'false' : 'true'}
-                      @click=${() => this.#turnOff(room, onIds)}
-                    >
-                      ${S.turnRoomOff}
-                    </button>`
-                : nothing}
-              ${room.scenes.map((s) => html`<hubb-scene-button variant="chip" .scene=${s}></hubb-scene-button>`)}
-            </div>`
-          : nothing}
+        ${actionsInHero ? nothing : actions}
         ${room.access.length
           ? html`<h2>${ACCESS.title}</h2>
               <div class="grid">
@@ -238,34 +307,10 @@ export class HubbRoomScreen extends HubbScreen {
                   : room.lights.map((l) => html`<hubb-light-tile class=${this.#size(l.entityId, 'light')} .hass=${hass} .item=${l}></hubb-light-tile>`)}
               </div>`
           : nothing}
-        ${room.climate.length
-          ? html`<h2>${CLIMATE.title}</h2>
-              <div class="grid">
-                ${editing
-                  ? this.#editTiles(room.climate, (c) => c.kind)
-                  : room.climate.map((c) =>
-                      c.kind === 'fan'
-                        ? html`<hubb-fan-tile class=${this.#size(c.entityId, 'fan')} .hass=${hass} .item=${c}></hubb-fan-tile>`
-                        : html`<hubb-climate-card class=${this.#size(c.entityId, 'climate')} .hass=${hass} .item=${c}></hubb-climate-card>`,
-                    )}
-              </div>`
-          : nothing}
-        ${room.covers.length
-          ? html`<h2>${COVER.title}</h2>
-              <div class="grid">
-                ${editing
-                  ? this.#editTiles(room.covers, 'cover')
-                  : room.covers.map((c) => html`<hubb-cover-tile class=${this.#size(c.entityId, 'cover')} .hass=${hass} .item=${c}></hubb-cover-tile>`)}
-              </div>`
-          : nothing}
-        ${room.media.length
-          ? html`<h2>${MEDIA.title}</h2>
-              <div class="grid">
-                ${editing
-                  ? this.#editTiles(room.media, 'media')
-                  : room.media.map((m) => html`<hubb-media-card class=${this.#size(m.entityId, 'media')} .hass=${hass} .item=${m}></hubb-media-card>`)}
-              </div>`
-          : nothing}
+        ${pairUp
+          ? html`<div class="pair both"><section>${this.#climateBlock(room, editing)}</section><section>${this.#mediaBlock(room, editing)}</section></div>
+              ${this.#coversBlock(room, editing)}`
+          : html`${this.#climateBlock(room, editing)}${this.#coversBlock(room, editing)}${this.#mediaBlock(room, editing)}`}
         ${room.outlets.length || room.equipment.length
           ? html`<h2>${S.outlets}</h2>
               <div class="grid">
@@ -362,6 +407,7 @@ export class HubbRoomScreen extends HubbScreen {
               .hass=${hass}
               .item=${this.editingItem}
               .roomAreaId=${room.areaId}
+              .place=${this.place()}
               .named=${!!this.config?.options?.entities?.[this.editingItem.entityId]?.name}
               .settings=${this.config?.options?.entities?.[this.editingItem.entityId]}
               .extras=${room.climate.find((c) => c.entityId === this.editingItem?.entityId)?.extras ?? []}
@@ -370,18 +416,23 @@ export class HubbRoomScreen extends HubbScreen {
             ></hubb-item-editor>`
           : nothing}
       </hubb-sheet>
-      <hubb-toast></hubb-toast>
-      <hubb-nav-bar
-        current="home"
-        home-label=${this.config?.homeLabel ?? S.home}
-        ?security=${this.config?.shared?.security ?? false}
-        .scenes=${this.config?.shared?.scenes ?? true}
-      ></hubb-nav-bar>`;
+      ${own
+        ? html`<hubb-toast></hubb-toast>
+            <hubb-nav-bar
+              current="home"
+              home-label=${this.config?.homeLabel ?? S.home}
+              .homeIcon=${this.homeIcon()}
+              ?security=${this.config?.shared?.security ?? false}
+              .scenes=${this.config?.shared?.scenes ?? true}
+            ></hubb-nav-bar>`
+        : nothing}${this.restLayer()}`;
   }
 
   static styles = [
     tokens,
     HubbScreen.baseStyles,
+    layoutStyles,
+    gridSpans,
     artStyles,
     css`
       /* Home Assistant already keeps the page below the status bar: no safe-area padding here. */
@@ -391,7 +442,7 @@ export class HubbRoomScreen extends HubbScreen {
         display: flex;
         align-items: center;
         gap: 12px;
-        max-width: 560px;
+        max-width: var(--hubb-col, 560px);
         min-height: 76px;
         margin: 0 auto;
         padding: 12px 16px 4px;
@@ -482,6 +533,28 @@ export class HubbRoomScreen extends HubbScreen {
       }
       .grid > .size-large {
         grid-column: 1 / -1;
+      }
+      /* Wide: a tall header with the drawing large, the name, the status and the actions at its top,
+         aligned with the clock card of the column; the air conditioner beside the player. */
+      :host([screen-layout='wide']) .hero {
+        min-height: 160px;
+        align-items: flex-start;
+        padding-top: 16px;
+      }
+      :host([screen-layout='wide']) .hero > div {
+        max-width: 50%;
+      }
+      :host([screen-layout='wide']) .hero .actions {
+        margin-top: 14px;
+      }
+      :host([screen-layout='wide']) .hero .art {
+        width: 52%;
+      }
+      :host([screen-layout='wide']) .pair.both {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 12px;
+        align-items: start;
       }
       .hero .edit {
         margin-left: auto;
