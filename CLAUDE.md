@@ -41,10 +41,10 @@ src/
   theme/               CSS tokens (screens only) and the embedded Manrope font
   art/                 the 59 room drawings, the name/icon resolver, the render helper
   editing.ts           the edit mode (module state: it survives the view rebuild after a save)
-  sheets.ts, layout.ts, selection.ts, actions/rest.ts
+  sheets.ts, layout.ts, selection.ts, actions/rest.ts, server-clock.ts
                        module state too: the open sheets, the layout and size of the screen, the
                        rail put away, the room picked on the wide home, the rest of a wall
-                       tablet
+                       tablet, how far this device's clock is from the server's
   elements/            toggle tile (light, outlet, equipment, fan), action button, appliance card and
                        panel, floor tabs, item editor, sheet, dimmer and colour panels, toast, nav bar, room card,
                        scene button; M3: slide-confirm and access tile, climate card and panel,
@@ -199,6 +199,9 @@ operation.
   (`sheets.ts`), the layout (`layout.ts`), the room picked on the wide home (`selection.ts`, also kept
   in `localStorage` per dashboard) and the rest of a wall tablet (`actions/rest.ts`, by the clock, so
   a held-back timer only fires late). A property of the screen is lost at the next registry change.
+- **A time from Home Assistant is on the server's clock.** `media_position_updated_at` and the like
+  are compared with `Date.now() - serverSkew()` (`src/server-clock.ts`, learned from the states as
+  they arrive), never with `Date.now()` alone: an iPad 74 s ahead showed a song just started at 1:14.
 - The wide home draws the room picked as `hubb-room-screen embedded` in its right pane. An embedded
   screen draws no strips, back arrow, pencil, toast or bar, does not measure the screen and does not
   run the rest. A room page opened on a wide screen picks its room and goes to the home.

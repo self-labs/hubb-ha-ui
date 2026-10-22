@@ -1,4 +1,5 @@
 import { LitElement, css, html, nothing } from 'lit';
+import { serverSkew } from '../server-clock';
 import { MEDIA } from '../strings';
 import { define } from './define';
 
@@ -59,7 +60,8 @@ export class HubbMediaProgress extends LitElement {
   }
 
   #elapsed(): number {
-    const run = this.playing ? Math.max(0, (Date.now() - this.positionAt) / 1000) : 0;
+    // `positionAt` is the time of the server: counted on the clock of the server, not of this device.
+    const run = this.playing ? Math.max(0, (Date.now() - serverSkew() - this.positionAt) / 1000) : 0;
     return Math.min(this.duration, Math.max(0, this.position + run));
   }
 

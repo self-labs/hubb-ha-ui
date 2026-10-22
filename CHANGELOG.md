@@ -54,6 +54,9 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   on its device instead"). Mover now puts the area on that device, with the same Desfazer; the
   channels of a relay board, which have their own names, still get the area of the entity.
 
+- The time of a song ran ahead on a device whose clock is not the one of Home Assistant: an iPad 74 s
+  ahead showed a song that had just started at 1:14, and the right time once paused. The bar now
+  counts on the clock of the server, learned from the states as they arrive.
 - A sheet closed by itself when a tap inside it made Home Assistant rebuild the page: the switch of
   **Tocar junto** (the WiiM group player shows itself when speakers join), and any action that
   changes a registry. Every sheet of the panel (lights on, appliance, dimmer, air conditioner,

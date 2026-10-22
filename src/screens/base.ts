@@ -19,6 +19,7 @@ import '../elements/toast';
 import { keepSheet, keptSheet, leaveSheets } from '../sheets';
 import { areaNow, layoutNow, onLayoutChange, railHidden, reportArea } from '../layout';
 import { configureRest, isResting, onRestChange, screenShown } from '../actions/rest';
+import { sampleServerClock } from '../server-clock';
 import '../elements/rest-screen';
 import type { Layout } from '../model/layout';
 import { PLACE_ICON, type Place } from '../model/profiles';
@@ -386,6 +387,8 @@ export abstract class HubbScreen extends LitElement {
       latest = this.hass;
       // The screen on show hands the rest of a wall tablet its user's tablet and the newest hass.
       if (!this.embedded) configureRest(this.sharedSlice()?.tablet ?? null, this.hass);
+      // A state that just arrived tells how far this device's clock is from the server's (src/server-clock.ts).
+      if (!this.embedded) sampleServerClock((changed.get('hass') as HomeAssistant | undefined)?.states, this.hass.states);
     }
     // The page Home Assistant rebuilt opens the sheets the one it replaced had open.
     const self = this as unknown as Record<string, unknown>;
