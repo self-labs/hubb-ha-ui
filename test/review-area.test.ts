@@ -281,7 +281,7 @@ describe('Revisar o painel across the rebuild after each move', () => {
     // The registry changed: Home Assistant regenerates the dashboard, with a new screen, where the
     // next list stands 170 px lower (the moved switch now waits for its role in a list above).
     el.remove();
-    const scroll = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const scroll = vi.spyOn(Element.prototype, 'scrollBy').mockImplementation(() => undefined);
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ top: 170 } as DOMRect);
     const moved = { ...h, entities: { ...h.entities, 'switch.hubb_m1_output03': { ...h.entities['switch.hubb_m1_output03']!, area_id: 'sala' } } };
     const again = await mount(moved);
@@ -316,7 +316,7 @@ describe('Revisar o painel across the rebuild after each move', () => {
     el.remove();
     const now = Date.now();
     vi.spyOn(Date, 'now').mockReturnValue(now + 60_000);
-    const scroll = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const scroll = vi.spyOn(Element.prototype, 'scrollBy').mockImplementation(() => undefined);
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ top: 170 } as DOMRect);
     const moved = { ...h, entities: { ...h.entities, 'switch.hubb_m1_output03': { ...h.entities['switch.hubb_m1_output03']!, area_id: 'sala' } } };
     await mount(moved);
@@ -330,7 +330,7 @@ describe('Revisar o painel across the rebuild after each move', () => {
     (el.shadowRoot!.querySelector('button.quiet') as HTMLButtonElement).click();
     await settle(el);
     await move(el, 'output03', 'sala');
-    const scroll = vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+    const scroll = vi.spyOn(Element.prototype, 'scrollBy').mockImplementation(() => undefined);
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ top: 170 } as DOMRect);
     const moved = { ...h, entities: { ...h.entities, 'switch.hubb_m1_output03': { ...h.entities['switch.hubb_m1_output03']!, area_id: 'sala' } } };
     // Home Assistant hands the old screen the new registry, then swaps it for a new one 200 ms later.

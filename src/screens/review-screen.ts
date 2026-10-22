@@ -225,7 +225,8 @@ export class HubbReviewScreen extends HubbScreen {
     if (!target) return;
     target.focus({ preventScroll: true });
     const shift = target.getBoundingClientRect().top - f.top;
-    if (shift) window.scrollBy({ top: shift, behavior: 'auto' });
+    // The screen is what scrolls (src/screens/base.ts), not the page of Home Assistant.
+    if (shift) this.scrollBy({ top: shift, behavior: 'auto' });
   }
 
   /**

@@ -16,7 +16,7 @@ import type { PeopleChange } from '../elements/people-picker';
 import '../elements/sheet';
 import '../elements/status-strips';
 import '../elements/toast';
-import { keepSheet, keptSheet, leaveSheets } from '../sheets';
+import { keepSheet, keptSheet, leaveSheets, REBUILD_MS } from '../sheets';
 import { areaNow, layoutNow, onLayoutChange, railHidden, reportArea } from '../layout';
 import { configureRest, isResting, onRestChange, screenShown } from '../actions/rest';
 import { sampleServerClock } from '../server-clock';
@@ -31,6 +31,18 @@ export type PeopleTarget = { kind: 'tab'; tab: TabId; name: string } | { kind: '
 let latest: HomeAssistant | undefined;
 
 /** What every screen shares: theme from the profile, the undo toast, and running scenes. */
+/**
+ * Where each page is scrolled (the screen, and the columns of the wide home), by the same key as its
+ * sheets. Home Assistant rebuilds the page after a save or a registry change, and the new screen
+ * starts at the top: it takes the place of the one it replaces, as the sheets do (src/sheets.ts).
+ */
+interface KeptScroll {
+  tops: number[];
+  owner: object;
+  left: number | null;
+}
+const keptScroll = new Map<string, KeptScroll>();
+
 export abstract class HubbScreen extends LitElement {
   // Typed as PropertyDeclarations so screens can declare their own properties; Lit merges them.
   static properties: PropertyDeclarations = {
@@ -62,6 +74,8 @@ export abstract class HubbScreen extends LitElement {
   #observer: ResizeObserver | null = null;
   /** Tells the rest of a wall tablet this screen left the page. */
   #shown: (() => void) | null = null;
+  /** The place of the page this one replaces, until it is reached (the content may still be growing). */
+  #restore: { tops: number[]; until: number } | null = null;
 
   /** The edit mode of a tab screen: the pencil by the title, the hint, and small tool buttons. */
   static editStyles = css`
@@ -141,6 +155,21 @@ export abstract class HubbScreen extends LitElement {
       color: var(--hubb-text);
       font-family: var(--hubb-font);
       -webkit-font-smoothing: antialiased;
+    }
+    /* The screen scrolls by itself, as tall as the area: the page of Home Assistant under it never
+       does. Never sideways, and with no scroll bar on any screen (Gustavo, 21/10). */
+    :host(:not([embedded])) {
+      box-sizing: border-box;
+      min-height: 0;
+      height: calc(100vh - var(--hubb-area-top, 0px));
+      height: calc(100dvh - var(--hubb-area-top, 0px));
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+    }
+    :host(:not([embedded]))::-webkit-scrollbar {
+      display: none;
     }
     /* Drawn inside another screen (the room on the wide home): the screen around it has the page. */
     :host([embedded]) {
@@ -250,6 +279,9 @@ export abstract class HubbScreen extends LitElement {
     this.#unwatchRest = onRestChange(() => this.requestUpdate());
     if (!this.embedded) {
       this.#shown = screenShown();
+      this.#takeScroll();
+      this.addEventListener('scroll', this.#onScroll, { passive: true });
+      this.renderRoot.addEventListener('scroll', this.#onScroll, { capture: true, passive: true });
       // Measured at once, so the first paint already has the right layout; then on every resize.
       this.#measure();
       if (typeof ResizeObserver !== 'undefined') {
@@ -269,6 +301,10 @@ export abstract class HubbScreen extends LitElement {
     this.#unwatchRest?.();
     this.#shown?.();
     this.#shown = null;
+    this.removeEventListener('scroll', this.#onScroll);
+    this.renderRoot.removeEventListener('scroll', this.#onScroll, { capture: true });
+    const k = keptScroll.get(this.#scrollKey());
+    if (k?.owner === this) k.left = Date.now();
     this.#unwatchRest = null;
     this.#observer?.disconnect();
     this.#observer = null;
@@ -337,6 +373,46 @@ export abstract class HubbScreen extends LitElement {
     return '';
   }
 
+  /** What scrolls on this screen: the screen itself; the wide home adds its two columns. */
+  protected scrollers(): HTMLElement[] {
+    return [this];
+  }
+
+  #scrollKey(): string {
+    return `${this.localName}:${this.sheetScope()}`;
+  }
+
+  #onScroll = (): void => {
+    if (this.#restore) return;
+    keptScroll.set(this.#scrollKey(), { tops: this.scrollers().map((e) => e.scrollTop), owner: this, left: null });
+  };
+
+  /** The place of the page this screen replaces, when it left a moment ago (a rebuild, not a new visit). */
+  #takeScroll(): void {
+    const key = this.#scrollKey();
+    const k = keptScroll.get(key);
+    if (!k || k.owner === this) return;
+    if (k.left !== null && Date.now() - k.left > REBUILD_MS) {
+      keptScroll.delete(key);
+      return;
+    }
+    k.owner = this;
+    k.left = null;
+    this.#restore = { tops: k.tops, until: Date.now() + REBUILD_MS };
+  }
+
+  #applyScroll(): void {
+    const r = this.#restore;
+    if (!r) return;
+    const scrollers = this.scrollers();
+    scrollers.forEach((e, i) => {
+      const top = r.tops[i] ?? 0;
+      if (e.scrollTop !== top) e.scrollTop = top;
+    });
+    // Reached, or the content never grew that tall: the page is the reader's again.
+    if (scrollers.every((e, i) => e.scrollTop === (r.tops[i] ?? 0)) || Date.now() > r.until) this.#restore = null;
+  }
+
   /** Whether one of its sheets is open: a property of `keptSheets` holds something. */
   hasOpenSheet(): boolean {
     const self = this as unknown as Record<string, unknown>;
@@ -402,6 +478,7 @@ export abstract class HubbScreen extends LitElement {
 
   protected updated(changed: PropertyValues<this>): void {
     super.updated(changed);
+    this.#applyScroll();
     // Out of reach, the page and what an open sheet holds take no key and reach no screen reader
     // either; the strips that say so, the bar and closing a sheet still work.
     for (const el of this.renderRoot.querySelectorAll('main, .side, .hero .actions, hubb-sheet > *')) el.toggleAttribute('inert', this.offline);

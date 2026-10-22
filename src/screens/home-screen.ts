@@ -254,6 +254,12 @@ export class HubbHomeScreen extends HubbScreen {
     });
   }
 
+  /** Wide, the two columns scroll by themselves too. */
+  protected scrollers(): HTMLElement[] {
+    const columns = [...this.renderRoot.querySelectorAll<HTMLElement>('.side, .pane')];
+    return [this, ...columns];
+  }
+
   #roomInEdit(hass: HomeAssistant, house: House, room: House['rooms'][number], picked: Room | null = null) {
     const at = house.rooms.indexOf(room);
     // Wide, a row that picks the room for the right side, as out of the edit mode: never its page.
