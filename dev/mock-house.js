@@ -11,7 +11,7 @@ const PT = {
   medium: 'Médio',
   high: 'Alto',
   Running: 'Lavando',
-  Idle: 'Parada',
+  Idle: 'Desligada',
 };
 
 const area = (area_id, name) => ({ area_id, name, picture: null, icon: null, floor_id: null });

@@ -8,6 +8,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.18] - 2026-10-22
+
 ### Added
 
 - **Tablet layout.** On a screen 600 px or wider the panel spreads out: upright, three rooms and four
@@ -51,6 +53,11 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ### Fixed
 
+- **Iniciar** did nothing on an Electrolux washer switched off: it says "Idle" after Desligar and
+  ignores Iniciar until Ligar, and the sheet took Idle for switched on. Idle now reads **Desligada**,
+  the sheet offers Ligar and Iniciar, and Iniciar switches the appliance on first, waits up to 10 s
+  for it to wake and only then starts it; when it does not wake, Iniciar is not sent and the button
+  says "Sem resposta".
 - **Mover** in Revisar o painel failed on an entity named after its device (a one-channel switch, a
   speaker): Home Assistant 2026.10 refuses an area on an entity with no name of its own ("set the area
   on its device instead"). Mover now puts the area on that device, with the same Desfazer; the
@@ -583,7 +590,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.17...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.18...HEAD
+[2026.10.18]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.17...v2026.10.18
 [2026.10.17]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.16...v2026.10.17
 [2026.10.16]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.15...v2026.10.16
 [2026.10.15]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.14...v2026.10.15

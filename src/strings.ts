@@ -441,7 +441,8 @@ export const KIND_LABELS = {
  */
 const APPLIANCE_STATES: Readonly<Record<string, string>> = {
   off: 'Desligada',
-  idle: 'Parada',
+  // An Electrolux washer says Idle after Desligar: it is switched off.
+  idle: 'Desligada',
   'ready to start': 'Pronta para iniciar',
   paused: 'Pausada',
   'delayed start': 'Início programado',

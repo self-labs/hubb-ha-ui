@@ -209,7 +209,8 @@ export function applianceName(hass: HomeAssistant, deviceId: string, s?: EntityS
   return s?.name ?? dev?.name_by_user ?? dev?.name ?? deviceId;
 }
 
-const POWERED_OFF = /^off$|power_?off|deslig/;
+// Idle: an Electrolux washer says it after Desligar and ignores Iniciar until Ligar (Gustavo's house, 22/10).
+const POWERED_OFF = /^off$|^idle$|power_?off|deslig/;
 
 /** Whether the appliance is switched off or out of reach: then "Desligar" has nothing to do. */
 export function isPoweredOff(hass: HomeAssistant, parts: ApplianceParts): boolean {

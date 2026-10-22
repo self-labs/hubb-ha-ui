@@ -20,15 +20,13 @@ import { keepSheet, keptSheet, leaveSheets, REBUILD_MS } from '../sheets';
 import { areaNow, layoutNow, onLayoutChange, railHidden, reportArea } from '../layout';
 import { configureRest, isResting, onRestChange, screenShown } from '../actions/rest';
 import { sampleServerClock } from '../server-clock';
+import { latestHass, setLatestHass } from '../latest-hass';
 import '../elements/rest-screen';
 import type { Layout } from '../model/layout';
 import { PLACE_ICON, type Place } from '../model/profiles';
 
 /** Whose "Quem vê" sheet is open on a tab screen: the tab itself or one of its items. */
 export type PeopleTarget = { kind: 'tab'; tab: TabId; name: string } | { kind: 'entity'; entityId: string; name: string };
-
-/** The newest hass any screen received: the one on screen keeps getting updates, a hidden one does not. */
-let latest: HomeAssistant | undefined;
 
 /** What every screen shares: theme from the profile, the undo toast, and running scenes. */
 /**
@@ -442,7 +440,7 @@ export abstract class HubbScreen extends LitElement {
       const undo = await change(hass, urlPath);
       haptic('success');
       this.editNotice = null;
-      this.toast()?.show(message, () => void undo(latest ?? hass).catch(() => haptic('failure')));
+      this.toast()?.show(message, () => void undo(latestHass() ?? hass).catch(() => haptic('failure')));
       return true;
     } catch {
       haptic('failure');
@@ -460,7 +458,7 @@ export abstract class HubbScreen extends LitElement {
     if (changed.has('hass') && this.hass) {
       this.theme = this.hass.themes.darkMode ? 'dark' : 'light';
       this.offline = this.hass.connected === false;
-      latest = this.hass;
+      setLatestHass(this.hass);
       // The screen on show hands the rest of a wall tablet its user's tablet and the newest hass.
       if (!this.embedded) configureRest(this.sharedSlice()?.tablet ?? null, this.hass);
       // A state that just arrived tells how far this device's clock is from the server's (src/server-clock.ts).
@@ -580,7 +578,7 @@ export abstract class HubbScreen extends LitElement {
       },
       {
         // Desfazer may be tapped on another screen; Home Assistant stops updating a hidden view.
-        current: () => latest ?? this.hass,
+        current: () => latestHass() ?? this.hass,
         stop: extra.stop,
         targets: extra.targets,
         // Withdraw this action's offer only: a later action may already have its own.

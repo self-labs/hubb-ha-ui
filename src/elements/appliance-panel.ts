@@ -1,8 +1,10 @@
 import { mdiChevronRight, mdiPause, mdiPlay, mdiPlayCircleOutline, mdiPower, mdiStop } from '@mdi/js';
 import { LitElement, css, html, nothing } from 'lit';
+import { wakeThenStart } from '../actions/appliance';
 import { haptic } from '../actions/haptic';
 import { PendingTracker } from '../actions/pending';
 import type { HomeAssistant } from '../ha/types';
+import { latestHass } from '../latest-hass';
 import {
   applianceReach,
   buttonsFor,
@@ -114,13 +116,19 @@ export class HubbAppliancePanel extends LitElement {
       .catch(() => haptic('failure'));
   }
 
-  #command(hass: HomeAssistant, button: ApplianceButton, disabled: boolean) {
+  #command(hass: HomeAssistant, button: ApplianceButton, disabled: boolean, wake: string | null) {
     const name = button.command === 'other' ? displayName(hass, button.entityId, null) : COMMAND_LABELS[button.command];
+    const parts = this.item!.parts;
+    const run =
+      button.command === 'start' && wake
+        ? (h: HomeAssistant) => wakeThenStart(h, () => latestHass() ?? this.hass, parts, wake, button.entityId)
+        : null;
     return html`<hubb-action-button
       .hass=${this.#quietHass(hass)}
       .item=${{ entityId: button.entityId, name, icon: null }}
       .path=${COMMAND_ICONS[button.command]}
       .disabled=${disabled}
+      .run=${run}
     ></hubb-action-button>`;
   }
 
@@ -152,7 +160,10 @@ export class HubbAppliancePanel extends LitElement {
     const text = stateText(hass, parts, item.name);
     const timed = now !== 'stopped' && minutes !== null && minutes > 0 ? minutesToFinish(minutes) : null;
     const pct = now === 'working' ? progressPct(hass, parts) : null;
-    const { main, more } = buttonsFor(parts, now, isPoweredOff(hass, parts));
+    const off = isPoweredOff(hass, parts);
+    const { main, more } = buttonsFor(parts, now, off);
+    // Switched off, Iniciar switches it on first: Iniciar alone is ignored (Electrolux, 22/10).
+    const wake = off ? (parts.buttons.find((b) => b.command === 'on')?.entityId ?? null) : null;
     // One row: the commands that make sense now first, then the stop and the others (Gustavo, 13/10).
     const commands = [...main, ...more];
     const selects = parts.selects.filter((id) => isShownOption(hass, id));
@@ -173,7 +184,7 @@ export class HubbAppliancePanel extends LitElement {
         : nothing}
       ${commands.length
         ? html`<div class="commands" style="grid-template-columns: repeat(${Math.min(commands.length, 3)}, minmax(0, 1fr))">
-            ${commands.map((b) => this.#command(hass, b, reach !== 'ok'))}
+            ${commands.map((b) => this.#command(hass, b, reach !== 'ok', wake))}
           </div>`
         : nothing}
       ${selects.length ? html`<div class="choices">${selects.map((id) => this.#choice(hass, id))}</div>` : nothing}

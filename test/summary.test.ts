@@ -167,7 +167,7 @@ describe('appliance lines', () => {
     const paused = casa2Hass('Paused', '1');
     expect(applianceLine(paused, washer(paused))).toBe('Pausada · falta 1 min');
     const idle = casa2Hass('Idle', '80');
-    expect(applianceLine(idle, washer(idle))).toBe('Parada');
+    expect(applianceLine(idle, washer(idle))).toBe('Desligada');
   });
 
   it('says Sem estado for an appliance with no state sensor', () => {

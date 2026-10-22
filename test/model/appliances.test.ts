@@ -113,7 +113,7 @@ describe('time, progress and situation', () => {
     expect(stateText(raw, parts(raw), 'Lavadora')).toBe('Lavando');
     const words = (state: string, name: string) => { const h = washer(state); return stateText(h, parts(h), name); };
     expect(['Off', 'Idle', 'Ready To Start', 'Paused', 'Delayed Start', 'End Of Cycle', 'Alarm', 'Rinse Hold'].map((s) => words(s, 'Lavadora'))).toEqual([
-      'Desligada', 'Parada', 'Pronta para iniciar', 'Pausada', 'Início programado', 'Ciclo concluído', 'Alarme', 'Rinse Hold',
+      'Desligada', 'Desligada', 'Pronta para iniciar', 'Pausada', 'Início programado', 'Ciclo concluído', 'Alarme', 'Rinse Hold',
     ]);
     expect([words('Running', 'Secadora'), words('Running', 'Lava-louças'), words('RUNNING', 'Forno')]).toEqual(['Secando', 'Lavando', 'Em funcionamento']);
     const pt = makeHass({
@@ -148,6 +148,9 @@ describe('names, buttons and program', () => {
     expect(isPoweredOff(off, findParts(off, 'd_lavadora', 'sensor.lavadora_appliancestate'))).toBe(true);
     const gone = washer('unavailable', '0');
     expect(isPoweredOff(gone, findParts(gone, 'd_lavadora', 'sensor.lavadora_appliancestate'))).toBe(true);
+    // An Electrolux washer says Idle after Desligar and ignores Iniciar until Ligar (Gustavo's house, 22/10).
+    const idle = washer('Idle', '80');
+    expect(isPoweredOff(idle, findParts(idle, 'd_lavadora', 'sensor.lavadora_appliancestate'))).toBe(true);
     const ready = washer('Ready To Start', '80');
     expect(isPoweredOff(ready, findParts(ready, 'd_lavadora', 'sensor.lavadora_appliancestate'))).toBe(false);
   });

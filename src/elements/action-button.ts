@@ -18,6 +18,7 @@ export class HubbActionButton extends LitElement {
     item: { attribute: false },
     path: { attribute: false },
     disabled: { type: Boolean },
+    run: { attribute: false },
     result: { state: true },
   };
 
@@ -27,6 +28,8 @@ export class HubbActionButton extends LitElement {
   declare path: string | null;
   /** Greyed out: the appliance cannot take a command now (no connection, remote control off). */
   declare disabled: boolean;
+  /** What a press does instead of pressing the entity (Iniciar on an appliance switched off). */
+  declare run: ((hass: HomeAssistant) => Promise<unknown>) | null;
   declare result: 'done' | 'failed' | null;
 
   #timer: ReturnType<typeof setTimeout> | null = null;
@@ -37,6 +40,7 @@ export class HubbActionButton extends LitElement {
     this.item = undefined;
     this.path = null;
     this.disabled = false;
+    this.run = null;
     this.result = null;
   }
 
@@ -64,7 +68,7 @@ export class HubbActionButton extends LitElement {
       return;
     }
     haptic('light');
-    pressAction(hass, item.entityId).then(
+    (this.run ? this.run(hass) : pressAction(hass, item.entityId)).then(
       () => this.#show('done'),
       () => {
         haptic('failure');
