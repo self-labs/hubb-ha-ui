@@ -1,6 +1,6 @@
 import { mdiChevronRight, mdiPause, mdiPlay, mdiPlayCircleOutline, mdiPower, mdiStop } from '@mdi/js';
 import { LitElement, css, html, nothing } from 'lit';
-import { wakeThenStart } from '../actions/appliance';
+import { onWakeChange, wakeOf, wakeThenStart, type Wake } from '../actions/appliance';
 import { haptic } from '../actions/haptic';
 import { PendingTracker } from '../actions/pending';
 import type { HomeAssistant } from '../ha/types';
@@ -19,7 +19,7 @@ import {
   type Command,
 } from '../model/appliances';
 import { displayName } from '../model/names';
-import { COMMAND_LABELS, minutesToFinish, REACH, S } from '../strings';
+import { COMMAND_LABELS, minutesToFinish, REACH, S, WAKE_LABELS } from '../strings';
 import './action-button';
 import { define } from './define';
 import './equipment-tile';
@@ -88,10 +88,19 @@ export class HubbAppliancePanel extends LitElement {
     return to;
   }
 
+  #unwake: (() => void) | null = null;
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    this.#unwake = onWakeChange(() => this.requestUpdate());
+  }
+
   disconnectedCallback(): void {
     super.disconnectedCallback();
     if (this.#refresh) clearTimeout(this.#refresh);
     this.#refresh = null;
+    this.#unwake?.();
+    this.#unwake = null;
   }
 
   protected updated(): void {
@@ -116,19 +125,19 @@ export class HubbAppliancePanel extends LitElement {
       .catch(() => haptic('failure'));
   }
 
-  #command(hass: HomeAssistant, button: ApplianceButton, disabled: boolean, wake: string | null) {
+  #command(hass: HomeAssistant, button: ApplianceButton, disabled: boolean, on: string | null, wake: Wake | null) {
     const name = button.command === 'other' ? displayName(hass, button.entityId, null) : COMMAND_LABELS[button.command];
     const parts = this.item!.parts;
+    const starts = button.command === 'start';
     const run =
-      button.command === 'start' && wake
-        ? (h: HomeAssistant) => wakeThenStart(h, () => latestHass() ?? this.hass, parts, wake, button.entityId)
-        : null;
+      starts && on ? (h: HomeAssistant) => wakeThenStart(h, () => latestHass() ?? this.hass, parts, on, button.entityId) : null;
     return html`<hubb-action-button
       .hass=${this.#quietHass(hass)}
       .item=${{ entityId: button.entityId, name, icon: null }}
       .path=${COMMAND_ICONS[button.command]}
       .disabled=${disabled}
       .run=${run}
+      .status=${starts && wake ? WAKE_LABELS[wake] : null}
     ></hubb-action-button>`;
   }
 
@@ -160,10 +169,13 @@ export class HubbAppliancePanel extends LitElement {
     const text = stateText(hass, parts, item.name);
     const timed = now !== 'stopped' && minutes !== null && minutes > 0 ? minutesToFinish(minutes) : null;
     const pct = now === 'working' ? progressPct(hass, parts) : null;
-    const off = isPoweredOff(hass, parts);
-    const { main, more } = buttonsFor(parts, now, off);
+    const start = parts.buttons.find((b) => b.command === 'start')?.entityId;
+    // While Iniciar switches it on, the row stays as it was tapped (Ligar, Iniciar) and takes no tap.
+    const wake = start ? wakeOf(start) : null;
+    const off = wake !== null || isPoweredOff(hass, parts);
+    const { main, more } = buttonsFor(parts, wake ? 'stopped' : now, off);
     // Switched off, Iniciar switches it on first: Iniciar alone is ignored (Electrolux, 22/10).
-    const wake = off ? (parts.buttons.find((b) => b.command === 'on')?.entityId ?? null) : null;
+    const on = off ? (parts.buttons.find((b) => b.command === 'on')?.entityId ?? null) : null;
     // One row: the commands that make sense now first, then the stop and the others (Gustavo, 13/10).
     const commands = [...main, ...more];
     const selects = parts.selects.filter((id) => isShownOption(hass, id));
@@ -184,7 +196,7 @@ export class HubbAppliancePanel extends LitElement {
         : nothing}
       ${commands.length
         ? html`<div class="commands" style="grid-template-columns: repeat(${Math.min(commands.length, 3)}, minmax(0, 1fr))">
-            ${commands.map((b) => this.#command(hass, b, reach !== 'ok', wake))}
+            ${commands.map((b) => this.#command(hass, b, reach !== 'ok' || wake !== null, on, wake))}
           </div>`
         : nothing}
       ${selects.length ? html`<div class="choices">${selects.map((id) => this.#choice(hass, id))}</div>` : nothing}

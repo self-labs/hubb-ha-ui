@@ -19,6 +19,7 @@ export class HubbActionButton extends LitElement {
     path: { attribute: false },
     disabled: { type: Boolean },
     run: { attribute: false },
+    status: { attribute: false },
     result: { state: true },
   };
 
@@ -30,6 +31,8 @@ export class HubbActionButton extends LitElement {
   declare disabled: boolean;
   /** What a press does instead of pressing the entity (Iniciar on an appliance switched off). */
   declare run: ((hass: HomeAssistant) => Promise<unknown>) | null;
+  /** A word under the name while something is on its way ("Ligando…"); it wins over the result. */
+  declare status: string | null;
   declare result: 'done' | 'failed' | null;
 
   #timer: ReturnType<typeof setTimeout> | null = null;
@@ -41,6 +44,7 @@ export class HubbActionButton extends LitElement {
     this.path = null;
     this.disabled = false;
     this.run = null;
+    this.status = null;
     this.result = null;
   }
 
@@ -81,7 +85,7 @@ export class HubbActionButton extends LitElement {
     const item = this.item;
     if (!item) return nothing;
     const down = this.hass?.states[item.entityId]?.state === 'unavailable';
-    const said = this.result === 'done' ? S.done : this.result === 'failed' || down ? S.noResponse : null;
+    const said = this.status ?? (this.result === 'done' ? S.done : this.result === 'failed' || down ? S.noResponse : null);
     return html`<button class="action ${this.result ?? ''} ${down ? 'na' : ''}" ?disabled=${this.disabled} @click=${this.#press}>
       <span class="icon">${item.icon ? html`<ha-icon .icon=${item.icon}></ha-icon>` : icon(this.path ?? mdiPlayCircleOutline)}</span>
       <span class="name">${item.name}</span>

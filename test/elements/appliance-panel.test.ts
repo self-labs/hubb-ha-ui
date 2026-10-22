@@ -70,6 +70,65 @@ describe('hubb-appliance-panel', () => {
       { entity_id: 'button.lavadora_executecommand_2' },
       { entity_id: 'button.lavadora_executecommand_5' },
     ]);
+    el.hass = withState(idle, 'sensor.lavadora_appliancestate', 'Running');
+    await vi.advanceTimersByTimeAsync(500);
+  });
+
+  it('holds the row still while Iniciar switches the washer on, so a second tap never lands on Desligar', async () => {
+    vi.useFakeTimers();
+    const idle = casa2Hass('Idle', '80');
+    const el = await mount(idle);
+    const buttons = () => [...el.shadowRoot!.querySelectorAll('.commands hubb-action-button')] as HubbActionButton[];
+    const said = async (b: HubbActionButton) => {
+      await b.updateComplete;
+      return b.shadowRoot!.querySelector('.result')!.textContent;
+    };
+    const start = buttons()[1]!;
+    await start.updateComplete;
+    (start.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
+    await vi.advanceTimersByTimeAsync(300);
+    await el.updateComplete;
+    expect(labels(el, '.commands hubb-action-button')).toEqual(['Ligar', 'Iniciar', 'Parar']);
+    expect(buttons().every((b) => b.disabled)).toBe(true);
+    expect(await said(buttons()[1]!)).toBe('Ligando…');
+
+    el.hass = withState(idle, 'sensor.lavadora_appliancestate', 'Ready To Start');
+    await vi.advanceTimersByTimeAsync(300);
+    await el.updateComplete;
+    // Ready To Start alone would offer Iniciar and Desligar: Desligar would sit where Iniciar was.
+    expect(labels(el, '.commands hubb-action-button')).toEqual(['Ligar', 'Iniciar', 'Parar']);
+    expect(await said(buttons()[1]!)).toBe('Iniciando…');
+    (buttons()[1]!.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
+    expect(idle.calls.map((c) => c.target)).toEqual([
+      { entity_id: 'button.lavadora_executecommand_2' },
+      { entity_id: 'button.lavadora_executecommand_5' },
+    ]);
+
+    el.hass = withState(idle, 'sensor.lavadora_appliancestate', 'Running');
+    await vi.advanceTimersByTimeAsync(300);
+    await el.updateComplete;
+    expect(labels(el, '.commands hubb-action-button')).toEqual(['Pausar', 'Desligar', 'Parar']);
+    expect(buttons().some((b) => b.disabled)).toBe(false);
+  });
+
+  it('keeps holding the row on a sheet rebuilt while the washer wakes', async () => {
+    vi.useFakeTimers();
+    const idle = casa2Hass('Idle', '80');
+    const first = await mount(idle);
+    const start = first.shadowRoot!.querySelectorAll('.commands hubb-action-button')[1] as HubbActionButton;
+    await start.updateComplete;
+    (start.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
+    await vi.advanceTimersByTimeAsync(300);
+    first.hass = withState(idle, 'sensor.lavadora_appliancestate', 'Ready To Start');
+    document.body.replaceChildren();
+    const again = await mount(withState(idle, 'sensor.lavadora_appliancestate', 'Ready To Start'));
+    expect(labels(again, '.commands hubb-action-button')).toEqual(['Ligar', 'Iniciar', 'Parar']);
+    await vi.advanceTimersByTimeAsync(300);
+    first.hass = withState(idle, 'sensor.lavadora_appliancestate', 'Running');
+    again.hass = withState(idle, 'sensor.lavadora_appliancestate', 'Running');
+    await vi.advanceTimersByTimeAsync(300);
+    await again.updateComplete;
+    expect(labels(again, '.commands hubb-action-button')).toEqual(['Pausar', 'Desligar', 'Parar']);
   });
 
   it('lists the choices with their translated options, and leaves out the unknown one', async () => {

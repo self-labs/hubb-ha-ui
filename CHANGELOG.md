@@ -8,6 +8,15 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.19] - 2026-10-22
+
+### Fixed
+
+- A second tap on **Iniciar** while it switched a washer on could turn it off: once the washer said
+  "Pronta para iniciar", the row became Iniciar and Desligar, with Desligar where Iniciar had been.
+  Until the washer runs, the row now stays as it was tapped, takes no tap, and Iniciar says
+  **Ligando…** and then **Iniciando…**; a page rebuilt meanwhile keeps it.
+
 ## [2026.10.18] - 2026-10-22
 
 ### Added
@@ -590,7 +599,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.18...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.19...HEAD
+[2026.10.19]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.18...v2026.10.19
 [2026.10.18]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.17...v2026.10.18
 [2026.10.17]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.16...v2026.10.17
 [2026.10.16]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.15...v2026.10.16

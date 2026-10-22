@@ -116,6 +116,12 @@ export const COMMAND_LABELS = {
   stop: 'Parar',
 } as const;
 
+/** Under Iniciar while it switches an appliance on and waits for it to run. */
+export const WAKE_LABELS = {
+  waking: 'Ligando…',
+  starting: 'Iniciando…',
+} as const;
+
 /** Whether an appliance can take a command from the panel, and what to say when one fails. */
 export const REACH = {
   offline: 'Sem conexão',
