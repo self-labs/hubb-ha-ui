@@ -28,6 +28,10 @@ export interface HassDevice {
   name_by_user: string | null;
   /** "Apple" for an iPhone or iPad of the Home Assistant app: how the panel tells its commands apart. */
   manufacturer?: string | null;
+  /** How the panel tells apart two devices of the same name (a TV and its Music Assistant player). */
+  model?: string | null;
+  /** `[integration, id]` pairs: Music Assistant puts its player id here, which says a group apart. */
+  identifiers?: [string, string][];
 }
 
 export interface HassArea {

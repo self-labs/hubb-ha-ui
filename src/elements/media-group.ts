@@ -5,7 +5,7 @@ import { channelWord } from '../actions/media';
 import { PendingTracker } from '../actions/pending';
 import { stepVolume, volumeTarget } from '../actions/volume';
 import type { HomeAssistant } from '../ha/types';
-import { channelSelect, groupCandidates, groupOf } from '../model/media';
+import { channelSelect, groupCandidates, groupingEntity, groupOf, speakerOf } from '../model/media';
 import { displayName } from '../model/names';
 import { MEDIA } from '../strings';
 import { define } from './define';
@@ -16,21 +16,26 @@ import { unlisted } from './unlisted';
 const PENDING_MS = 5000;
 
 /**
- * Tocar junto: the other speakers the resident sees, of the same integration, each with a switch.
- * Home Assistant groups them (`join` on this speaker, `unjoin` on the other); a member of someone
- * else's group can only leave it. The leader also turns every speaker of the group up or down.
+ * Tocar junto: the other speakers the resident sees, each with a switch. Home Assistant groups them
+ * (`join` on this speaker, `unjoin` on the other): through Music Assistant when the speaker has a
+ * player there, which joins any brand, else through its own integration. A member of someone else's
+ * group can only leave it. The leader also turns every speaker of the group up or down. Names, rooms,
+ * volume and the Channel are always the speakers' own; only the join goes to Music Assistant.
  */
 export class HubbMediaGroup extends LitElement {
   static properties = {
     hass: { attribute: false },
     entityId: { attribute: false },
     visible: { attribute: false },
+    pairs: { attribute: false },
   };
 
   declare hass: HomeAssistant | undefined;
   declare entityId: string;
   /** The media players the resident sees in the house (`Shared.media`). */
   declare visible: readonly string[];
+  /** Each speaker and its Music Assistant player (`Shared.mediaPairs`). */
+  declare pairs: Readonly<Record<string, string>>;
 
   // No second state: the 5 s are over, the switch shows what Home Assistant says.
   #pending = new PendingTracker(PENDING_MS, 0);
@@ -43,6 +48,17 @@ export class HubbMediaGroup extends LitElement {
     this.hass = undefined;
     this.entityId = '';
     this.visible = [];
+    this.pairs = {};
+  }
+
+  /** The player that joins and leaves for a speaker. */
+  #grouping(hass: HomeAssistant, speakerId: string): string {
+    return groupingEntity(hass, speakerId, this.pairs);
+  }
+
+  /** The speaker behind a player of a group (a Music Assistant player maps back to its speaker). */
+  #speaker(playerId: string): string {
+    return speakerOf(this.pairs, playerId);
   }
 
   connectedCallback(): void {
@@ -78,17 +94,19 @@ export class HubbMediaGroup extends LitElement {
   }
 
   /**
-   * `speakerId` leaves the group `leader` leads. Once Home Assistant takes the unjoin, it goes back to
-   * stereo, and so does the leader when nobody else stays: the speakers already leaving (a switch
-   * waiting on Home Assistant) do not count, since `group_members` still lists them.
+   * `speakerId` leaves the group `leader` leads (both speakers). Once Home Assistant takes the unjoin, it
+   * goes back to stereo, and so does the leader when nobody else stays: the speakers already leaving (a
+   * switch waiting on Home Assistant) do not count, since `group_members` still lists them.
    */
   #leave(speakerId: string, leader: string): void {
     const hass = this.hass;
     if (!hass) return;
-    const staying = groupOf(hass, leader).members.filter((m) => m !== speakerId && this.#pending.expected(m) !== 'off');
+    const staying = groupOf(hass, this.#grouping(hass, leader))
+      .members.map((m) => this.#speaker(m))
+      .filter((m) => m !== speakerId && this.#pending.expected(m) !== 'off');
     haptic('light');
     hass
-      .callService('media_player', 'unjoin', undefined, { entity_id: speakerId })
+      .callService('media_player', 'unjoin', undefined, { entity_id: this.#grouping(hass, speakerId) })
       .then(() => {
         this.#backToStereo(speakerId);
         if (!staying.length) this.#backToStereo(leader);
@@ -97,9 +115,11 @@ export class HubbMediaGroup extends LitElement {
   }
 
   #toggle(id: string, joined: boolean): void {
+    const hass = this.hass;
+    if (!hass) return;
     this.#pending.start(id, joined ? 'off' : 'on');
     if (joined) this.#leave(id, this.entityId);
-    else this.#call('join', this.entityId, { group_members: [id] });
+    else this.#call('join', this.#grouping(hass, this.entityId), { group_members: [this.#grouping(hass, id)] });
     this.requestUpdate();
   }
 
@@ -126,13 +146,16 @@ export class HubbMediaGroup extends LitElement {
   render() {
     const hass = this.hass;
     if (!hass?.states[this.entityId]) return nothing;
-    const { leader, members } = groupOf(hass, this.entityId);
+    const mine = this.#grouping(hass, this.entityId);
+    const found = groupOf(hass, mine);
+    const leader = found.leader === null ? null : this.#speaker(found.leader);
+    const members = found.members.map((m) => this.#speaker(m));
     if (leader !== null && leader !== this.entityId) {
       return html`<p class="label">${MEDIA.playTogether}</p>
         <p class="part">${MEDIA.partOf(displayName(hass, leader, null))}</p>
         <button class="leave" @click=${() => this.#leave(this.entityId, leader)}>${MEDIA.leaveGroup}</button>`;
     }
-    const candidates = groupCandidates(hass, this.entityId, this.visible);
+    const candidates = groupCandidates(hass, this.entityId, this.visible, this.pairs);
     // A leader keeps the section for its group even when the resident sees none of the others.
     if (!candidates.length && !members.length) return nothing;
     const group = [this.entityId, ...members];

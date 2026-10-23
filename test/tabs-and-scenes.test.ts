@@ -91,7 +91,7 @@ describe('the tabs and the scenes, person by person', () => {
   it('says what is wrong with tabs in the YAML', () => {
     const r = readConfig(installer(), { tabs: { cenas: {}, security: { hidden_for: 'x' } } } as unknown as HubbConfig);
     expect(r.problems.map((p) => [p.key, p.message])).toEqual([
-      ['tabs.cenas', 'tabs: cenas não existe. Use scenes ou security.'],
+      ['tabs.cenas', 'tabs: cenas não existe. Use scenes, security ou media.'],
       ['tabs.security.hidden_for', 'hidden_for precisa ser uma lista, por exemplo [id do usuário].'],
     ]);
     expect(readConfig(installer(), { tabs: 'x' } as unknown as HubbConfig).problems.map((p) => p.key)).toEqual(['tabs']);

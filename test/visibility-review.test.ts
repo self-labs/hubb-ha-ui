@@ -31,7 +31,7 @@ function house(isAdmin: boolean, extra: FakeEntity[] = []): FakeHass {
 const kitnetHidden: HubbConfig = { rooms: { kitnet: { hidden_for: [LIA] } } };
 const areaViews = (config: HubbConfig, h: FakeHass) => {
   const views = generateDashboard(config, h).views;
-  return views.slice(views.findIndex((v) => v.path === 'seguranca') + 1).filter((v) => v.path !== 'revisar');
+  return views.slice(views.findIndex((v) => v.path === 'seguranca') + 1).filter((v) => v.path !== 'revisar' && v.path !== 'midia');
 };
 
 describe('the final review of who sees what', () => {

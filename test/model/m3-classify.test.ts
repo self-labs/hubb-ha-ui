@@ -51,7 +51,7 @@ describe('the kinds of M3', () => {
       { entityId: 'fan.teto', name: 'Ventilador', kind: 'fan' },
     ]);
     expect(sala.covers.map((c) => c.name)).toEqual(['Cortina', 'Persiana']);
-    expect(sala.media).toEqual([{ entityId: 'media_player.tv', name: 'TV' }]);
+    expect(sala.media).toEqual([{ entityId: 'media_player.tv', name: 'TV', ma: null }]);
     expect(entrada.access).toEqual([
       { entityId: 'cover.basculante', name: 'Basculante', kind: 'cover' },
       { entityId: 'lock.porta', name: 'Porta', kind: 'lock' },

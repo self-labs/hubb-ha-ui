@@ -1,4 +1,5 @@
 import type { HomeAssistant } from '../ha/types';
+import { isGroupMaster, isMaGroup, maPairs } from './ma-pair';
 import type { PanelConfig } from './config';
 
 export const SCENE_LABEL = 'hubb_cena';
@@ -64,6 +65,10 @@ export interface ClassifyContext {
   climateDevices: ReadonlySet<string>;
   /** Entities hidden for the resident looking; empty for an administrator. */
   viewerHidden: ReadonlySet<string>;
+  /** Each speaker and its Music Assistant player (model/ma-pair.ts): one card for the two. */
+  maPairs: ReadonlyMap<string, string>;
+  /** The Music Assistant players that have a speaker: they show through its card. */
+  maPaired: ReadonlySet<string>;
 }
 
 /** The domains of the functions of an air conditioner kept in entities of their own. */
@@ -105,7 +110,8 @@ export function classifyContext(
     if (!areaOf(hass, reg.entity_id, cfg.entities[reg.entity_id]?.area)) continue;
     climateDevices.add(reg.device_id);
   }
-  return { cfg, hidden, applianceDevices, climateDevices, viewerHidden };
+  const maPairsMap = maPairs(hass, cfg);
+  return { cfg, hidden, applianceDevices, climateDevices, viewerHidden, maPairs: maPairsMap, maPaired: new Set(maPairsMap.values()) };
 }
 
 /** The room of an entity: the `area` of the configuration, else its own area, else its device's. */
@@ -186,20 +192,17 @@ export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyCon
   if (domain === 'fan') return placedAs('fan');
   if (domain === 'lock') return placedAs('lock');
   if (domain === 'cover') return placedAs(coverIsGate(hass, entityId) ? 'gate' : 'cover');
-  // Browser Mod makes a player for every browser; they are screens, not media of a room. Spotify is the
-  // app, not a device of the room: it shows through the speaker it plays on (model/media.ts).
-  if (domain === 'media_player' && reg.platform === 'spotify') return { block: null, why: 'unsupported', areaId };
-  // WiiM adds a "Group Master" player to every speaker and shows it while that speaker leads a group:
-  // it repeats the leader, whose sheet already plays the group (Tocar junto). Unavailable, it loses its
-  // attributes, and its id (`<speaker>_group_master`) still says what it is.
-  const groupPlayer = hass.states[entityId]?.attributes ?? {};
-  if (
-    domain === 'media_player' &&
-    (('group_leader' in groupPlayer && 'group_status' in groupPlayer) || (reg.platform === 'wiim' && entityId.endsWith('_group_master')))
-  ) {
-    return { block: null, why: 'unsupported', areaId };
+  if (domain === 'media_player') {
+    // Browser Mod makes a player for every browser: screens, not media of a room. Spotify is the app,
+    // not a device of the room: it shows through the speaker it plays on (model/media.ts). The Alexa is
+    // the microphone of the house, not a speaker of it (spec Multiroom, 21/10); the media role brings
+    // one back. WiiM's "Group Master" repeats the leader, and a group of Music Assistant has no device.
+    if (['browser_mod', 'spotify', 'alexa_media'].includes(reg.platform ?? '')) return { block: null, why: 'unsupported', areaId };
+    if (isGroupMaster(hass, entityId) || isMaGroup(hass, entityId)) return { block: null, why: 'unsupported', areaId };
+    // A Music Assistant player that is the same device as a speaker shows through the speaker's card.
+    if (ctx.maPaired.has(entityId)) return { block: null, why: 'part', areaId: null };
+    return placedAs('media');
   }
-  if (domain === 'media_player' && reg.platform !== 'browser_mod') return placedAs('media');
   const cls = String(hass.states[entityId]?.attributes.device_class ?? '');
   // Alerts, cameras and alarms belong to the house: they count with or without a room.
   if (domain === 'binary_sensor') {

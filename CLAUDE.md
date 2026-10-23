@@ -48,10 +48,12 @@ src/
   elements/            toggle tile (light, outlet, equipment, fan), action button, appliance card and
                        panel, floor tabs, item editor, sheet, dimmer and colour panels, toast, nav bar, room card,
                        scene button; M3: slide-confirm and access tile, climate card and panel,
-                       cover tile and panel, media card, panel, progress and group (Tocar junto);
+                       cover tile and panel, media card, panel, progress, group (Tocar junto) and
+                       browse (Tocar algo);
                        M4: status strips, alarm card,
                        camera tile, power panel
-  screens/             home, room, scenes, security, review (each is a Lovelace card filling a panel view)
+  screens/             home, room, scenes, security, media (Mídia), review (each is a Lovelace card
+                       filling a panel view)
   cards/               standalone light card, error card
   strategy/            generateDashboard, the ll-strategy-dashboard-hubb element and
                        place-editor (the kind of place Home Assistant asks at creation)
@@ -148,8 +150,9 @@ operation.
   that test green. The one tap that pulses a gate is Fechar on a pulse relay whose sensor
   (`entities.<id>.sensor`, `src/model/gate-sensor.ts`) says open; while the gate is on its way or the
   sensor does not answer, the card falls back to the slide ("Deslize para acionar").
-- View order is fixed: `home`, `scenes`, `seguranca`, then `revisar` (admin), then one per HA area
-  by id. `seguranca` is always generated (the bar hides its tab when the house has nothing for it);
+- View order is fixed: `home`, `scenes`, `seguranca`, `midia`, then `revisar` (admin), then one per
+  HA area by id. `seguranca` and `midia` are always generated (the bar hides the tab when the house has
+  nothing for it; `midia` needs two or more speakers for whoever looks, `Shared.mediaTab`);
   an area with a fixed id gets `area-<id>` (`src/model/paths.ts`).
 - Every screen gets `shared` (alerts and whether the security tab exists) from the strategy and
   draws `hubb-status-strips` through `HubbScreen.strips()`. The buzz of a new alert is module state,
@@ -240,6 +243,15 @@ operation.
   speaker that is paused too. `volumeTarget(hass, id)` keeps one target per speaker (keyed by
   `callService`), shared by the sheet and Volume de todas; closing the sheet sends a level still
   gathering instead of dropping it.
+- Music Assistant (spec Multiroom): `model/ma-pair.ts` pairs each speaker with its Music Assistant
+  player by device name and model (`entities.<id>.music_assistant` overrides); classify drops the
+  paired player (`part`), Music Assistant group players and every `alexa_media` player (role `media`
+  brings one back). `MediaItem.ma` and `Shared.mediaPairs` carry the pair. `musicEntity` decides
+  where the music comes from (the Music Assistant player while it plays, or paused with the speaker
+  idle); card, mini player, sheet and the Mídia tab use it, while source, volume, power and the Canal
+  stay on the speaker. `groupingEntity` makes Tocar junto join through Music Assistant when the
+  speaker has a player there. Tocar algo (`model/ma-library.ts`) gets the integration's entry from
+  `config_entries/get` (no administrator needed) and calls the actions with `return_response`.
 - `cachedStaticReview` keys on the identity of `hass.entities`, `hass.devices`, `hass.areas`,
   `hass.floors` and the configuration object: the frontend keeps those objects across state
   changes, so the home can count the review on every update.

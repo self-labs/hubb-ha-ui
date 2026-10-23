@@ -1,4 +1,4 @@
-import { mdiChevronDoubleLeft, mdiChevronDoubleRight, mdiCreationOutline, mdiHomeOutline, mdiShieldHomeOutline } from '@mdi/js';
+import { mdiChevronDoubleLeft, mdiChevronDoubleRight, mdiCreationOutline, mdiHomeOutline, mdiShieldHomeOutline, mdiSpeakerMultiple } from '@mdi/js';
 import { LitElement, css, html, nothing } from 'lit';
 import { haptic } from '../actions/haptic';
 import { basePath, navigate } from '../actions/navigate';
@@ -8,7 +8,7 @@ import { S } from '../strings';
 import { define } from './define';
 import { icon } from './icon';
 
-export type NavCurrent = 'home' | 'scenes' | 'seguranca';
+export type NavCurrent = 'home' | 'scenes' | 'midia' | 'seguranca';
 
 export class HubbNavBar extends LitElement {
   static properties = {
@@ -17,6 +17,7 @@ export class HubbNavBar extends LitElement {
     homeIcon: { attribute: false },
     security: { type: Boolean },
     scenes: { attribute: false },
+    media: { attribute: false },
     railAway: { state: true },
     screenLayout: { reflect: true, attribute: 'screen-layout' },
   };
@@ -30,6 +31,8 @@ export class HubbNavBar extends LitElement {
   declare security: boolean;
   /** Whether Cenas is offered: a resident with no scene to see does not get the tab. */
   declare scenes: boolean;
+  /** Whether Mídia is offered: two or more speakers for whoever looks (`Shared.mediaTab`). */
+  declare media: boolean;
   /** Wide: the rail put away (src/layout.ts); a handle on the left edge brings it back. */
   declare railAway: boolean;
   /** Wide: a rail down the left side instead of a bar at the bottom. */
@@ -42,6 +45,7 @@ export class HubbNavBar extends LitElement {
     this.homeIcon = mdiHomeOutline;
     this.security = false;
     this.scenes = true;
+    this.media = false;
     this.railAway = false;
     this.screenLayout = 'phone';
     new LayoutWatcher(this);
@@ -89,6 +93,7 @@ export class HubbNavBar extends LitElement {
       <div class="shield" aria-hidden="true"></div>
       <nav aria-label=${S.navigation}>
       ${this.#item('home', this.homeLabel, this.homeIcon)} ${this.scenes ? this.#item('scenes', S.scenes, mdiCreationOutline) : nothing}
+      ${this.media ? this.#item('midia', S.media, mdiSpeakerMultiple) : nothing}
       ${this.security ? this.#item('seguranca', S.security, mdiShieldHomeOutline) : nothing}
       ${wide
         ? html`<button class="rail-hide" aria-label=${S.railHideLabel} @click=${() => this.#rail(true)}>

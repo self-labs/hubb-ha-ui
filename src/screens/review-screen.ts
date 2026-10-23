@@ -402,6 +402,7 @@ export class HubbReviewScreen extends HubbScreen {
         .homeIcon=${this.homeIcon()}
         ?security=${this.config?.shared?.security ?? false}
         .scenes=${this.config?.shared?.scenes ?? true}
+        .media=${this.config?.shared?.mediaTab ?? false}
       ></hubb-nav-bar>${this.restLayer()}`;
   }
 

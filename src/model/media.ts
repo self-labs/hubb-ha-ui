@@ -79,6 +79,43 @@ export function mediaView(hass: HomeAssistant, speakerId: string): MediaView {
   };
 }
 
+/**
+ * Which entity the music of a speaker comes from (spec Multiroom, 4.2): its Music Assistant player while
+ * that plays, or while it is paused and the speaker is paused or idle too; the speaker itself otherwise,
+ * also with Music Assistant down. By DLNA the speaker only sees a stream, with no queue, no next and no
+ * time: those live on the Music Assistant player. A TV that says `on` (webOS, Denon) shows its own
+ * channel or input, and the paused song of Music Assistant is an old one.
+ */
+export function musicEntity(hass: HomeAssistant, entityId: string, ma: string | null | undefined): string {
+  const maState = ma ? hass.states[ma]?.state : undefined;
+  if (maState === 'playing') return ma!;
+  const own = hass.states[entityId]?.state;
+  if (maState === 'paused' && (own === 'paused' || own === 'idle')) return ma!;
+  return entityId;
+}
+
+/**
+ * What the card and the sheet of a speaker show: the music of `musicEntity`, and for a member of a group
+ * the leader's, whose copy on the member goes stale (seen on WiiM). A member's play button commands the
+ * leader.
+ */
+export function speakerMusic(hass: HomeAssistant, entityId: string, ma: string | null | undefined): { source: string; member: boolean; view: MediaView } {
+  const source = musicEntity(hass, entityId, ma);
+  const { leader } = groupOf(hass, source);
+  const member = leader !== null && leader !== source;
+  return { source, member, view: mediaView(hass, member ? leader : source) };
+}
+
+/** Whether music plays: the player shown, or the Spotify playing on it. */
+export function viewPlaying(hass: HomeAssistant, view: MediaView): boolean {
+  return view.state === 'playing' || (!!view.spotify && hass.states[view.spotify]?.state === 'playing');
+}
+
+/** The speaker behind a player of a group: a Music Assistant player maps back to its speaker. */
+export function speakerOf(pairs: Readonly<Record<string, string>>, playerId: string): string {
+  return Object.entries(pairs).find(([, ma]) => ma === playerId)?.[0] ?? playerId;
+}
+
 /** Who takes a command: the speaker when it has the feature, else the Spotify on it, else nobody. */
 export function commandTarget(hass: HomeAssistant, view: MediaView, feature: number): string | null {
   if (features(hass.states[view.entityId]) & feature) return view.entityId;
@@ -112,21 +149,40 @@ export function channelSelect(hass: HomeAssistant, speakerId: string): string | 
 }
 
 /**
- * The speakers that can play together with this one: visible to the resident, of the same integration
- * (Home Assistant only groups within one) and able to group.
+ * The player that groups a speaker: its Music Assistant player when it has one that answers and can
+ * group (any brand plays together there, spec Multiroom 4.3), else the speaker itself.
+ */
+export function groupingEntity(hass: HomeAssistant, speakerId: string, pairs: Readonly<Record<string, string>>): string {
+  const ma = pairs[speakerId];
+  const st = ma ? hass.states[ma] : undefined;
+  return ma && st && st.state !== 'unavailable' && features(st) & 524288 ? ma : speakerId;
+}
+
+/**
+ * The speakers that can play together with this one, visible to the resident and able to group. Through
+ * Music Assistant, those with a Music Assistant player of their own, of any brand; without it, those of
+ * the same integration (Home Assistant only groups within one). Always named by the speaker.
  */
 export function groupCandidates(
   hass: HomeAssistant,
   speakerId: string,
   visible: readonly string[],
+  pairs: Readonly<Record<string, string>> = {},
 ): { entityId: string; name: string; areaName: string | null; joined: boolean }[] {
+  const mine = groupingEntity(hass, speakerId, pairs);
+  const viaMa = mine !== speakerId;
   const platform = hass.entities[speakerId]?.platform;
-  const { members } = groupOf(hass, speakerId);
+  const { members } = groupOf(hass, mine);
   return visible
-    .filter((id) => id !== speakerId && hass.entities[id]?.platform === platform && features(hass.states[id]) & 524288)
+    .filter((id) => {
+      if (id === speakerId) return false;
+      if (viaMa) return groupingEntity(hass, id, pairs) !== id;
+      return hass.entities[id]?.platform === platform && features(hass.states[id]) & 524288;
+    })
     .map((id) => {
       const areaId = areaOf(hass, id);
-      return { entityId: id, name: displayName(hass, id, null), areaName: areaId ? (hass.areas[areaId]?.name ?? null) : null, joined: members.includes(id) };
+      const grouping = viaMa ? groupingEntity(hass, id, pairs) : id;
+      return { entityId: id, name: displayName(hass, id, null), areaName: areaId ? (hass.areas[areaId]?.name ?? null) : null, joined: members.includes(grouping) };
     });
 }
 
@@ -135,10 +191,7 @@ export function groupCandidates(
  * room open on the right) first, then the first of the house; null when nothing plays.
  */
 export function nowPlaying(house: House, hass: HomeAssistant, preferRoom: string | null): MediaItem | null {
-  const playing = (item: MediaItem): boolean => {
-    const view = mediaView(hass, item.entityId);
-    return view.state === 'playing' || (!!view.spotify && hass.states[view.spotify]?.state === 'playing');
-  };
+  const playing = (item: MediaItem): boolean => viewPlaying(hass, mediaView(hass, musicEntity(hass, item.entityId, item.ma)));
   const own = house.rooms.find((r) => r.areaId === preferRoom)?.media.find(playing);
   return own ?? house.rooms.flatMap((r) => r.media).find(playing) ?? null;
 }

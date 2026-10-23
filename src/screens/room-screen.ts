@@ -216,7 +216,7 @@ export class HubbRoomScreen extends HubbScreen {
       <div class="grid">
         ${editing
           ? this.#editTiles(room.media, 'media')
-          : room.media.map((m) => html`<hubb-media-card class=${this.#size(m.entityId, 'media')} .hass=${hass} .item=${m}></hubb-media-card>`)}
+          : room.media.map((m) => html`<hubb-media-card class=${this.#size(m.entityId, 'media')} .hass=${hass} .item=${m} .pairs=${this.config?.shared?.mediaPairs ?? {}}></hubb-media-card>`)}
       </div>`;
   }
 
@@ -392,7 +392,7 @@ export class HubbRoomScreen extends HubbScreen {
             ></hubb-climate-panel>`
           : nothing}
         ${device?.sheet === 'cover' ? html`<hubb-cover-panel .hass=${hass} .entityId=${device.entityId}></hubb-cover-panel>` : nothing}
-        ${device?.sheet === 'media' ? html`<hubb-media-panel .hass=${hass} .entityId=${device.entityId} .visible=${this.config?.shared?.media ?? []}></hubb-media-panel>` : nothing}
+        ${device?.sheet === 'media' ? html`<hubb-media-panel .hass=${hass} .entityId=${device.entityId} .visible=${this.config?.shared?.media ?? []} .pairs=${this.config?.shared?.mediaPairs ?? {}}></hubb-media-panel>` : nothing}
         ${device?.sheet === 'power' ? html`<hubb-power-panel .hass=${hass} .item=${[...room.outlets, ...room.equipment].find((i) => i.entityId === device.entityId)}></hubb-power-panel>` : nothing}
       </hubb-sheet>
       <hubb-sheet
@@ -424,6 +424,7 @@ export class HubbRoomScreen extends HubbScreen {
               .homeIcon=${this.homeIcon()}
               ?security=${this.config?.shared?.security ?? false}
               .scenes=${this.config?.shared?.scenes ?? true}
+              .media=${this.config?.shared?.mediaTab ?? false}
             ></hubb-nav-bar>`
         : nothing}${this.restLayer()}`;
   }

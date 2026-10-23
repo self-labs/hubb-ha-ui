@@ -61,6 +61,8 @@ export interface CoverItem {
 export interface MediaItem {
   entityId: string;
   name: string;
+  /** Its Music Assistant player, the same device on its own entity (model/ma-pair.ts); null for none. */
+  ma?: string | null;
 }
 
 /** What opens the house: a gate (`cover`), a lock, or a pulse relay, button or script with the gate role. */
@@ -151,6 +153,10 @@ export interface Shared {
   scenes: boolean;
   /** The media players the resident sees in the house: who the sheet offers to play together with. */
   media?: string[];
+  /** Each of those speakers and its Music Assistant player, for the sheet and Tocar junto. */
+  mediaPairs?: Record<string, string>;
+  /** Whether the bar offers Mídia: two or more speakers for whoever looks, and the tab not hidden for them. */
+  mediaTab?: boolean;
   /** The wall tablet of the user who sees the panel (`tablets.<user_id>`); null for everyone else. */
   tablet?: Tablet | null;
   /** A home or a business: the icon of the first tab and "a casa" or "o local"; missing means a home. */
@@ -244,7 +250,7 @@ export interface TabOverride {
 }
 
 /** The tabs of the bar a person can be kept from. */
-export type TabId = 'scenes' | 'security';
+export type TabId = 'scenes' | 'security' | 'media';
 
 export interface RoomOverride {
   order?: number;
@@ -281,6 +287,8 @@ export interface EntityConfig {
   size?: string;
   /** A pulse gate: the door contact or cover that says whether it is open. */
   sensor?: string;
+  /** A speaker: the Music Assistant player that is the same device, or '' to keep them apart. */
+  music_assistant?: string;
 }
 
 export interface HubbConfig {

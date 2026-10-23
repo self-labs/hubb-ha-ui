@@ -22,6 +22,7 @@ export const S = {
   rooms: 'Ambientes',
   lights: 'Luzes',
   security: 'Segurança',
+  media: 'Mídia',
   lightsOnTitle: 'Luzes acesas',
   turnAllOff: 'Apagar todas',
   turnRoomOff: 'Apagar tudo',
@@ -299,8 +300,9 @@ export const CFG = {
   badNotify: (v: string): string => `notify: ${v} não existe; escolha um aparelho do app do Home Assistant (mobile_app_...).`,
   tabletRoomHidden: (room: string): string => `${room} está oculto para a conta do tablet; ele abre no primeiro cômodo que ela vê.`,
   badEntry: (id: string): string => `${id} está sem nada; escreva, por exemplo, ${id}: { role: light }.`,
-  unknownRole: (r: string): string => `role: ${r} não existe. Use light, outlet, equipment, appliance, action, gate ou hidden.`,
+  unknownRole: (r: string): string => `role: ${r} não existe. Use light, outlet, equipment, appliance, action, gate, scene, media ou hidden.`,
   roleDoesNotFit: (r: string, domain: string): string => `role: ${r} não serve para ${domain}.`,
+  notMusicAssistant: (id: string): string => `music_assistant: ${id} não é um player do Music Assistant. Use o id dele, ou deixe vazio para não juntar.`,
   applianceNeedsDevice: (id: string): string => `${id} não tem dispositivo, então não pode ser role: appliance.`,
   categoryRole: (id: string): string => `${id} é uma entidade de configuração do Home Assistant e não vai para o painel.`,
   applianceNoState: (id: string): string =>
@@ -317,7 +319,7 @@ export const CFG = {
   notAGateSensor: (id: string): string => `sensor: ${id} não é um sensor de porta nem um portão.`,
   hideOnly: 'hide só vale para um aparelho (role: appliance) ou um ar-condicionado.',
   badTabs: 'tabs precisa ser um bloco com scenes e security.',
-  unknownTab: (key: string): string => `tabs: ${key} não existe. Use scenes ou security.`,
+  unknownTab: (key: string): string => `tabs: ${key} não existe. Use scenes, security ou media.`,
   badControls: (value: string): string => `controls: ${value} não existe. Use fan, swing ou preset.`,
   badIcon: (i: string): string => `icon: ${i} precisa começar com mdi: (por exemplo, mdi:pool).`,
   unknownArea: (a: string): string => `A área ${a} não existe no Home Assistant.`,
@@ -421,6 +423,7 @@ export const ROLE_LABELS = {
   action: 'Ação',
   gate: 'Portão',
   scene: 'Cena',
+  media: 'Mídia',
   hidden: 'Não mostrar',
 } as const;
 
@@ -668,6 +671,17 @@ export const MEDIA = {
   turnOn: 'Ligar',
   turnOff: 'Desligar',
   repeat: 'Repetir',
+  /** The source of Fonte that plays Music Assistant, whose music is the Spotify of the house. */
+  spotifySource: 'Spotify',
+  playSomething: 'Tocar algo',
+  searchPlaceholder: 'Buscar música, artista ou playlist',
+  recent: 'Tocadas recentemente',
+  playlists: 'Playlists',
+  nothingFound: 'Nada encontrado',
+  pauseAll: 'Pausar tudo',
+  nothingPlaying: 'Nada tocando',
+  /** The line of the Mídia tab: "1 tocando", "3 tocando". */
+  playingCount: (n: number): string => `${n} tocando`,
   /** The repeat button for a screen reader: "Repetir: desligado", "... todas", "... só esta". */
   repeatMode: (mode: string): string => `Repetir: ${mode === 'one' ? 'só esta' : mode === 'all' ? 'todas' : 'desligado'}`,
   shuffle: 'Ordem aleatória',

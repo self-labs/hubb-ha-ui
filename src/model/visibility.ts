@@ -31,7 +31,7 @@ export function staleEntries(config: HubbConfig, known: ReadonlySet<string>): St
     if (!entries || typeof entries !== 'object' || Array.isArray(entries)) continue;
     for (const [key, entry] of Object.entries(entries as Record<string, { hidden_for?: unknown } | undefined>)) {
       // A key of tabs other than scenes and security is a mistake the review reports on its own.
-      if (section === 'tabs' && key !== 'scenes' && key !== 'security') continue;
+      if (section === 'tabs' && key !== 'scenes' && key !== 'security' && key !== 'media') continue;
       const ids = hiddenForList(entry?.hidden_for);
       const keep = ids.filter((id) => known.has(id));
       if (keep.length < ids.length) out.push({ section, key, keep });

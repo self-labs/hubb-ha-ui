@@ -159,6 +159,7 @@ export class HubbSecurityScreen extends HubbScreen {
         home-label=${this.config?.homeLabel ?? S.home}
         .homeIcon=${this.homeIcon()}
         .scenes=${this.config?.shared?.scenes ?? true}
+        .media=${this.config?.shared?.mediaTab ?? false}
       ></hubb-nav-bar>${this.restLayer()}`;
   }
 

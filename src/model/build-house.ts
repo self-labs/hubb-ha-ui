@@ -288,7 +288,7 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     } else if (placed.block === 'cover') {
       room.covers.push({ entityId, name });
     } else if (placed.block === 'media') {
-      room.media.push({ entityId, name });
+      room.media.push({ entityId, name, ma: ctx.maPairs.get(entityId) ?? null });
     } else if (placed.block === 'gate' || placed.block === 'lock') {
       const domain = entityId.slice(0, entityId.indexOf('.'));
       const kind = placed.block === 'lock' ? 'lock' : domain === 'cover' ? 'cover' : 'pulse';

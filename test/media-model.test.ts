@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MEDIA_FEATURE, mediaLine } from '../src/actions/media';
 import { classify, classifyContext } from '../src/model/classify';
 import { readConfig } from '../src/model/config';
-import { channelSelect, commandTarget, groupCandidates, groupOf, linkedSpotify, mediaView } from '../src/model/media';
+import { channelSelect, commandTarget, groupCandidates, groupOf, linkedSpotify, mediaView, musicEntity } from '../src/model/media';
 import { area, device, makeHass, type FakeEntity, type FakeHass } from './helpers/fake-hass';
 
 const SPEAKER = MEDIA_FEATURE.pause | MEDIA_FEATURE.play | MEDIA_FEATURE.volumeSet | MEDIA_FEATURE.grouping;
@@ -148,5 +148,39 @@ describe('Spotify on the panel', () => {
     // Unavailable it loses its attributes; its id still says what it is.
     const down = house({}, [{ ...master, state: 'unavailable', attributes: {} }]);
     expect(classify(down, 'media_player.caixa_sala_group_master', classifyContext(down, readConfig(down, {}), undefined)).block).toBeNull();
+  });
+});
+
+describe('where the music of a speaker comes from', () => {
+  const pair = (speaker: string, ma: string | null) =>
+    makeHass({
+      entities: [
+        { entity_id: 'media_player.caixa', platform: 'wiim', state: speaker },
+        ...(ma === null ? [] : [{ entity_id: 'media_player.caixa_ma', platform: 'music_assistant', state: ma, attributes: { mass_player_type: 'player' } }]),
+      ],
+    });
+
+  it('takes the music from Music Assistant while it plays', () => {
+    expect(musicEntity(pair('playing', 'playing'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa_ma');
+  });
+
+  it('keeps a paused Music Assistant only while the speaker plays nothing else', () => {
+    expect(musicEntity(pair('paused', 'paused'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa_ma');
+    expect(musicEntity(pair('idle', 'paused'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa_ma');
+    // The TV plays on the speaker: the paused queue of Music Assistant is an old song.
+    expect(musicEntity(pair('playing', 'paused'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+  });
+
+  it('leaves a paused Music Assistant behind a TV that is on by itself, or a speaker that is off', () => {
+    // webOS and Denon say `on` while they show their own channel or input: the paused song is an old one.
+    expect(musicEntity(pair('on', 'paused'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+    expect(musicEntity(pair('off', 'paused'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+  });
+
+  it('falls back to the speaker when Music Assistant is down or absent', () => {
+    expect(musicEntity(pair('playing', 'unavailable'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+    expect(musicEntity(pair('playing', 'idle'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+    expect(musicEntity(pair('playing', null), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+    expect(musicEntity(pair('playing', 'playing'), 'media_player.caixa', null)).toBe('media_player.caixa');
   });
 });

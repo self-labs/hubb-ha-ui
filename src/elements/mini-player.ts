@@ -3,7 +3,7 @@ import { LitElement, css, html, nothing } from 'lit';
 import { haptic } from '../actions/haptic';
 import { MEDIA_FEATURE } from '../actions/media';
 import type { HomeAssistant } from '../ha/types';
-import { commandTarget, mediaView } from '../model/media';
+import { commandTarget, mediaView, musicEntity } from '../model/media';
 import type { MediaItem } from '../model/types';
 import { MEDIA } from '../strings';
 import { define } from './define';
@@ -42,7 +42,7 @@ export class HubbMiniPlayer extends LitElement {
   render() {
     const { hass, item } = this;
     if (!hass || !item) return nothing;
-    const view = mediaView(hass, item.entityId);
+    const view = mediaView(hass, musicEntity(hass, item.entityId, item.ma));
     const playing = view.state === 'playing' || (!!view.spotify && hass.states[view.spotify]?.state === 'playing');
     const playPause = commandTarget(hass, view, MEDIA_FEATURE.pause) ?? commandTarget(hass, view, MEDIA_FEATURE.play);
     const next = commandTarget(hass, view, MEDIA_FEATURE.next);

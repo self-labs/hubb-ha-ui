@@ -66,7 +66,7 @@ import { layoutStyles } from '../theme/layout';
 import './room-screen';
 import '../elements/media-panel';
 import '../elements/mini-player';
-import { mediaView, nowPlaying } from '../model/media';
+import { nowPlaying, speakerMusic } from '../model/media';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
 
@@ -621,7 +621,7 @@ export class HubbHomeScreen extends HubbScreen {
         @hubb-close=${() => (this.mediaId = null)}
       >
         ${this.mediaId
-          ? html`<hubb-media-panel .hass=${hass} .entityId=${this.mediaId} .visible=${this.config?.shared?.media ?? []}></hubb-media-panel>`
+          ? html`<hubb-media-panel .hass=${hass} .entityId=${this.mediaId} .visible=${this.config?.shared?.media ?? []} .pairs=${this.config?.shared?.mediaPairs ?? {}}></hubb-media-panel>`
           : nothing}
       </hubb-sheet>
       <hubb-sheet class="climate-on" ?open=${this.climateSheet !== null} heading=${CLIMATE_ON.title} @hubb-close=${() => (this.climateSheet = null)}>
@@ -634,8 +634,9 @@ export class HubbHomeScreen extends HubbScreen {
         .homeIcon=${this.homeIcon()}
         ?security=${this.config?.shared?.security ?? false}
         .scenes=${this.config?.shared?.scenes ?? true}
+        .media=${this.config?.shared?.mediaTab ?? false}
       ></hubb-nav-bar>${this.restLayer(
-        [...pills.map((p) => p.title), playing ? mediaView(hass, playing.entityId).title : null].filter(Boolean).join(' · '),
+        [...pills.map((p) => p.title), playing ? speakerMusic(hass, playing.entityId, playing.ma).view.title : null].filter(Boolean).join(' · '),
         house.weatherEntityId,
       )}`;
   }

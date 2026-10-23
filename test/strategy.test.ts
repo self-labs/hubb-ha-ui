@@ -12,13 +12,14 @@ describe('generateDashboard', () => {
       ['home', 'panel', false],
       ['scenes', 'panel', true],
       ['seguranca', 'panel', true],
+      ['midia', 'panel', true],
       ['cozinha', 'panel', true],
       ['quarto', 'panel', true],
       ['sala_de_estar', 'panel', true],
     ]);
     expect(config.views[0]!.cards[0]!.type).toBe('custom:hubb-home-screen');
-    expect(config.views[3]!.cards[0]).toMatchObject({ type: 'custom:hubb-room-screen', room: { name: 'Cozinha' } });
-    expect(config.views[3]!.cards[0]!.lightIds as string[]).toHaveLength(18);
+    expect(config.views[4]!.cards[0]).toMatchObject({ type: 'custom:hubb-room-screen', room: { name: 'Cozinha' } });
+    expect(config.views[4]!.cards[0]!.lightIds as string[]).toHaveLength(18);
   });
 
   it('never repeats a view path, even for an area called home', () => {
@@ -32,7 +33,7 @@ describe('generateDashboard', () => {
     });
     const paths = generateDashboard({}, h).views.map((v) => v.path);
     expect(new Set(paths).size).toBe(paths.length);
-    expect(paths).toEqual(['home', 'scenes', 'seguranca', 'area-home', 'area-scenes', 'area-seguranca']);
+    expect(paths).toEqual(['home', 'scenes', 'seguranca', 'midia', 'area-home', 'area-scenes', 'area-seguranca']);
   });
 
   it('turns a failure into an error card instead of a blank dashboard', () => {
@@ -69,7 +70,7 @@ describe('generateDashboard', () => {
       path: 'revisar',
       type: 'panel',
       subview: true,
-      cards: [{ type: 'custom:hubb-review-screen', options: config, homeLabel: 'Casa', shared: { alerts: [], security: false, scenes: true, media: [], tablet: null, place: 'home' } }],
+      cards: [{ type: 'custom:hubb-review-screen', options: config, homeLabel: 'Casa', shared: { alerts: [], security: false, scenes: true, media: [], mediaPairs: {}, mediaTab: false, tablet: null, place: 'home' } }],
     });
     expect(views[0]!.cards[0]).toMatchObject({ type: 'custom:hubb-home-screen', options: config });
     expect(generateDashboard(config, sampleHouseHass()).views.some((v) => v.path === 'revisar')).toBe(false);
@@ -82,7 +83,7 @@ describe('generateDashboard', () => {
       entities: [{ entity_id: 'light.a', area_id: 'revisar', state: 'off' }],
     });
     const paths = generateDashboard({}, h).views.map((v) => v.path);
-    expect(paths).toEqual(['home', 'scenes', 'seguranca', 'revisar', 'area-revisar']);
+    expect(paths).toEqual(['home', 'scenes', 'seguranca', 'midia', 'revisar', 'area-revisar']);
   });
 
   it('keeps every view in its place when a room appears or goes, so Home Assistant stays on the same screen after a save', () => {
@@ -96,7 +97,7 @@ describe('generateDashboard', () => {
     });
     const before = generateDashboard({}, h).views.map((v) => v.path);
     const after = generateDashboard({ entities: { 'switch.escada': { role: 'light' } }, rooms: { quarto: { hidden: true } } }, h).views.map((v) => v.path);
-    expect(before).toEqual(['home', 'scenes', 'seguranca', 'revisar', 'cozinha', 'entrada', 'quarto']);
+    expect(before).toEqual(['home', 'scenes', 'seguranca', 'midia', 'revisar', 'cozinha', 'entrada', 'quarto']);
     expect(after).toEqual(before);
   });
 });

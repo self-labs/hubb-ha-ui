@@ -2,7 +2,7 @@ import type { HomeAssistant } from '../ha/types';
 import { allLightIds, buildHouse, hasSecurity, newRoom } from '../model/build-house';
 import { PROFILES } from '../model/profiles';
 import { resolveTablet } from '../model/tablet';
-import { viewerOf } from '../model/visibility';
+import { tabHiddenFor, viewerOf } from '../model/visibility';
 import type { HubbConfig, Shared } from '../model/types';
 import { REVIEW, S } from '../strings';
 
@@ -54,6 +54,9 @@ export function generateDashboard(config: HubbConfig, hass: HomeAssistant): Love
       security: hasSecurity(house),
       scenes: viewer === null || house.scenes.length > 0,
       media: house.rooms.flatMap((r) => r.media.map((m) => m.entityId)),
+      mediaPairs: Object.fromEntries(house.rooms.flatMap((r) => r.media.flatMap((m) => (m.ma ? [[m.entityId, m.ma]] : [])))),
+      // Mídia gathers the speakers when there are two or more to keep track of (Gustavo, 22/10).
+      mediaTab: house.rooms.reduce((n, r) => n + r.media.length, 0) >= 2 && !tabHiddenFor(config, 'media', viewer),
       // The strategy runs for the user who sees the panel: only their own tablet comes along.
       tablet: resolveTablet(hass, config, house.rooms, hass.user?.id),
       place: PROFILES[house.profile].place,
@@ -93,6 +96,23 @@ export function generateDashboard(config: HubbConfig, hass: HomeAssistant): Love
           subview: true,
           cards:
             viewer === null || shared.security ? [{ type: 'custom:hubb-security-screen', security: house.security, shared, homeLabel, options: config }] : away,
+        },
+        {
+          title: S.media,
+          path: 'midia',
+          type: 'panel',
+          subview: true,
+          cards: shared.mediaTab
+            ? [
+                {
+                  type: 'custom:hubb-media-screen',
+                  rooms: house.rooms.filter((r) => r.media.length).map((r) => ({ areaId: r.areaId, name: r.name, media: r.media })),
+                  homeLabel,
+                  shared,
+                  options: config,
+                },
+              ]
+            : away,
         },
         ...review,
         ...Object.keys(hass.areas)

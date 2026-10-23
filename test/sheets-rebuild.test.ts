@@ -4,6 +4,7 @@ import { setEditing } from '../src/editing';
 import type { HubbToast } from '../src/elements/toast';
 import type { HubbScreen } from '../src/screens/base';
 import '../src/screens/home-screen';
+import '../src/screens/media-screen';
 import '../src/screens/room-screen';
 import '../src/screens/scenes-screen';
 import '../src/screens/security-screen';
@@ -123,6 +124,7 @@ describe('a sheet stays open across the rebuild Home Assistant does', () => {
     ['sala', 'hubb-room-screen'],
     ['scenes', 'hubb-scenes-screen'],
     ['seguranca', 'hubb-security-screen'],
+    ['midia', 'hubb-media-screen'],
   ];
 
   for (const [view, tag] of SCREENS) {

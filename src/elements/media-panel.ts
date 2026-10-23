@@ -19,17 +19,23 @@ import { has } from '../actions/climate';
 import { haptic } from '../actions/haptic';
 import { MEDIA_FEATURE, channelWord, mediaLine } from '../actions/media';
 import { stepVolume, volumeTarget } from '../actions/volume';
-import { channelSelect, commandTarget, groupOf, mediaView, type MediaView } from '../model/media';
+import { channelSelect, commandTarget, groupingEntity, speakerMusic, type MediaView } from '../model/media';
 import { isInfrared } from '../ha/infrared';
 import type { HassEntityState, HomeAssistant } from '../ha/types';
 import { MEDIA, S } from '../strings';
 import { define } from './define';
 import { icon } from './icon';
+import './media-browse';
+import type { HubbMediaBrowse } from './media-browse';
 import './media-group';
 import './media-progress';
 import { unlisted } from './unlisted';
 
 const NEXT_REPEAT: Readonly<Record<string, string>> = { off: 'all', all: 'one', one: 'off' };
+/** The value of the "Spotify" the sheet puts in Fonte for Music Assistant: no device source has it. */
+const MA_SOURCE = '__music_assistant__';
+/** A source of the device that the "Spotify" of Music Assistant replaces in the list (spec Multiroom, 4.5). */
+const OWN_SPOTIFY = /spotify/i;
 
 /**
  * The sheet of a TV or a speaker: cover, progress, the controls in five fixed places, volume, source,
@@ -40,6 +46,7 @@ export class HubbMediaPanel extends LitElement {
     hass: { attribute: false },
     entityId: { attribute: false },
     visible: { attribute: false },
+    pairs: { attribute: false },
     broken: { state: true },
   };
 
@@ -47,6 +54,8 @@ export class HubbMediaPanel extends LitElement {
   declare entityId: string;
   /** The media players the resident sees in the house, offered to play together with. */
   declare visible: readonly string[];
+  /** Each speaker and its Music Assistant player (`Shared.mediaPairs`). */
+  declare pairs: Readonly<Record<string, string>>;
   /** A cover that failed to load: left out until the cover changes. */
   declare broken: string | null;
 
@@ -55,6 +64,7 @@ export class HubbMediaPanel extends LitElement {
     this.hass = undefined;
     this.entityId = '';
     this.visible = [];
+    this.pairs = {};
     this.broken = null;
   }
 
@@ -74,22 +84,44 @@ export class HubbMediaPanel extends LitElement {
     const st = hass?.states[this.entityId];
     if (!hass || !st) return nothing;
     if (st.state === 'unavailable') return html`<p class="now">${S.noResponse}</p>`;
-    // A member plays what its leader plays: the music, the repeat and the tracks are the leader's,
-    // whose copy on the member goes stale (seen on WiiM). Volume, channel and power stay its own.
-    const { leader } = groupOf(hass, this.entityId);
-    const member = leader !== null && leader !== this.entityId;
-    const view = mediaView(hass, member ? leader : this.entityId);
+    // The music comes from the Music Assistant player while it plays (spec Multiroom, 4.2). A member
+    // plays what its leader plays: the music, the repeat and the tracks are the leader's, whose copy on
+    // the member goes stale (seen on WiiM). Volume, source, channel and power stay on the speaker.
+    const { source, member, view } = speakerMusic(hass, this.entityId, this.#ma(hass));
     const on = !['off', 'standby', 'unknown'].includes(st.state);
     const power = on ? has(st, MEDIA_FEATURE.turnOff) : has(st, MEDIA_FEATURE.turnOn);
     const music = on && view.title !== null;
-    return html`${music ? this.#music(view) : html`<p class="now">${mediaLine(view, st)}</p>`}
+    return html`${music ? this.#music(view) : html`<p class="now">${mediaLine(view, hass.states[source] ?? st)}</p>`}
       ${isInfrared(hass, this.entityId) ? html`<p class="infrared">${S.infrared}</p>` : nothing}
-      ${on ? this.#controls(hass, st, view, member) : nothing}
+      ${on ? this.#controls(hass, st, view, member, source) : nothing}
       ${power
         ? html`<button class="power ${on ? '' : 'primary'}" @click=${() => this.#call(on ? 'turn_off' : 'turn_on')}>
             ${icon(mdiPower)} ${on ? MEDIA.turnOff : MEDIA.turnOn}
           </button>`
         : nothing}`;
+  }
+
+  /** The Music Assistant player of this speaker, when there is one and it answers. */
+  #ma(hass: HomeAssistant): string | null {
+    const ma = this.pairs[this.entityId];
+    const state = ma ? hass.states[ma]?.state : undefined;
+    return ma && state !== undefined && state !== 'unavailable' ? ma : null;
+  }
+
+  /**
+   * The "Spotify" of Fonte: resumes the queue of Music Assistant in this room, or, with none to resume,
+   * takes the person to Tocar algo and leaves Fonte where the speaker is, since nothing changed on it.
+   * With Tocar algo off (Music Assistant does not answer its library), play is all there is to ask.
+   */
+  #pickSource(hass: HomeAssistant, select: HTMLSelectElement): void {
+    const value = select.value;
+    const ma = this.#ma(hass);
+    if (value !== MA_SOURCE || !ma) return this.#call('select_source', { source: value });
+    const a = hass.states[ma]?.attributes ?? {};
+    const browse = this.renderRoot.querySelector<HubbMediaBrowse>('hubb-media-browse');
+    if ((a.active_queue && a.media_title) || !browse || browse.off) return this.#call('media_play', undefined, ma);
+    select.selectedIndex = [...select.options].findIndex((o) => o.hasAttribute('selected'));
+    browse.focusSearch();
   }
 
   /** The cover, large, then the title, and the artist with the album. */
@@ -115,18 +147,23 @@ export class HubbMediaPanel extends LitElement {
   }
 
   /** What a player that is on offers: progress, the controls, the volume, source, sound mode and channel. */
-  #controls(hass: HomeAssistant, st: HassEntityState, view: MediaView, member: boolean) {
+  #controls(hass: HomeAssistant, st: HassEntityState, view: MediaView, member: boolean, source: string) {
     const a = st.attributes;
     const target = (feature: number): string | null => commandTarget(hass, view, feature);
     const level = typeof a.volume_level === 'number' ? a.volume_level : null;
     const canSet = has(st, MEDIA_FEATURE.volumeSet);
     const shown = canSet ? volumeTarget(hass, this.entityId).shown(level) : level;
     const muted = a.is_volume_muted === true;
-    const sources = Array.isArray(a.source_list) ? a.source_list.filter((s): s is string => typeof s === 'string') : [];
+    const ma = this.#ma(hass);
+    const own = has(st, MEDIA_FEATURE.source) && Array.isArray(a.source_list) ? a.source_list.filter((s): s is string => typeof s === 'string') : [];
+    // With Music Assistant, one "Spotify" leads the list and the device's own leaves it: two would be
+    // two different things under one name.
+    const sources = ma ? own.filter((s) => !OWN_SPOTIFY.test(s)) : own;
+    const current = ma && source === ma ? MA_SOURCE : a.source;
     const modes = Array.isArray(a.sound_mode_list) ? a.sound_mode_list.filter((s): s is string => typeof s === 'string') : [];
     const channel = channelSelect(hass, this.entityId);
     // A member shows the leader's play state, since its play button commands the leader.
-    const playing = (member ? view.state : st.state) === 'playing';
+    const playing = (member ? view.state : (hass.states[source] ?? st).state) === 'playing';
     const repeat = view.repeat ?? 'off';
     const seek = target(MEDIA_FEATURE.seek);
     const slot = (t: string | null, make: (t: string) => TemplateResult) => html`<span class="slot">${t ? make(t) : nothing}</span>`;
@@ -211,12 +248,13 @@ export class HubbMediaPanel extends LitElement {
                 />`
               : nothing}`
         : nothing}
-      ${!member && has(st, MEDIA_FEATURE.source) && sources.length
+      ${!member && (ma || sources.length)
         ? html`<label class="field">
             <span>${MEDIA.source}</span>
-            <select class="source" @change=${(e: Event) => this.#call('select_source', { source: (e.target as HTMLSelectElement).value })}>
-              ${unlisted(a.source, sources, (s) => s)}
-              ${sources.map((s) => html`<option value=${s} ?selected=${s === a.source}>${s}</option>`)}
+            <select class="source" @change=${(e: Event) => this.#pickSource(hass, e.target as HTMLSelectElement)}>
+              ${unlisted(current, ma ? [MA_SOURCE, ...sources] : sources, (s) => s)}
+              ${ma ? html`<option value=${MA_SOURCE} ?selected=${current === MA_SOURCE}>${MEDIA.spotifySource}</option>` : nothing}
+              ${sources.map((s) => html`<option value=${s} ?selected=${s === current}>${s}</option>`)}
             </select>
           </label>`
         : nothing}
@@ -230,8 +268,9 @@ export class HubbMediaPanel extends LitElement {
           </label>`
         : nothing}
       ${channel ? this.#channelField(hass, channel) : nothing}
-      ${has(st, MEDIA_FEATURE.grouping)
-        ? html`<hubb-media-group .hass=${hass} .entityId=${this.entityId} .visible=${this.visible}></hubb-media-group>`
+      ${ma && !member ? html`<hubb-media-browse .hass=${hass} .ma=${ma}></hubb-media-browse>` : nothing}
+      ${has(hass.states[groupingEntity(hass, this.entityId, this.pairs)] ?? st, MEDIA_FEATURE.grouping)
+        ? html`<hubb-media-group .hass=${hass} .entityId=${this.entityId} .visible=${this.visible} .pairs=${this.pairs}></hubb-media-group>`
         : nothing}`;
   }
 

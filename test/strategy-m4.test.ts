@@ -18,8 +18,8 @@ function h(admin = false) {
 
 describe('the security view', () => {
   it('sits right after the scenes, before the review and the rooms', () => {
-    expect(generateDashboard({}, h()).views.map((v) => v.path)).toEqual(['home', 'scenes', 'seguranca', 'sala']);
-    expect(generateDashboard({}, h(true)).views.map((v) => v.path)).toEqual(['home', 'scenes', 'seguranca', 'revisar', 'sala']);
+    expect(generateDashboard({}, h()).views.map((v) => v.path)).toEqual(['home', 'scenes', 'seguranca', 'midia', 'sala']);
+    expect(generateDashboard({}, h(true)).views.map((v) => v.path)).toEqual(['home', 'scenes', 'seguranca', 'midia', 'revisar', 'sala']);
   });
 
   it('hands every screen the same shared slice', () => {
@@ -32,6 +32,8 @@ describe('the security view', () => {
       security: true,
       scenes: false,
       media: [],
+      mediaPairs: {},
+      mediaTab: false,
       tablet: null,
       place: 'home',
     });

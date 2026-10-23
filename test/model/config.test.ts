@@ -60,7 +60,7 @@ describe('readConfig', () => {
     expect(cfg.entities['switch.velho']).toBeUndefined();
     expect(cfg.entities['switch.config']).toEqual({ hide: [] });
     expect(cfg.problems.map((p) => [p.key, p.entityId, p.message])).toEqual([
-      ['entities.switch.bomba.role', 'switch.bomba', 'role: ligth não existe. Use light, outlet, equipment, appliance, action, gate ou hidden.'],
+      ['entities.switch.bomba.role', 'switch.bomba', 'role: ligth não existe. Use light, outlet, equipment, appliance, action, gate, scene, media ou hidden.'],
       ['entities.switch.bomba.icon', 'switch.bomba', 'icon: pool precisa começar com mdi: (por exemplo, mdi:pool).'],
       ['entities.switch.bomba.area', 'switch.bomba', 'A área varanda não existe no Home Assistant.'],
       ['entities.light.sofa.role', 'light.sofa', 'role: outlet não serve para light.'],

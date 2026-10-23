@@ -8,6 +8,32 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.20] - 2026-10-23
+
+### Added
+
+- **Mídia** in the bar, with two or more speakers: every room with sound in one place, how many play,
+  **Pausar tudo**, and the sheet of each speaker right there. `tabs.media.hidden_for` hides it.
+- **Tocar algo** on the sheet of a speaker with Music Assistant: a search, the songs played last and
+  the playlists of the house's Spotify; a tap plays it in that room.
+- **Tocar junto across brands:** with Music Assistant, a speaker plays together with any other
+  speaker that has a Music Assistant player (a TV, a receiver), still with the Canal and the stereo
+  pair of the speakers that have them.
+- `entities.<id>.music_assistant` forces the pair of a speaker and its Music Assistant player, or
+  turns it off (`''`); the role `media` brings back a player the panel leaves out, such as an Echo.
+
+### Changed
+
+- **One card per speaker:** the second player Music Assistant gives every speaker no longer shows as
+  a card of its own; the speaker's card shows and commands what Music Assistant plays. Fonte has one
+  **Spotify**, which resumes Music Assistant in that room (or opens Tocar algo with nothing to resume).
+- **Echos** are off the panel: they are the microphone of the house.
+
+### Fixed
+
+- A speaker playing through Music Assistant showed no time and could not go to the next song or
+  shuffle: by DLNA it only sees a stream, and those commands now go to Music Assistant.
+
 ## [2026.10.19] - 2026-10-22
 
 ### Fixed
@@ -599,7 +625,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.19...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.20...HEAD
+[2026.10.20]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.19...v2026.10.20
 [2026.10.19]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.18...v2026.10.19
 [2026.10.18]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.17...v2026.10.18
 [2026.10.17]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.16...v2026.10.17

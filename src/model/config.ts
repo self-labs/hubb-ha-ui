@@ -8,7 +8,7 @@ import { readTablets } from './tablet';
 import type { HubbConfig } from './types';
 
 /** The roles an entity can be given in `entities.<id>.role`. */
-export const ROLES = ['light', 'outlet', 'equipment', 'appliance', 'action', 'gate', 'scene', 'hidden'] as const;
+export const ROLES = ['light', 'outlet', 'equipment', 'appliance', 'action', 'gate', 'scene', 'media', 'hidden'] as const;
 export type Role = (typeof ROLES)[number];
 
 /** How an item shows on its room page: a role, or a kind its type alone decides. */
@@ -37,6 +37,8 @@ export const ROLE_DOMAINS: Readonly<Record<Exclude<Role, 'hidden' | 'appliance'>
   gate: ['switch', 'button', 'input_button', 'script', 'cover'],
   /** A scene or a script in Cenas, put there from the panel (the hubb_cena label still works). */
   scene: ['scene', 'script'],
+  /** A player the panel leaves out by itself, such as an Echo, brought back as media. */
+  media: ['media_player'],
 };
 
 export interface EntitySettings {
@@ -60,6 +62,8 @@ export interface EntitySettings {
   hiddenFor?: string[];
   /** A pulse gate: the door contact or cover that says whether it is open. */
   sensor?: string;
+  /** A speaker: its Music Assistant player (`music_assistant`), or '' for none (spec Multiroom, 4.1). */
+  musicAssistant?: string;
 }
 
 /** The settings of an air conditioner that can be kept off its sheet. */
@@ -143,6 +147,11 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
       if (typeof v.icon === 'string' && v.icon.startsWith('mdi:')) s.icon = v.icon;
       else add(`${at}.icon`, entityId, CFG.badIcon(String(v.icon)));
     }
+    if (v.music_assistant !== undefined) {
+      const ma = v.music_assistant;
+      if (ma === '' || (typeof ma === 'string' && ma.startsWith('media_player.') && hass.entities[ma]?.platform === 'music_assistant')) s.musicAssistant = ma;
+      else add(`${at}.music_assistant`, entityId, CFG.notMusicAssistant(String(ma)));
+    }
     if (v.area !== undefined) {
       if (typeof v.area === 'string' && hass.areas[v.area]) s.area = v.area;
       else add(`${at}.area`, entityId, CFG.unknownArea(String(v.area)));
@@ -214,7 +223,7 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
     if (!tabs || typeof tabs !== 'object' || Array.isArray(tabs)) add('tabs', null, CFG.badTabs);
     else {
       for (const [key, tab] of Object.entries(tabs as Record<string, unknown>)) {
-        if (key !== 'scenes' && key !== 'security') {
+        if (key !== 'scenes' && key !== 'security' && key !== 'media') {
           add(`tabs.${key}`, null, CFG.unknownTab(key));
           continue;
         }

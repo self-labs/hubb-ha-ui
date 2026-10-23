@@ -3,7 +3,7 @@ import { LitElement, css, html, nothing } from 'lit';
 import { has } from '../actions/climate';
 import { haptic } from '../actions/haptic';
 import { MEDIA_FEATURE, mediaLine } from '../actions/media';
-import { commandTarget, groupOf, mediaView } from '../model/media';
+import { commandTarget, groupOf, speakerMusic, speakerOf } from '../model/media';
 import { displayName } from '../model/names';
 import type { HomeAssistant } from '../ha/types';
 import type { MediaItem } from '../model/types';
@@ -16,11 +16,14 @@ export class HubbMediaCard extends LitElement {
   static properties = {
     hass: { attribute: false },
     item: { attribute: false },
+    pairs: { attribute: false },
     broken: { state: true },
   };
 
   declare hass: HomeAssistant | undefined;
   declare item: MediaItem | undefined;
+  /** Each speaker and its Music Assistant player (`Shared.mediaPairs`), to name who it plays with. */
+  declare pairs: Readonly<Record<string, string>>;
   /** The cover that failed to load: the icon comes back until the cover changes. */
   declare broken: string | null;
 
@@ -28,6 +31,7 @@ export class HubbMediaCard extends LitElement {
     super();
     this.hass = undefined;
     this.item = undefined;
+    this.pairs = {};
     this.broken = null;
   }
 
@@ -79,10 +83,10 @@ export class HubbMediaCard extends LitElement {
     }
   }
 
-  /** Who it plays with, said by the group mark next to the name. */
+  /** Who it plays with, said by the group mark next to the name: the speakers, never their Music Assistant players. */
   #together(hass: HomeAssistant, entityId: string): string | null {
     const { members } = groupOf(hass, entityId);
-    return members.length ? MEDIA.together(members.map((m) => displayName(hass, m, null))) : null;
+    return members.length ? MEDIA.together(members.map((m) => displayName(hass, speakerOf(this.pairs, m), null))) : null;
   }
 
   #open = (): void => {
@@ -97,19 +101,19 @@ export class HubbMediaCard extends LitElement {
     const st = hass.states[item.entityId];
     const down = !st || st.state === 'unavailable';
     const on = !!st && !down && !['off', 'standby', 'unknown'].includes(st.state);
-    const playable = on && (st.state === 'playing' || st.state === 'paused');
     const power = !down && (on ? has(st, MEDIA_FEATURE.turnOff) : has(st, MEDIA_FEATURE.turnOn));
     const tv = st?.attributes.device_class === 'tv' || /tv|televis/i.test(item.name);
-    // A member plays what its leader plays, and its play button commands the leader.
-    const { leader } = groupOf(hass, item.entityId);
-    const member = leader !== null && leader !== item.entityId;
-    const view = mediaView(hass, member ? leader : item.entityId);
-    const playing = (member ? view.state : st?.state) === 'playing';
+    // The music comes from the Music Assistant player while it plays (spec Multiroom, 4.2); power stays
+    // on the speaker. A member plays what its leader plays, and its play button commands the leader.
+    const { source, member, view } = speakerMusic(hass, item.entityId, item.ma);
+    const sourceSt = hass.states[source] ?? st;
+    const playing = (member ? view.state : sourceSt?.state) === 'playing';
     // Off, a speaker may still report its last cover: the icon says it is off.
     const picture = on && view.picture && view.picture !== this.broken ? view.picture : null;
     const playPause = commandTarget(hass, view, MEDIA_FEATURE.pause) ?? commandTarget(hass, view, MEDIA_FEATURE.play);
-    const together = this.#together(hass, item.entityId);
-    this.#line = mediaLine(view, st);
+    const together = this.#together(hass, source);
+    const playable = on && (playing || (member ? view.state : sourceSt?.state) === 'paused');
+    this.#line = mediaLine(view, sourceSt);
     return html`<div class="card ${on ? 'on' : ''} ${down ? 'na' : ''}">
       <button class="body" @click=${this.#open}>
         ${picture
