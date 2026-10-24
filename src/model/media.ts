@@ -79,22 +79,31 @@ export function mediaView(hass: HomeAssistant, speakerId: string): MediaView {
   };
 }
 
+/** The inputs a Music Assistant player feeds a speaker through: DLNA alone, AirPlay in a group. */
+const STREAM_INPUT = /^(dlna|airplay|upnp)$/i;
+
 /**
  * Which entity the music of a speaker comes from (spec Multiroom, 4.2): its Music Assistant player while
  * that plays; while it is paused, or stopped with its song still loaded, as long as the speaker rests
- * (paused or idle) on that same song or on none; the speaker itself otherwise, also with Music Assistant
- * down. By DLNA the speaker only sees a stream, with no queue, no next and no time: those live on the
- * Music Assistant player, and play on the speaker would wake a stream that already ended (23/10). A TV
- * that says `on` (webOS, Denon) shows its own channel or input, and a speaker on a song of its own (its
- * Spotify) keeps it: the paused song of Music Assistant is an old one.
+ * (paused or idle) or holds the stream open (DLNA, AirPlay), on that same song or on none; the speaker
+ * itself otherwise, also with Music Assistant down. By DLNA the speaker only sees a stream, with no
+ * queue, no next and no time: those live on the Music Assistant player, and play on the speaker would
+ * wake a stream that already ended (23/10). Music Assistant stops for a moment at each new song and 30 s
+ * after a pause, and an AudioCast on AirPlay still says "playing" after the pause: the view stays put.
+ * A TV that says `on` (webOS, Denon) shows its own channel or input, and a speaker on a song of its own
+ * (its Spotify) keeps it: the paused song of Music Assistant is an old one.
  */
 export function musicEntity(hass: HomeAssistant, entityId: string, ma: string | null | undefined): string {
   const maSt = ma ? hass.states[ma] : undefined;
   if (maSt?.state === 'playing') return ma!;
   const own = hass.states[entityId];
-  const resting = own?.state === 'paused' || own?.state === 'idle';
   const song = str(maSt?.attributes.media_title);
   const loaded = maSt?.state === 'paused' || (maSt?.state === 'idle' && song !== null);
+  // In a group of Music Assistant the speaker only plays what the group sends: a TV says "playing" on
+  // AirPlay with no source and no song even while the group is paused (bench, 23/10).
+  const members = maSt?.attributes.group_members;
+  if (loaded && Array.isArray(members) && members.length > 1) return ma!;
+  const resting = own?.state === 'paused' || own?.state === 'idle' || STREAM_INPUT.test(str(own?.attributes.source) ?? '');
   const ownSong = str(own?.attributes.media_title);
   return resting && loaded && (ownSong === null || ownSong === song) ? ma! : entityId;
 }

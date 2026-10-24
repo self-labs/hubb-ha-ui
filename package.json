@@ -1,6 +1,6 @@
 {
   "name": "hubb-ha-ui",
-  "version": "2026.10.20",
+  "version": "2026.10.21",
   "private": true,
   "description": "Hubb dashboard for Home Assistant: a strategy and cards that build the home screens from areas.",
   "type": "module",

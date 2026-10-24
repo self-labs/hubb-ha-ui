@@ -8,6 +8,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.21] - 2026-10-23
+
 ### Changed
 
 - An appliance switched off offers **Iniciar** alone, no longer Ligar beside it: Iniciar already
@@ -29,10 +31,13 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 - An Echo set up through Home Assistant's own **Alexa Devices** integration still showed as a speaker
   card: only the Echos of Alexa Media Player left the panel. Both are the microphone of the house now.
-- Play on a speaker whose Music Assistant song had stopped woke the stream that had already ended: it
-  played a few seconds and stopped. The card and the sheet keep Music Assistant while the speaker
-  rests on its song, so play resumes the queue there; a speaker on a song of its own (its Spotify)
-  keeps showing it.
+- The sheet of a speaker with Music Assistant jumped between two views (Fonte "Spotify" with the time,
+  then "DLNA" with no time) and play went to the wrong one: Music Assistant stops for a moment at each
+  new song and 30 s after a pause, and the speaker still says "playing" on AirPlay after a pause in a
+  group (and so does the TV, with no song at all). Play on the speaker then woke a stream that had
+  already ended, a few seconds and silence.
+  The card and the sheet now keep Music Assistant while the speaker rests or holds its stream on that
+  song, so play resumes the queue; a speaker on a song of its own (its Spotify) keeps showing it.
 - **Tocar junto** let a TV that was off join the group: Music Assistant moved everyone to AirPlay and
   nothing played. A speaker that is off now shows "Desligado" there and joins once it is on.
 
@@ -653,7 +658,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.20...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.21...HEAD
+[2026.10.21]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.20...v2026.10.21
 [2026.10.20]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.19...v2026.10.20
 [2026.10.19]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.18...v2026.10.19
 [2026.10.18]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.17...v2026.10.18

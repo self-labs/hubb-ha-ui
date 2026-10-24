@@ -177,11 +177,16 @@ describe('where the music of a speaker comes from', () => {
     expect(musicEntity(pair('off', 'paused'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
   });
 
-  /** The speaker and its Music Assistant player, each with a state and the song it says. */
-  const songs = (speaker: [string, string | null], ma: [string, string | null]) =>
+  /** The speaker and its Music Assistant player, each with a state and the song it says; the speaker also its source. */
+  const songs = (speaker: [string, string | null, string?], ma: [string, string | null]) =>
     makeHass({
       entities: [
-        { entity_id: 'media_player.caixa', platform: 'wiim', state: speaker[0], attributes: speaker[1] ? { media_title: speaker[1] } : {} },
+        {
+          entity_id: 'media_player.caixa',
+          platform: 'wiim',
+          state: speaker[0],
+          attributes: { ...(speaker[1] ? { media_title: speaker[1] } : {}), ...(speaker[2] ? { source: speaker[2] } : {}) },
+        },
         { entity_id: 'media_player.caixa_ma', platform: 'music_assistant', state: ma[0], attributes: { mass_player_type: 'player', ...(ma[1] ? { media_title: ma[1] } : {}) } },
       ],
     });
@@ -190,6 +195,31 @@ describe('where the music of a speaker comes from', () => {
     // Seen 23/10: the stream ended, both went idle on "Pieces", and play on the speaker woke a dead DLNA stream.
     expect(musicEntity(songs(['idle', 'Pieces'], ['idle', 'Pieces']), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa_ma');
     expect(musicEntity(songs(['idle', null], ['idle', null]), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+  });
+
+  it('keeps Music Assistant while the speaker still holds its stream open', () => {
+    // Seen 23/10: in the group the AudioCast kept saying "playing" on AirPlay after the pause, and so did it
+    // on DLNA for a second at each new song: play went to the speaker and the view jumped to it.
+    expect(musicEntity(songs(['playing', null, 'AirPlay'], ['paused', 'Pieces']), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa_ma');
+    expect(musicEntity(songs(['playing', 'Lullaby', 'DLNA'], ['idle', 'Lullaby']), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa_ma');
+    // Playing a song of its own (the speaker's Spotify), it keeps it.
+    expect(musicEntity(songs(['playing', 'Message In A Bottle', 'Spotify'], ['paused', 'Pieces']), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+  });
+
+  it('keeps Music Assistant for a TV whose player is in a group of Music Assistant', () => {
+    // Bench 23/10: paused in the group, the LG kept saying "playing" (no source, no song) on AirPlay.
+    const h = makeHass({
+      entities: [
+        { entity_id: 'media_player.tv', platform: 'webostv', state: 'playing', attributes: {} },
+        {
+          entity_id: 'media_player.tv_ma',
+          platform: 'music_assistant',
+          state: 'paused',
+          attributes: { mass_player_type: 'player', media_title: 'Pieces', group_members: ['media_player.caixa_ma', 'media_player.tv_ma'] },
+        },
+      ],
+    });
+    expect(musicEntity(h, 'media_player.tv', 'media_player.tv_ma')).toBe('media_player.tv_ma');
   });
 
   it('leaves Music Assistant behind when the speaker shows another song of its own', () => {
