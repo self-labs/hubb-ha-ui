@@ -1,20 +1,24 @@
 import { mdiChevronDown, mdiMinus, mdiPlus, mdiPower } from '@mdi/js';
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
+import { live } from 'lit/directives/live.js';
 import { canPower, CLIMATE_FEATURE, degrees, FAN_FEATURE, has, namedValues, setClimatePower } from '../actions/climate';
+import { dropTarget, flushTarget, nudgeTarget, onTargetChange, onTargetNotTaken, pendingTarget, setTarget, syncTarget } from '../actions/climate-target';
 import { haptic } from '../actions/haptic';
+import { setSwitch } from '../actions/switch';
 import { isInfrared } from '../ha/infrared';
+import { LayoutWatcher } from '../layout';
 import type { HassEntityState, HomeAssistant } from '../ha/types';
+import { targetLimits } from '../model/arc';
+import { modeColor, modeDoing, modeIcon, modeVars } from '../model/climate-mode';
+import type { Layout } from '../model/layout';
 import type { ClimateExtra } from '../model/types';
 import { CLIMATE, S } from '../strings';
+import './climate-arc';
+import type { ArcChange } from './climate-arc';
 import { define } from './define';
-import './equipment-tile';
 import { icon } from './icon';
-import { unlisted } from './unlisted';
+import { reported, unlisted } from './unlisted';
 
-/** The target goes out once the taps on − and + stop for this long. */
-const SEND_AFTER_MS = 800;
-/** The target asked stays on screen at most this long, waiting for Home Assistant to show it. */
-const HOLD_MS = 4000;
 /** More speeds than this do not fit a row: four of them, spread out, are offered. */
 const MAX_SPEEDS = 6;
 
@@ -58,75 +62,73 @@ export interface ClimateAllowed {
 }
 
 /**
- * The sheet of an air conditioner or of a fan (speed). Compact (Gustavo, 14/10): the temperature and
- * the power on top, the modes in one row, ventilation, swing and preset closed under "Mais ajustes".
- * Each part shows only when the device has it, the installer kept it, and its values have a name.
+ * The sheet of an air conditioner or of a fan (speed). The air conditioner after the card of Home
+ * Assistant (Gustavo, 22/10): the arc to drag, − and + with the power in the middle, the modes with
+ * their icons, all centred, and ventilation, swing, preset and the functions of the device closed under
+ * "Mais ajustes". Each part shows only when the device has it, the installer kept it, and its values
+ * have a name.
  */
 export class HubbClimatePanel extends LitElement {
   static properties = {
     hass: { attribute: false },
     entityId: { attribute: false },
     allowed: { attribute: false },
-    pendingTarget: { state: true },
     failed: { state: true },
+    notTaken: { state: true },
+    screenLayout: { reflect: true, attribute: 'screen-layout' },
   };
 
   declare hass: HomeAssistant | undefined;
   declare entityId: string;
   declare allowed: ClimateAllowed | null;
-  /** The target asked with − and +, until Home Assistant shows it. */
-  declare pendingTarget: number | null;
   /** What Home Assistant answered when the last command from this sheet failed; null while all is well. */
   declare failed: string | null;
+  /** The layout of the panel, for the arc to grow in the window of the tablet lying down. */
+  declare screenLayout: Layout;
 
-  #send: ReturnType<typeof setTimeout> | null = null;
-  #hold: ReturnType<typeof setTimeout> | null = null;
+  #unwatch: (() => void) | null = null;
+  #unheard: (() => void) | null = null;
+  /** A target the device did not take, said on this sheet until the next command or until it shows. */
+  declare notTaken: number | null;
 
   constructor() {
     super();
     this.hass = undefined;
     this.entityId = '';
     this.allowed = null;
-    this.pendingTarget = null;
     this.failed = null;
+    this.notTaken = null;
+    this.screenLayout = 'phone';
+    new LayoutWatcher(this);
+  }
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    // The target asked lives in src/actions/climate-target.ts, shared with the card of the room.
+    this.#unwatch = onTargetChange(() => this.requestUpdate());
+    this.#unheard = onTargetNotTaken((hass, entityId, value) => {
+      if (entityId !== this.entityId || hass.callService !== this.hass?.callService) return;
+      haptic('failure');
+      this.notTaken = value;
+    });
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
-    if (this.#send) {
-      clearTimeout(this.#send);
-      this.#send = null;
-      // The sheet closed before the target went out: the resident saw it, so it goes now.
-      if (this.pendingTarget !== null && !this.#leftTarget()) this.#call('set_temperature', { temperature: this.pendingTarget });
-    }
-    if (this.#hold) clearTimeout(this.#hold);
+    this.#unwatch?.();
+    this.#unwatch = null;
+    this.#unheard?.();
+    this.#unheard = null;
+    // The sheet closed before the target went out: the resident saw it, so it goes now.
+    if (this.hass) flushTarget(this.hass, this.entityId);
   }
 
   protected willUpdate(changed: PropertyValues<this>): void {
-    if (!changed.has('hass') || this.pendingTarget === null) return;
-    // The mode changed elsewhere to one with no target (Ventilar): a target sent now would be refused.
-    if (this.#leftTarget()) this.#dropTarget();
-    else if (!this.#send && this.hass?.states[this.entityId]?.attributes.temperature === this.pendingTarget) this.pendingTarget = null;
-  }
-
-  /** The mode the device was in when − or + was first tapped. */
-  #targetMode: string | null = null;
-
-  /**
-   * Whether the device moved to a mode with no target (Ventilar, off) since the taps. A blink (a moment
-   * unavailable, the target missing for one update) is not that: the taps stay and go out.
-   */
-  #leftTarget(): boolean {
-    const st = this.hass?.states[this.entityId];
-    if (!st || st.state === 'unavailable' || st.state === 'unknown') return false;
-    return st.state !== this.#targetMode && typeof st.attributes.temperature !== 'number';
-  }
-
-  /** Forgets a target that has not gone out yet. */
-  #dropTarget(): void {
-    if (this.#send) clearTimeout(this.#send);
-    this.#send = null;
-    this.pendingTarget = null;
+    if (changed.has('hass') && this.hass) {
+      syncTarget(this.hass);
+      // It took the target after all, late.
+      if (this.notTaken !== null && this.hass.states[this.entityId]?.attributes.temperature === this.notTaken) this.notTaken = null;
+    }
   }
 
   /**
@@ -145,6 +147,7 @@ export class HubbClimatePanel extends LitElement {
   }
 
   #call(service: string, data: Record<string, unknown>, onFail?: () => void): void {
+    this.notTaken = null;
     const domain = this.entityId.slice(0, this.entityId.indexOf('.'));
     haptic('light');
     this.#follow(this.hass?.callService(domain, service, data, { entity_id: this.entityId }, false), onFail);
@@ -152,40 +155,20 @@ export class HubbClimatePanel extends LitElement {
 
   #mode(mode: string): void {
     // A target not sent yet belonged to the mode being left (LG refuses one in Ventilar).
-    this.#dropTarget();
+    if (this.hass) dropTarget(this.hass, this.entityId);
     this.#call('set_hvac_mode', { hvac_mode: mode });
   }
 
   #step(st: HassEntityState, direction: 1 | -1): void {
-    const a = st.attributes;
-    // Whole degrees in every mode, like a remote control (Gustavo, 15/10); LG in Auto even keeps 18
-    // when asked for 18,5 (test on the owner's unit).
-    const step = Math.max(Number(a.target_temp_step) || 1, 1);
-    const now = this.pendingTarget ?? Number(a.temperature);
-    if (!Number.isFinite(now)) return;
-    const min = Number(a.min_temp) || 7;
-    const max = Number(a.max_temp) || 35;
-    // A half degree set elsewhere goes to the next whole one: 23,5 becomes 24 up and 23 down.
-    const moved = direction > 0 ? Math.floor(now / step) * step + step : Math.ceil(now / step) * step - step;
-    const next = Math.min(max, Math.max(min, moved));
-    // At a limit nothing moves; below the lowest target Home Assistant allows (an LG in Auto sits at
-    // 17 with 18 as the lowest), − must not jump up to 18.
-    if ((next - now) * direction <= 0) return;
-    if (this.pendingTarget === null) this.#targetMode = st.state;
-    this.pendingTarget = next;
-    haptic('selection');
-    if (this.#send) clearTimeout(this.#send);
-    this.#send = setTimeout(() => {
-      this.#send = null;
-      // Refused: the target on screen goes back to the one the device keeps.
-      this.#call('set_temperature', { temperature: next }, () => (this.pendingTarget = null));
-      if (this.#hold) clearTimeout(this.#hold);
-      this.#hold = setTimeout(() => (this.pendingTarget = null), HOLD_MS);
-    }, SEND_AFTER_MS);
+    this.notTaken = null;
+    if (this.hass) nudgeTarget(this.hass, st, direction, (sent) => this.#follow(sent));
   }
 
   #power(hass: HomeAssistant, st: HassEntityState, on: boolean): void {
+    this.notTaken = null;
     haptic('light');
+    // A target not sent yet would reach a device the resident just turned off.
+    if (!on) dropTarget(hass, this.entityId);
     void setClimatePower(this.#quietHass(hass), st, on, this.allowed?.modes).catch(() => undefined);
   }
 
@@ -214,14 +197,27 @@ export class HubbClimatePanel extends LitElement {
   #extraSelect(hass: HomeAssistant, x: ClimateExtra) {
     const st = hass.states[x.entityId]!;
     const word = (o: string): string => hass.formatEntityState?.(st, o) ?? o;
-    const options = listOf(st.attributes.options);
-    return html`<label class="field">
-      <span>${x.name}</span>
-      <select class="extra-select" @change=${(e: Event) => this.#extra(hass, 'select', 'select_option', { option: (e.target as HTMLSelectElement).value }, x.entityId)}>
-        ${unlisted(st.state, options, word)}
-        ${options.map((o) => html`<option value=${o} ?selected=${o === st.state}>${word(o)}</option>`)}
-      </select>
-    </label>`;
+    const values = listOf(st.attributes.options).map((o): [string, string] => [o, word(o)]);
+    return this.#picker(x.name, 'extra-select', st.state, values, word, (option) => this.#extra(hass, 'select', 'select_option', { option }, x.entityId));
+  }
+
+  /** A function that switches (Luz do display): its name and a switch, the whole row to tap. */
+  #extraSwitch(hass: HomeAssistant, x: ClimateExtra) {
+    const on = hass.states[x.entityId]?.state === 'on';
+    return html`<div class="function">
+      <button
+        class="toggle"
+        role="switch"
+        aria-checked=${on ? 'true' : 'false'}
+        @click=${() => {
+          haptic('light');
+          void setSwitch(this.#quietHass(hass), x.entityId, !on).catch(() => undefined);
+        }}
+      >
+        <span class="name">${x.name}</span>
+        <span class="track"><span class="thumb"></span></span>
+      </button>
+    </div>`;
   }
 
   #extraNumber(hass: HomeAssistant, x: ClimateExtra) {
@@ -246,32 +242,40 @@ export class HubbClimatePanel extends LitElement {
     </div>`;
   }
 
-  #choices(st: HassEntityState, attribute: string, values: [string, string][], service: string, cls: string) {
-    const current = st.attributes[attribute];
-    return html`<div class="row">
-      ${values.map(
-        ([v, word]) =>
-          html`<button class="${cls} ${v === current ? 'current' : ''}" aria-pressed=${v === current ? 'true' : 'false'} @click=${() => this.#call(service, { [attribute]: v })}>
-            ${word}
-          </button>`,
-      )}
-    </div>`;
-  }
-
-  #select(st: HassEntityState, attribute: string, values: [string, string][], service: string, cls: string, label: string) {
-    const current = st.attributes[attribute];
-    // A value with no name is still where the device is: "Outra opção", never the first choice.
-    return html`<label class="field">
-      <span>${label}</span>
-      <select class=${cls} @change=${(e: Event) => this.#call(service, { [attribute]: (e.target as HTMLSelectElement).value })}>
+  /**
+   * A setting as the card of Home Assistant shows it (Gustavo, 22/10): a button with its name over the
+   * value now, and the list of the phone itself to pick another (the native select, invisible, laid
+   * over the button). A value with no name is still where the device is: `other` says it, never the
+   * first choice.
+   */
+  #picker(name: string, cls: string, current: unknown, values: [string, string][], other: (v: string) => string, pick: (v: string) => void) {
+    const named = values.find(([v]) => v === current)?.[1];
+    return html`<label class="setting">
+      <span class="text">
+        <span class="name">${name}</span>
+        <span class="value" aria-hidden="true">${named ?? (reported(current) ? other(current) : '')}</span>
+      </span>
+      ${icon(mdiChevronDown)}
+      <select
+        class=${cls}
+        aria-label=${name}
+        .value=${live(named !== undefined ? String(current) : '')}
+        @change=${(e: Event) => pick((e.target as HTMLSelectElement).value)}
+      >
         ${unlisted(
           current,
           values.map(([v]) => v),
-          () => CLIMATE.otherValue,
+          other,
         )}
         ${values.map(([v, word]) => html`<option value=${v} ?selected=${v === current}>${word}</option>`)}
       </select>
     </label>`;
+  }
+
+  /** Ventilação, Oscilação or Predefinição, when the device has it and the installer kept it. */
+  #climateSetting(st: HassEntityState, name: string, cls: string, attribute: string, values: [string, string][], service: string) {
+    if (!values.length) return nothing;
+    return this.#picker(name, cls, st.attributes[attribute], values, () => CLIMATE.otherValue, (v) => this.#call(service, { [attribute]: v }));
   }
 
   /** The named values of a setting the device has and the installer kept; empty when it says nothing. */
@@ -308,7 +312,8 @@ export class HubbClimatePanel extends LitElement {
     if (st.state === 'unavailable') return html`<p class="now">${S.noResponse}</p>`;
     if (this.entityId.startsWith('fan.')) return this.#fan(st);
     const a = st.attributes;
-    const target = this.pendingTarget ?? (typeof a.temperature === 'number' ? a.temperature : null);
+    const waiting = pendingTarget(hass, this.entityId);
+    const target = waiting ?? (typeof a.temperature === 'number' ? a.temperature : null);
     const now = typeof a.current_temperature === 'number' ? a.current_temperature : null;
     const keptModes = this.allowed?.modes;
     // Off belongs to the power button: the modes are what it does while on.
@@ -325,13 +330,28 @@ export class HubbClimatePanel extends LitElement {
       const now = hass.states[x.entityId]?.state;
       return !hide.includes(x.entityId) && now !== undefined && now !== 'unavailable' && (x.kind === 'number' || now !== 'unknown');
     });
-    const switches = extras.filter((x) => x.kind === 'switch');
-    return html`<div class="top">
-        ${target !== null && has(st, CLIMATE_FEATURE.target)
-          ? html`<button class="step colder" aria-label=${CLIMATE.colder} @click=${() => this.#step(st, -1)}>${icon(mdiMinus)}</button>
-              <span class="target ${this.pendingTarget !== null ? 'pending' : ''}" aria-live="polite">${degrees(target)}°</span>
-              <button class="step warmer" aria-label=${CLIMATE.warmer} @click=${() => this.#step(st, 1)}>${icon(mdiPlus)}</button>`
-          : nothing}
+    const choices = extras.filter((x) => x.kind === 'select');
+    // Off, or in a mode with no target (Ventilar, Auto with a range): the arc has nothing to set, as in
+    // Home Assistant (Gustavo, 23/10).
+    const settable = on && target !== null && has(st, CLIMATE_FEATURE.target);
+    const hasTarget = settable;
+    const limits = targetLimits(a);
+    return html`<hubb-climate-arc
+        .value=${settable ? target : null}
+        .min=${limits.min}
+        .max=${limits.max}
+        .step=${limits.step}
+        .current=${now}
+        .color=${modeColor(st.state)}
+        .label=${modeDoing(st)}
+        @hubb-arc-change=${(e: CustomEvent<ArcChange>) => {
+          this.notTaken = null;
+          if (settable) setTarget(hass, st, e.detail.value, { now: e.detail.source === 'pointer', follow: (sent) => this.#follow(sent) });
+        }}
+      ></hubb-climate-arc>
+      ${settable ? html`<span class="target sr" aria-live="polite">${degrees(target)}°</span>` : nothing}
+      <div class="controls" style=${modeVars(st.state)}>
+        ${hasTarget ? html`<button class="step colder" aria-label=${CLIMATE.colder} @click=${() => this.#step(st, -1)}>${icon(mdiMinus)}</button>` : nothing}
         ${canPower(st)
           ? html`<button
               class="power ${on ? 'on' : ''}"
@@ -342,20 +362,26 @@ export class HubbClimatePanel extends LitElement {
               ${icon(mdiPower)}
             </button>`
           : nothing}
+        ${hasTarget ? html`<button class="step warmer" aria-label=${CLIMATE.warmer} @click=${() => this.#step(st, 1)}>${icon(mdiPlus)}</button>` : nothing}
       </div>
       ${this.failed
         ? html`<p class="failed" role="alert">
             ${CLIMATE.refused} ${hass.user?.is_admin ? html`<span class="why">(${this.failed})</span>` : nothing}
           </p>`
         : nothing}
-      ${now !== null ? html`<p class="now">${CLIMATE.now(Math.round(now))}</p>` : nothing}
+      ${this.notTaken !== null ? html`<p class="failed not-taken" role="alert">${CLIMATE.notTaken(degrees(this.notTaken))}</p>` : nothing}
       ${isInfrared(hass, this.entityId) ? html`<p class="infrared">${S.infrared}</p>` : nothing}
       ${modes.length
-        ? html`<div class="row modes">
+        ? html`<div class="modes">
             ${modes.map(
               (m) =>
-                html`<button class="mode ${m === st.state ? 'current' : ''}" aria-pressed=${m === st.state ? 'true' : 'false'} @click=${() => this.#mode(m)}>
-                  ${CLIMATE.modes[m] ?? m}
+                html`<button
+                  class="mode ${m === st.state ? 'current' : ''}"
+                  style=${modeVars(m)}
+                  aria-pressed=${m === st.state ? 'true' : 'false'}
+                  @click=${() => this.#mode(m)}
+                >
+                  <span class="mode-icon">${icon(modeIcon(m))}</span>${CLIMATE.modes[m] ?? m}
                 </button>`,
             )}
           </div>`
@@ -363,17 +389,15 @@ export class HubbClimatePanel extends LitElement {
       ${fan.length || swing.length || preset.length || extras.length
         ? html`<details class="more">
             <summary>${CLIMATE.more}${icon(mdiChevronDown)}</summary>
-            ${fan.length ? html`<p class="label">${CLIMATE.fan}</p>${this.#choices(st, 'fan_mode', fan, 'set_fan_mode', 'fan')}` : nothing}
-            ${swing.length ? this.#select(st, 'swing_mode', swing, 'set_swing_mode', 'swing', CLIMATE.swing) : nothing}
-            ${preset.length ? this.#select(st, 'preset_mode', preset, 'set_preset_mode', 'preset', CLIMATE.preset) : nothing}
-            ${switches.length
-              ? html`<div class="extras">
-                  ${switches.map(
-                    (x) => html`<hubb-equipment-tile .hass=${this.#quietHass(hass)} .item=${{ entityId: x.entityId, name: x.name, icon: null }}></hubb-equipment-tile>`,
-                  )}
+            ${fan.length || swing.length || preset.length || choices.length
+              ? html`<div class="settings">
+                  ${this.#climateSetting(st, CLIMATE.fan, 'fan', 'fan_mode', fan, 'set_fan_mode')}
+                  ${this.#climateSetting(st, CLIMATE.swing, 'swing', 'swing_mode', swing, 'set_swing_mode')}
+                  ${this.#climateSetting(st, CLIMATE.preset, 'preset', 'preset_mode', preset, 'set_preset_mode')}
+                  ${choices.map((x) => this.#extraSelect(hass, x))}
                 </div>`
               : nothing}
-            ${extras.filter((x) => x.kind === 'select').map((x) => this.#extraSelect(hass, x))}
+            ${extras.filter((x) => x.kind === 'switch').map((x) => this.#extraSwitch(hass, x))}
             ${extras.filter((x) => x.kind === 'number').map((x) => this.#extraNumber(hass, x))}
           </details>`
         : nothing}`;
@@ -385,21 +409,27 @@ export class HubbClimatePanel extends LitElement {
       font-family: var(--hubb-font);
       color: var(--hubb-text);
     }
-    .top {
+    /* The target for screen readers, said when − and + move it; the arc shows it. */
+    .sr {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    hubb-climate-arc {
+      margin-top: 4px;
+    }
+    :host([screen-layout='wide']) hubb-climate-arc {
+      --hubb-arc-size: 320px;
+    }
+    .controls {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 18px;
-    }
-    .target {
-      min-width: 3.2ch;
-      text-align: center;
-      font-size: 40px;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-    }
-    .target.pending {
-      color: var(--hubb-amber-text);
+      gap: 22px;
+      margin-top: -4px;
     }
     .step,
     .power {
@@ -411,14 +441,17 @@ export class HubbClimatePanel extends LitElement {
       border-radius: 50%;
       background: var(--hubb-surface-2);
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
     .power {
-      margin-left: 8px;
+      width: 62px;
+      height: 62px;
       color: var(--hubb-text-2);
     }
+    /* On, in the tint of the mode, as the card (proposal A, Gustavo 23/10). */
     .power.on {
-      background: var(--hubb-amber);
-      color: var(--hubb-amber-ink);
+      background: color-mix(in srgb, var(--mode) 24%, transparent);
+      color: var(--mode-ink);
     }
     .step svg,
     .power svg {
@@ -456,8 +489,7 @@ export class HubbClimatePanel extends LitElement {
       font-weight: 600;
       color: var(--hubb-text-2);
     }
-    .label,
-    .field span {
+    .label {
       margin: 12px 2px 8px;
       font-size: 11px;
       font-weight: 700;
@@ -465,20 +497,119 @@ export class HubbClimatePanel extends LitElement {
       text-transform: uppercase;
       color: var(--hubb-text-2);
     }
-    .field {
-      display: grid;
-    }
-    .extras {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* Each setting a button with its value, in a row that wraps on a narrow screen. */
+    .settings {
+      display: flex;
+      flex-wrap: wrap;
       gap: 8px;
-      margin-top: 16px;
     }
+    .setting {
+      position: relative;
+      flex: 1 1 140px;
+      min-width: 0;
+      box-sizing: border-box;
+      min-height: 56px;
+      padding: 8px 10px 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 14px;
+      background: var(--hubb-surface-2);
+      cursor: pointer;
+    }
+    .setting .text {
+      flex: 1;
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+    .setting .name {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--hubb-text-2);
+    }
+    .setting .value {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .setting svg {
+      flex: none;
+      width: 20px;
+      height: 20px;
+      fill: var(--hubb-text-2);
+    }
+    /* The list of the phone: invisible over the whole button, so a tap anywhere on it opens the list. */
+    .setting select {
+      position: absolute;
+      inset: 0;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .setting:has(select:focus-visible) {
+      outline: 2px solid var(--hubb-focus);
+      outline-offset: 2px;
+    }
+    /* A function that switches and one with a number: a row each, the width of the sheet. */
     .extra-number {
+      box-sizing: border-box;
+      min-height: 52px;
+      margin-top: 8px;
+      padding: 4px 4px 4px 12px;
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-top: 12px;
+      border-radius: 14px;
+      background: var(--hubb-surface-2);
+    }
+    .toggle {
+      all: unset;
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 52px;
+      margin-top: 8px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-radius: 14px;
+      background: var(--hubb-surface-2);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .toggle .name {
+      flex: 1;
+      min-width: 0;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .track {
+      position: relative;
+      flex: none;
+      width: 44px;
+      height: 26px;
+      border-radius: 13px;
+      background: var(--hubb-mode-off);
+      transition: background var(--hubb-motion, 200ms);
+    }
+    .thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform var(--hubb-motion, 200ms);
+    }
+    .toggle[aria-checked='true'] .track {
+      background: var(--hubb-amber);
+    }
+    .toggle[aria-checked='true'] .thumb {
+      transform: translateX(18px);
     }
     .extra-number .name {
       flex: 1;
@@ -496,6 +627,7 @@ export class HubbClimatePanel extends LitElement {
     .extra-number .step {
       width: 44px;
       height: 44px;
+      background: var(--hubb-surface);
     }
     .extra-number .step[disabled] {
       opacity: 0.4;
@@ -506,8 +638,53 @@ export class HubbClimatePanel extends LitElement {
       flex-wrap: wrap;
       gap: 6px;
     }
+    /* The modes in the middle, an icon over each name; the one on in the colour of the mode. */
     .modes {
-      margin-top: 4px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .mode {
+      all: unset;
+      box-sizing: border-box;
+      width: 60px;
+      display: grid;
+      justify-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--hubb-text-2);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mode-icon {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 15px;
+      background: var(--hubb-surface-2);
+      color: var(--hubb-text);
+    }
+    .mode-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+    .mode.current {
+      color: var(--hubb-text);
+      font-weight: 800;
+    }
+    .mode.current .mode-icon {
+      background: color-mix(in srgb, var(--mode) 24%, transparent);
+      color: var(--mode-ink);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mode) 45%, transparent);
+    }
+    .mode:focus-visible .mode-icon {
+      outline: 2px solid var(--hubb-focus);
+      outline-offset: 2px;
     }
     .row button {
       all: unset;
@@ -572,6 +749,7 @@ export class HubbClimatePanel extends LitElement {
     }
     .step:focus-visible,
     .power:focus-visible,
+    .toggle:focus-visible,
     .row button:focus-visible,
     .more summary:focus-visible,
     select:focus-visible {

@@ -114,7 +114,7 @@ never rests.
   <tr>
     <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/room-light.png" width="200" alt="Bedroom page with the lights, the air conditioner and the Sensores block: window open, someone in, temperature and humidity"></td>
     <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/sheet-dark.png" width="200" alt="Light sheet with brightness, colours and white temperature"></td>
-    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/climate-dark.png" width="200" alt="Compact air conditioner sheet: temperature, power, the modes and Mais ajustes"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/climate-dark.png" width="200" alt="Air conditioner sheet: the arc with the target, − and + around the power button, the modes with their icons and Mais ajustes"></td>
   </tr>
   <tr>
     <td align="center">Sensors of the room</td>
@@ -132,13 +132,19 @@ never rests.
 - **Lights** change at once and vibrate; with no answer in 3 s they say "Sem resposta". A long press
   opens the sheet: brightness, 9 colours, the whites and their temperature, each only when the bulb
   has it.
-- **Air conditioner:** what it is doing, the target and the temperature now. Its sheet is compact:
-  − and + with the power button, the modes in one row, and ventilation, swing and preset closed under
-  **Mais ajustes**, together with the functions its device keeps in entities of its own (Luz do display,
-  Economia de energia, Modo dormir, the timers to turn on and off): each model shows what it has. A
-  value no one translated ("MiddleTop1") stays out, and the installer picks which modes, settings and
-  functions show. The target moves by whole degrees, like a remote control. An infrared one says its
-  state is the last command sent.
+- **Air conditioner:** on with a target, its card has − and + around the target ("Resfriando · 27°
+  agora", − 23° +), so a degree up needs no sheet; off, the round button turns it on. Its sheet
+  follows the card of Home Assistant: an arc to drag the target, which goes out once when the finger
+  lets go, − and + with the power button in the middle, and the modes, each with its icon.
+  Ventilation, swing and preset are closed under **Mais ajustes**, each a button with its value that
+  opens the list of the phone itself, together with the functions its device keeps in entities of its
+  own (Luz do display, Economia de energia, Modo dormir, the timers to turn on and off), the ones that
+  switch in a row with a switch: each model shows what it has. The colour follows the mode, blue in
+  Frio and orange in Calor, on the arc, the modes and the card. A value no one translated
+  ("MiddleTop1") stays out, and the installer picks which modes, settings and functions show. The
+  target moves by whole degrees, like a remote control, and one the device does not take shakes the
+  card and says "O ar não aceitou 21°." on the sheet. An infrared one says its state is the last
+  command sent.
 - **Curtains** open, close and stop with a tap; **fans** switch and open their own speeds (33, 66 and
   100% for a fan of three).
 - **TV and sound:** the card shows the cover of what plays (the icon when there is none), bars that
@@ -271,7 +277,7 @@ never rests.
 | Alert strip                | Vibrates once, leads to the room (to Segurança, which lists it, when it has none); it stays while the sensor is on                                             |
 | House out of reach         | "Sem conexão com a casa. Tentando de novo…"; the controls dim and take no tap or key, an open sheet included, until it is back                                 |
 | Open a gate or a lock      | Slide to the end ("Deslize para abrir"); letting go earlier does nothing, and a tap never opens. Fechar and Trancar are a tap                                  |
-| Tap an air conditioner     | Opens its sheet: − and + for the temperature, the mode, the ventilation, the swing and the preset it has; the round button turns it on and off                 |
+| Tap an air conditioner     | Opens its sheet: the arc, − and +, the modes and Mais ajustes. On its card, − and + while it is on with a target, the round button while it is off             |
 | Tap a fan                  | Switches it; a long press opens its speeds                                                                                                                     |
 | Tap a curtain              | Opens or closes it, and stops it while it moves (turns it back when it cannot stop); a long press opens Abrir, Parar, Fechar and the position                  |
 | Tap a TV or a speaker      | Opens its sheet: cover, time, the controls, volume, source, sound mode, channel, Tocar junto, Ligar or Desligar                                                |

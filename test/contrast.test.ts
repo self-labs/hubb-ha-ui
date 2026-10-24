@@ -82,4 +82,36 @@ describe('contrast of text on its background, both themes (AA, 4.5:1)', () => {
     expect(cssOf(HubbHomeScreen.styles)).toMatch(/\.chip\.on\s*\{[^}]*color: var\(--hubb-amber-text\)/);
     expect(cssOf(HubbToast.styles)).toMatch(/button\s*\{[^}]*color: var\(--hubb-toast-action\)/);
   });
+
+  it('the colour of each mode of an air conditioner takes white on it, and stands out on the surfaces', () => {
+    for (const theme of ['dark', 'light'] as const) {
+      for (const mode of ['cool', 'heat', 'auto', 'dry', 'fan']) {
+        const c = token(`--hubb-mode-${mode}`, theme);
+        expect(contrast(c, '#ffffff'), `${mode} white ${theme}`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(c, token('--hubb-surface', theme)), `${mode} surface ${theme}`).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
+  it('the ink of each mode, its words and icons over its tint (proposal A, Gustavo 23/10), reads on the surface and over the tint', () => {
+    const mix = (fg: string, bg: string, share: number): string =>
+      '#' + [1, 3, 5].map((i) => Math.round(parseInt(fg.slice(i, i + 2), 16) * share + parseInt(bg.slice(i, i + 2), 16) * (1 - share)).toString(16).padStart(2, '0')).join('');
+    for (const theme of ['dark', 'light'] as const) {
+      const surface = token('--hubb-surface', theme);
+      for (const mode of ['cool', 'heat', 'auto', 'dry', 'fan']) {
+        const ink = token(`--hubb-mode-${mode}-ink`, theme);
+        const tint = mix(token(`--hubb-mode-${mode}`, theme), surface, 0.24);
+        expect(contrast(ink, surface), `${mode} ink surface ${theme}`).toBeGreaterThanOrEqual(4.5);
+        expect(contrast(ink, tint), `${mode} ink tint ${theme}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it('the grey of an air conditioner off takes a white icon (Ligando…) and stands out on the surfaces', () => {
+    for (const theme of ['dark', 'light'] as const) {
+      const off = token('--hubb-mode-off', theme);
+      expect(contrast(off, '#ffffff'), `off white ${theme}`).toBeGreaterThanOrEqual(3);
+      expect(contrast(off, token('--hubb-surface-2', theme)), `off surface-2 ${theme}`).toBeGreaterThanOrEqual(3);
+    }
+  });
 });

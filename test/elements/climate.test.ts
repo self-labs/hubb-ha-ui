@@ -61,12 +61,14 @@ describe('hubb-climate-card', () => {
 
   it('says what it does and the target, with the temperature now', async () => {
     const el = await card(ar());
-    expect(text(el, '.state')).toBe('Resfriando · 23°');
-    expect(text(el, '.now')).toBe('27° agora');
+    // On with a target the line takes the temperature now, and the target sits between − and + (22/10).
+    expect(text(el, '.state')).toBe('Resfriando · 27° agora');
+    expect(text(el, '.target')).toBe('23°');
   });
 
   it('turns on and off with its power button, by the mode when it has no turn_on', async () => {
-    const on = ar('cool');
+    // With no target to set, the power button stays on the card to turn it off.
+    const on = ar('cool', {}, FULL & ~1);
     await (await card(on)).shadowRoot!.querySelector<HTMLButtonElement>('.power')!.click();
     expect(services(on)).toEqual([['climate.turn_off', undefined]]);
     document.body.replaceChildren();
@@ -113,9 +115,10 @@ describe('hubb-climate-panel', () => {
     // Off is the power button's since the compact sheet (pente fino 1).
     expect(modes.map((b) => b.textContent!.trim())).toEqual(['Frio', 'Auto']);
     (modes[1] as HTMLButtonElement).click();
-    const fans = [...el.shadowRoot!.querySelectorAll('.fan')];
-    expect(fans.map((b) => b.textContent!.trim())).toEqual(['Auto', 'Baixa', 'Alta']);
-    (fans[2] as HTMLButtonElement).click();
+    const fan = el.shadowRoot!.querySelector<HTMLSelectElement>('select.fan')!;
+    expect([...fan.options].map((o) => o.textContent!.trim())).toEqual(['Auto', 'Baixa', 'Alta']);
+    fan.value = 'high';
+    fan.dispatchEvent(new Event('change'));
     const swing = el.shadowRoot!.querySelector<HTMLSelectElement>('select.swing')!;
     swing.value = 'off';
     swing.dispatchEvent(new Event('change'));

@@ -28,6 +28,22 @@ export const tokens = css`
     --hubb-art-glow: #f2c98a;
     /* Focus rings: 3:1 or more on every surface of the theme (the Areia amber was not). */
     --hubb-focus: #f2c98a;
+    /* The colour of each mode, as in Home Assistant; each passes AA with white on it and 3:1 on the
+       surfaces of both themes (test/contrast.test.ts). */
+    --hubb-mode-cool: #3478c6;
+    --hubb-mode-heat: #b8541b;
+    --hubb-mode-auto: #2e8049;
+    --hubb-mode-dry: #9a6f00;
+    --hubb-mode-fan: #1f7a84;
+    --hubb-mode-off: #7a868e;
+    /* The ink of each mode: its words and icons over its tint on the dark surface (proposal A, Gustavo
+       23/10), 4.5:1 on the surface and over the tint (test/contrast.test.ts). */
+    --hubb-mode-cool-ink: #8db9ec;
+    --hubb-mode-heat-ink: #f2a675;
+    --hubb-mode-auto-ink: #82cb9b;
+    --hubb-mode-dry-ink: #e5c463;
+    --hubb-mode-fan-ink: #6cc6cd;
+    --hubb-mode-off-ink: #8e9aa2;
     /* The alert strip and a triggered alarm: the one red of the panel. */
     --hubb-alert-bg: #c62828;
     --hubb-alert-ink: #ffffff;
@@ -58,6 +74,20 @@ export const tokens = css`
     --hubb-card-shadow: 0 1px 3px rgba(41, 58, 68, 0.1);
     --hubb-art: rgba(41, 58, 68, 0.28);
     --hubb-focus: #8a5a12;
+    /* The colour of each mode, as in Home Assistant; each passes AA with white on it and 3:1 on the
+       surfaces of both themes (test/contrast.test.ts). */
+    --hubb-mode-cool: #3478c6;
+    --hubb-mode-heat: #b8541b;
+    --hubb-mode-auto: #2e8049;
+    --hubb-mode-dry: #9a6f00;
+    --hubb-mode-fan: #1f7a84;
+    --hubb-mode-off: #58646c;
+    --hubb-mode-cool-ink: #22548f;
+    --hubb-mode-heat-ink: #8a3a0f;
+    --hubb-mode-auto-ink: #1f5c33;
+    --hubb-mode-dry-ink: #6f5000;
+    --hubb-mode-fan-ink: #17626a;
+    --hubb-mode-off-ink: #58646c;
     --hubb-alert-bg: #b71c1c;
     --hubb-alert-ink: #ffffff;
   }

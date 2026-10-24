@@ -50,9 +50,9 @@ describe('the compact sheet of an air conditioner', () => {
   it('puts the power next to the temperature and leaves Desligado out of the modes', async () => {
     const h = lg();
     const el = await panel(h);
-    expect(el.shadowRoot!.querySelector('.top .power')).not.toBeNull();
+    expect(el.shadowRoot!.querySelector('.controls .power')).not.toBeNull();
     expect(texts(el, '.mode')).toEqual(['Auto', 'Seco', 'Frio', 'Ventilar']);
-    (el.shadowRoot!.querySelector('.top .power') as HTMLButtonElement).click();
+    (el.shadowRoot!.querySelector('.controls .power') as HTMLButtonElement).click();
     expect(services(h)).toEqual([['climate.turn_off', undefined]]);
   });
 
@@ -67,7 +67,7 @@ describe('the compact sheet of an air conditioner', () => {
   it('shows only the values it can name, and drops a setting left with one choice', async () => {
     const el = await panel(lg());
     // "diffuse" is named by Home Assistant itself, so the panel gives it a word that fits the row.
-    expect(texts(el, '.fan')).toEqual(['Baixa', 'Média baixa', 'Média', 'Média alta', 'Alta', 'Difusa']);
+    expect(texts(el, 'select.fan option')).toEqual(['Baixa', 'Média baixa', 'Média', 'Média alta', 'Alta', 'Difusa']);
     // Off is the only swing value with a name: a select of one choice says nothing.
     expect(el.shadowRoot!.querySelector('select.swing')).toBeNull();
   });

@@ -41,10 +41,11 @@ src/
   theme/               CSS tokens (screens only) and the embedded Manrope font
   art/                 the 59 room drawings, the name/icon resolver, the render helper
   editing.ts           the edit mode (module state: it survives the view rebuild after a save)
-  sheets.ts, layout.ts, selection.ts, actions/rest.ts, server-clock.ts
+  sheets.ts, layout.ts, selection.ts, actions/rest.ts, server-clock.ts, actions/climate-target.ts
                        module state too: the open sheets, the layout and size of the screen, the
                        rail put away, the room picked on the wide home, the rest of a wall
-                       tablet, how far this device's clock is from the server's
+                       tablet, how far this device's clock is from the server's, the target asked
+                       of an air conditioner (shared by its card and its sheet)
   elements/            toggle tile (light, outlet, equipment, fan), action button, appliance card and
                        panel, floor tabs, item editor, sheet, dimmer and colour panels, toast, nav bar, room card,
                        scene button; M3: slide-confirm and access tile, climate card and panel,
@@ -166,6 +167,16 @@ operation.
   reach the sheet (`knownWord`, `namedValues`); add a word there before showing a new value. Ours
   come first: they agree with the feminine headings ("Ventilação", "Oscilação"), Home Assistant's
   are masculine. The item editor offers a setting only when the sheet would show it.
+- **One command per drag.** The arc of the air conditioner's sheet (`elements/climate-arc.ts`) shows
+  the target under the finger and asks for it once, when the finger lets go (`hubb-arc-change` with
+  `source: 'pointer'`); LG ThinQ, Electrolux through the cloud and infrared take one command per
+  change. − and +, on the card and on the sheet, and the keys of the arc wait 800 ms for the next tap
+  (`SEND_AFTER_MS`). The target asked is module state in `actions/climate-target.ts`, per connection,
+  so the card and the open sheet show the same one. A target Home Assistant does not show within
+  `HOLD_MS` (6 s; LG ThinQ shows one in about 3 s) was not taken: `onTargetNotTaken` shakes the card
+  and puts "O ar não aceitou 21°." on the sheet (an LG in Auto ignores all but 18 and 19, no error). The angles are pure functions in
+  `src/model/arc.ts` (happy-dom draws nothing); the drag is tested with pointer events, and it never
+  closes the sheet (`test/elements/climate-sheet-arc.test.ts`).
 - The switches, selects and numbers of a device with an air conditioner on the panel are its
   functions (`classify` gives them `part`): `climateExtras` in `build-house.ts` puts them on its sheet,
   leaving out the power switch (`isPowerTwin`), diagnostics and entities with a role. Names an

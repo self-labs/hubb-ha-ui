@@ -7,6 +7,8 @@ import { html, nothing } from 'lit';
  */
 export function unlisted(current: unknown, choices: readonly string[], word: (value: string) => string) {
   if (typeof current === 'string' && choices.includes(current)) return nothing;
-  const known = typeof current === 'string' && current !== '' && current !== 'unknown' && current !== 'unavailable';
-  return html`<option value="" disabled selected>${known ? word(current) : ''}</option>`;
+  return html`<option value="" disabled selected>${reported(current) ? word(current) : ''}</option>`;
 }
+
+/** A value the device reports: not empty, unknown or unavailable. */
+export const reported = (v: unknown): v is string => typeof v === 'string' && v !== '' && v !== 'unknown' && v !== 'unavailable';

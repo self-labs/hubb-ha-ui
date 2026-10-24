@@ -82,7 +82,7 @@ describe('the review of pente fino 1', () => {
 
   it('keeps the words of a row in one gender, the panel ones first, whatever Home Assistant serves', async () => {
     const el = await panel(ac({ fan_modes: ['low', 'LOW_MID', 'medium', 'MID_HIGH', 'high', 'diffuse'], fan_mode: 'low' }, 'smartthinq_sensors'));
-    expect(texts(el, '.fan')).toEqual(['Baixa', 'Média baixa', 'Média', 'Média alta', 'Alta', 'Difusa']);
+    expect(texts(el, 'select.fan option')).toEqual(['Baixa', 'Média baixa', 'Média', 'Média alta', 'Alta', 'Difusa']);
   });
 
   it('offers in the editor only the settings the sheet would show', async () => {

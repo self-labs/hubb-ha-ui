@@ -81,7 +81,7 @@ describe('the functions of an air conditioner that live in entities of their own
   it('shows them under Mais ajustes, and the installer can leave some out', async () => {
     const el = await panel(office(), { entities: { 'climate.ar': { hide: ['switch.ar_economia'] } } });
     const more = el.shadowRoot!.querySelector('details.more')!;
-    expect([...more.querySelectorAll('hubb-equipment-tile')].map((t) => (t as unknown as { item: { name: string } }).item.name)).toEqual(['Luz do display']);
+    expect([...more.querySelectorAll('.function .name')].map((n) => n.textContent!.trim())).toEqual(['Luz do display']);
     expect(texts(more, '.extra-number .name')).toEqual(['Modo dormir']);
     expect(texts(more, '.extra-number .value')).toEqual(['Desligado']);
   });
@@ -91,7 +91,7 @@ describe('the functions of an air conditioner that live in entities of their own
       { entity_id: 'switch.ar_jet', device_id: 'd_ar', platform: 'lg_thinq', state: 'unavailable', attributes: { friendly_name: 'Ar do Escritório Jet mode' } },
     ]);
     const el = await panel(h);
-    expect([...el.shadowRoot!.querySelectorAll('hubb-equipment-tile')].map((t) => (t as unknown as { item: { name: string } }).item.name)).toEqual([
+    expect([...el.shadowRoot!.querySelectorAll('.function .name')].map((n) => n.textContent!.trim())).toEqual([
       'Economia de energia',
       'Luz do display',
     ]);

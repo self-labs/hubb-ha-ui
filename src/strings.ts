@@ -557,6 +557,10 @@ export const CLIMATE = {
   off: 'Desligado',
   on: 'Ligado',
   now: (t: number): string => `${t}° agora`,
+  /** Inside the arc of the sheet, under the target. */
+  nowShort: (t: number): string => `Agora ${t}°`,
+  /** What a screen reader says of the arc's knob. */
+  degreesSpoken: (t: number): string => `${String(t).replace('.', ',')} graus`,
   target: 'Temperatura',
   mode: 'Modo',
   fan: 'Ventilação',
@@ -591,6 +595,8 @@ export const CLIMATE = {
   } as Readonly<Record<string, string>>,
   /** A command the device or its cloud refused ("Fail device control"); administrators also read why. */
   refused: 'O aparelho não aceitou o comando.',
+  /** A target the air conditioner never showed: the number went back to the one it keeps. */
+  notTaken: (t: string): string => `O ar não aceitou ${t}°.`,
   /** A setting on a value nobody can name: the select says so instead of showing its first choice. */
   otherValue: 'Outra opção',
   onPanel: 'No painel',

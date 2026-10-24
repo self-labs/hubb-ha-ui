@@ -13,6 +13,17 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - An appliance switched off offers **Iniciar** alone, no longer Ligar beside it: Iniciar already
   switches it on first, and an Electrolux washer runs its program on Ligar alone, so the two buttons
   did the same thing. An appliance with no Iniciar still offers Ligar.
+- **The air conditioner follows the card of Home Assistant.** Its sheet has an arc to drag the target,
+  which goes out once when the finger lets go (a key or − and + still wait for the next taps, as
+  before); − and + with the power button in the middle; the modes centred, each with its icon; and
+  under **Mais ajustes**, ventilation, swing, preset and the functions with choices as buttons with
+  their value, which open the list of the phone itself, and the functions that switch as rows with a
+  switch. On its room card, on with a target, − 23° + takes the place of the power button and shares
+  the target with the sheet; a target the device refuses, or does not take within 6 s (an LG in Auto
+  takes only 18 and 19), shakes the card, goes back, and the sheet says **O ar não aceitou 21°.** To
+  turn it off, the sheet. The colour follows the mode, blue in Frio and orange in Calor, on the arc,
+  the mode picked, the icon and the card. What the installer chose to show (modes, settings,
+  functions) still holds.
 
 ### Fixed
 
