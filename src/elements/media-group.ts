@@ -167,10 +167,20 @@ export class HubbMediaGroup extends LitElement {
           const status = this.#pending.status(c.entityId, c.joined ? 'on' : 'off');
           const on = status === 'pending' ? this.#pending.expected(c.entityId) === 'on' : c.joined;
           const channel = c.joined ? channelSelect(hass, c.entityId) : null;
+          // One that is off joins nothing: it has to be on first. Already in the group, it can still leave.
+          const blocked = c.off && !on;
+          const sub = [c.areaName, c.off ? MEDIA.off : null].filter(Boolean).join(' · ');
           return html`<li class="member">
             <div class="row">
-              <span class="words"><span class="name">${c.name}</span>${c.areaName ? html`<span class="area">${c.areaName}</span>` : nothing}</span>
-              <button class="switch ${on ? 'on' : ''}" role="switch" aria-checked=${on ? 'true' : 'false'} aria-label=${c.areaName ? `${c.name}, ${c.areaName}` : c.name} @click=${() => this.#toggle(c.entityId, on)}>
+              <span class="words"><span class="name">${c.name}</span>${sub ? html`<span class="area">${sub}</span>` : nothing}</span>
+              <button
+                class="switch ${on ? 'on' : ''}"
+                role="switch"
+                aria-checked=${on ? 'true' : 'false'}
+                aria-label=${sub ? `${c.name}, ${sub}` : c.name}
+                ?disabled=${blocked}
+                @click=${() => (blocked ? undefined : this.#toggle(c.entityId, on))}
+              >
                 <i></i>
               </button>
             </div>
@@ -313,6 +323,10 @@ export class HubbMediaGroup extends LitElement {
     .switch.on i {
       transform: translateX(20px);
       background: var(--hubb-amber-ink);
+    }
+    .switch:disabled {
+      opacity: 0.4;
+      cursor: default;
     }
     .all {
       margin-top: 6px;

@@ -93,6 +93,18 @@ describe('playing together across brands', () => {
     expect(calls(h)).toEqual([['media_player.join', { group_members: [TV_MA] }, CAIXA_MA]]);
   });
 
+  it('keeps a TV that is off from joining, and says so', async () => {
+    // Seen 23/10: the TV joined while off, Music Assistant moved the group to AirPlay and nothing played.
+    const h = house();
+    h.states[TV] = { ...h.states[TV]!, state: 'unavailable' };
+    const el = await mount(h);
+    const tv = switchOf(el, 'TV Quarto');
+    expect(tv.disabled).toBe(true);
+    expect(tv.closest('.member')!.querySelector('.area')!.textContent!.trim()).toBe('Quarto · Desligado');
+    tv.click();
+    expect(calls(h)).toEqual([]);
+  });
+
   it('reads who plays together from Music Assistant and lets one leave there', async () => {
     const h = house([CAIXA_MA, TV_MA]);
     const el = await mount(h);

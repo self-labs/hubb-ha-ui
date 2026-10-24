@@ -5,7 +5,7 @@ import type { PanelConfig } from './config';
 export const MA_PLATFORM = 'music_assistant';
 
 /** Players that are never the speaker of a room: the Alexa, the Spotify app, a browser. */
-const NOT_SPEAKERS = new Set([MA_PLATFORM, 'alexa_media', 'spotify', 'browser_mod']);
+const NOT_SPEAKERS = new Set([MA_PLATFORM, 'alexa_media', 'alexa_devices', 'spotify', 'browser_mod']);
 
 const isPlayer = (id: string): boolean => id.startsWith('media_player.');
 const norm = (v: string | null | undefined): string => (v ?? '').trim().toLocaleLowerCase('pt-BR');

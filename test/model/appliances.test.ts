@@ -138,7 +138,11 @@ describe('names, buttons and program', () => {
     const p = findParts(h, 'd_lavadora', 'sensor.lavadora_appliancestate');
     const ids = (r: ReturnType<typeof buttonsFor>) => [r.main.map((b) => b.command), r.more.map((b) => b.command)];
     expect(ids(buttonsFor(p, 'stopped'))).toEqual([['start', 'off'], ['stop']]);
-    expect(ids(buttonsFor(p, 'stopped', true))).toEqual([['on', 'start'], ['stop']]);
+    // Switched off, Iniciar alone: it switches the appliance on first (Gustavo, 23/10).
+    expect(ids(buttonsFor(p, 'stopped', true))).toEqual([['start'], ['stop']]);
+    // Without Iniciar, Ligar stays.
+    const noStart = { ...p, buttons: p.buttons.filter((b) => b.command !== 'start') };
+    expect(ids(buttonsFor(noStart, 'stopped', true))).toEqual([['on'], ['stop']]);
     expect(ids(buttonsFor(p, 'working'))).toEqual([['pause', 'off'], ['stop']]);
     expect(ids(buttonsFor(p, 'paused'))).toEqual([['resume', 'off'], ['stop']]);
   });
@@ -183,7 +187,7 @@ describe('names, buttons and program', () => {
     });
     const p = findParts(h, 'd_lavadora', 'sensor.lavadora_appliancestate');
     const { main, more } = buttonsFor(p, 'stopped', true);
-    expect(main.map((b) => b.entityId)).toEqual(['button.lavadora_executecommand_2', 'button.lavadora_executecommand_5']);
+    expect(main.map((b) => b.entityId)).toEqual(['button.lavadora_executecommand_5']);
     expect(more.map((b) => [b.entityId, b.command])).toEqual([
       ['button.lavadora_executecommand_6', 'stop'],
       ['button.lavadora_luz_ligar', 'other'],

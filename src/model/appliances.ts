@@ -221,7 +221,9 @@ export function isPoweredOff(hass: HomeAssistant, parts: ApplianceParts): boolea
 /**
  * The buttons that make sense now, in their order; the stop and the unknown ones come after them.
  * A stopped appliance that is still on ("Ready To Start", "End Of Cycle") offers Iniciar and Desligar;
- * one that is switched off, Ligar and Iniciar.
+ * one that is switched off, Iniciar alone, which switches it on first (`wakeThenStart`), or Ligar
+ * when it has no Iniciar. Ligar beside Iniciar did the same: an Electrolux washer runs its program
+ * on Ligar alone, and two buttons for one thing confused (Gustavo, 23/10).
  */
 export function buttonsFor(
   parts: ApplianceParts,
@@ -233,14 +235,15 @@ export function buttonsFor(
     working: ['pause', 'off'],
     paused: ['resume', 'off'],
   };
-  const main = wanted[now]
+  const found = wanted[now]
     .map((c) => parts.buttons.find((b) => b.command === c))
     .filter((b): b is ApplianceButton => !!b);
-  // A second button for a command already shown ("Luz ligar" beside "Ligar") stays, under its own name.
-  const chosen = new Set(main.map((b) => b.entityId));
+  const main = found.some((b) => b.command === 'start') ? found.filter((b) => b.command !== 'on') : found;
+  // A second button for a command already used ("Luz ligar" beside "Ligar") stays, under its own name.
+  const chosen = new Set(found.map((b) => b.entityId));
   const more = parts.buttons.flatMap((b): ApplianceButton[] => {
     if (b.command === 'stop' || b.command === 'other') return [b];
-    return !chosen.has(b.entityId) && main.some((m) => m.command === b.command) ? [{ ...b, command: 'other' }] : [];
+    return !chosen.has(b.entityId) && found.some((m) => m.command === b.command) ? [{ ...b, command: 'other' }] : [];
   });
   return { main, more };
 }

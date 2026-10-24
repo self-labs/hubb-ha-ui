@@ -119,7 +119,7 @@ describe('the group of a speaker', () => {
     const echo: FakeEntity = { entity_id: 'media_player.echo', area_id: 'sala', platform: 'alexa_media', name: 'Echo', state: 'idle', attributes: { supported_features: SPEAKER } };
     const h = house({ sala: { group_members: ['media_player.caixa_sala', 'media_player.caixa_cozinha'] } }, [echo]);
     expect(groupCandidates(h, 'media_player.caixa_sala', ['media_player.caixa_sala', 'media_player.caixa_cozinha', 'media_player.echo'])).toEqual([
-      { entityId: 'media_player.caixa_cozinha', name: 'Caixa Cozinha', areaName: 'Cozinha', joined: true },
+      { entityId: 'media_player.caixa_cozinha', name: 'Caixa Cozinha', areaName: 'Cozinha', joined: true, off: false },
     ]);
     expect(groupCandidates(h, 'media_player.caixa_sala', ['media_player.caixa_sala'])).toEqual([]);
   });
@@ -175,6 +175,27 @@ describe('where the music of a speaker comes from', () => {
     // webOS and Denon say `on` while they show their own channel or input: the paused song is an old one.
     expect(musicEntity(pair('on', 'paused'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
     expect(musicEntity(pair('off', 'paused'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+  });
+
+  /** The speaker and its Music Assistant player, each with a state and the song it says. */
+  const songs = (speaker: [string, string | null], ma: [string, string | null]) =>
+    makeHass({
+      entities: [
+        { entity_id: 'media_player.caixa', platform: 'wiim', state: speaker[0], attributes: speaker[1] ? { media_title: speaker[1] } : {} },
+        { entity_id: 'media_player.caixa_ma', platform: 'music_assistant', state: ma[0], attributes: { mass_player_type: 'player', ...(ma[1] ? { media_title: ma[1] } : {}) } },
+      ],
+    });
+
+  it('keeps a stopped Music Assistant whose song the speaker still shows, so play resumes its queue', () => {
+    // Seen 23/10: the stream ended, both went idle on "Pieces", and play on the speaker woke a dead DLNA stream.
+    expect(musicEntity(songs(['idle', 'Pieces'], ['idle', 'Pieces']), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa_ma');
+    expect(musicEntity(songs(['idle', null], ['idle', null]), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+  });
+
+  it('leaves Music Assistant behind when the speaker shows another song of its own', () => {
+    // The speaker's own Spotify paused on one song, Music Assistant paused on an older one (23/10).
+    expect(musicEntity(songs(['paused', 'Message In A Bottle'], ['paused', 'Walk Of Life']), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+    expect(musicEntity(songs(['idle', 'Message In A Bottle'], ['idle', 'Walk Of Life']), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
   });
 
   it('falls back to the speaker when Music Assistant is down or absent', () => {

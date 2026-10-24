@@ -81,17 +81,22 @@ export function mediaView(hass: HomeAssistant, speakerId: string): MediaView {
 
 /**
  * Which entity the music of a speaker comes from (spec Multiroom, 4.2): its Music Assistant player while
- * that plays, or while it is paused and the speaker is paused or idle too; the speaker itself otherwise,
- * also with Music Assistant down. By DLNA the speaker only sees a stream, with no queue, no next and no
- * time: those live on the Music Assistant player. A TV that says `on` (webOS, Denon) shows its own
- * channel or input, and the paused song of Music Assistant is an old one.
+ * that plays; while it is paused, or stopped with its song still loaded, as long as the speaker rests
+ * (paused or idle) on that same song or on none; the speaker itself otherwise, also with Music Assistant
+ * down. By DLNA the speaker only sees a stream, with no queue, no next and no time: those live on the
+ * Music Assistant player, and play on the speaker would wake a stream that already ended (23/10). A TV
+ * that says `on` (webOS, Denon) shows its own channel or input, and a speaker on a song of its own (its
+ * Spotify) keeps it: the paused song of Music Assistant is an old one.
  */
 export function musicEntity(hass: HomeAssistant, entityId: string, ma: string | null | undefined): string {
-  const maState = ma ? hass.states[ma]?.state : undefined;
-  if (maState === 'playing') return ma!;
-  const own = hass.states[entityId]?.state;
-  if (maState === 'paused' && (own === 'paused' || own === 'idle')) return ma!;
-  return entityId;
+  const maSt = ma ? hass.states[ma] : undefined;
+  if (maSt?.state === 'playing') return ma!;
+  const own = hass.states[entityId];
+  const resting = own?.state === 'paused' || own?.state === 'idle';
+  const song = str(maSt?.attributes.media_title);
+  const loaded = maSt?.state === 'paused' || (maSt?.state === 'idle' && song !== null);
+  const ownSong = str(own?.attributes.media_title);
+  return resting && loaded && (ownSong === null || ownSong === song) ? ma! : entityId;
 }
 
 /**
@@ -168,7 +173,7 @@ export function groupCandidates(
   speakerId: string,
   visible: readonly string[],
   pairs: Readonly<Record<string, string>> = {},
-): { entityId: string; name: string; areaName: string | null; joined: boolean }[] {
+): { entityId: string; name: string; areaName: string | null; joined: boolean; off: boolean }[] {
   const mine = groupingEntity(hass, speakerId, pairs);
   const viaMa = mine !== speakerId;
   const platform = hass.entities[speakerId]?.platform;
@@ -182,7 +187,9 @@ export function groupCandidates(
     .map((id) => {
       const areaId = areaOf(hass, id);
       const grouping = viaMa ? groupingEntity(hass, id, pairs) : id;
-      return { entityId: id, name: displayName(hass, id, null), areaName: areaId ? (hass.areas[areaId]?.name ?? null) : null, joined: members.includes(grouping) };
+      // A TV that is off still answers on AirPlay, but joining it stops the group (seen 23/10).
+      const off = ['off', 'standby', 'unavailable', 'unknown'].includes(hass.states[id]?.state ?? 'unavailable');
+      return { entityId: id, name: displayName(hass, id, null), areaName: areaId ? (hass.areas[areaId]?.name ?? null) : null, joined: members.includes(grouping), off };
     });
 }
 

@@ -195,9 +195,10 @@ export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyCon
   if (domain === 'media_player') {
     // Browser Mod makes a player for every browser: screens, not media of a room. Spotify is the app,
     // not a device of the room: it shows through the speaker it plays on (model/media.ts). The Alexa is
-    // the microphone of the house, not a speaker of it (spec Multiroom, 21/10); the media role brings
-    // one back. WiiM's "Group Master" repeats the leader, and a group of Music Assistant has no device.
-    if (['browser_mod', 'spotify', 'alexa_media'].includes(reg.platform ?? '')) return { block: null, why: 'unsupported', areaId };
+    // the microphone of the house, not a speaker of it (spec Multiroom, 21/10), by Alexa Media Player or
+    // by Home Assistant's own Alexa Devices; the media role brings one back. WiiM's "Group Master"
+    // repeats the leader, and a group of Music Assistant has no device.
+    if (['browser_mod', 'spotify', 'alexa_media', 'alexa_devices'].includes(reg.platform ?? '')) return { block: null, why: 'unsupported', areaId };
     if (isGroupMaster(hass, entityId) || isMaGroup(hass, entityId)) return { block: null, why: 'unsupported', areaId };
     // A Music Assistant player that is the same device as a speaker shows through the speaker's card.
     if (ctx.maPaired.has(entityId)) return { block: null, why: 'part', areaId: null };

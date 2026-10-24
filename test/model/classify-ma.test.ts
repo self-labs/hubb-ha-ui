@@ -47,6 +47,12 @@ describe('one card per speaker on the panel', () => {
     expect(sala).not.toContain('media_player.echo_sala');
   });
 
+  it('drops the Echo of the official Alexa Devices integration too', () => {
+    // Home Assistant's own integration (alexa_devices) gives the same Echo a second player, seen on 23/10.
+    const echo = { entity_id: 'media_player.sala_echo_dot', device_id: 'd_echo', platform: 'alexa_devices', state: 'idle' };
+    expect(mediaOf(house([echo])).sala!.map((m) => m.entityId)).not.toContain('media_player.sala_echo_dot');
+  });
+
   it('brings an Echo back with the media role', () => {
     expect(mediaOf(house(), { entities: { 'media_player.echo_sala': { role: 'media' } } }).sala!.map((m) => m.entityId)).toEqual([
       'media_player.caixa_sala',

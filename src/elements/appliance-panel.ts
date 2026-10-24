@@ -170,7 +170,7 @@ export class HubbAppliancePanel extends LitElement {
     const timed = now !== 'stopped' && minutes !== null && minutes > 0 ? minutesToFinish(minutes) : null;
     const pct = now === 'working' ? progressPct(hass, parts) : null;
     const start = parts.buttons.find((b) => b.command === 'start')?.entityId;
-    // While Iniciar switches it on, the row stays as it was tapped (Ligar, Iniciar) and takes no tap.
+    // While Iniciar switches it on, the row stays as it was tapped and takes no tap.
     const wake = start ? wakeOf(start) : null;
     const off = wake !== null || isPoweredOff(hass, parts);
     const { main, more } = buttonsFor(parts, wake ? 'stopped' : now, off);

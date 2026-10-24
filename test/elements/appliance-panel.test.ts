@@ -53,13 +53,13 @@ describe('hubb-appliance-panel', () => {
     expect(labels(el, '.commands hubb-action-button')).toEqual(['Iniciar', 'Desligar', 'Parar']);
   });
 
-  it('reads Idle as switched off: Ligar and Iniciar, and Iniciar switches it on first', async () => {
+  it('reads Idle as switched off: Iniciar alone, which switches it on first', async () => {
     vi.useFakeTimers();
     const idle = casa2Hass('Idle', '80');
     const el = await mount(idle);
     expect($(el, '.now strong')!.textContent).toBe('Desligada');
-    expect(labels(el, '.commands hubb-action-button')).toEqual(['Ligar', 'Iniciar', 'Parar']);
-    const start = el.shadowRoot!.querySelectorAll('.commands hubb-action-button')[1] as HubbActionButton;
+    expect(labels(el, '.commands hubb-action-button')).toEqual(['Iniciar', 'Parar']);
+    const start = el.shadowRoot!.querySelectorAll('.commands hubb-action-button')[0] as HubbActionButton;
     await start.updateComplete;
     (start.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
     await vi.advanceTimersByTimeAsync(1000);
@@ -83,22 +83,22 @@ describe('hubb-appliance-panel', () => {
       await b.updateComplete;
       return b.shadowRoot!.querySelector('.result')!.textContent;
     };
-    const start = buttons()[1]!;
+    const start = buttons()[0]!;
     await start.updateComplete;
     (start.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
     await vi.advanceTimersByTimeAsync(300);
     await el.updateComplete;
-    expect(labels(el, '.commands hubb-action-button')).toEqual(['Ligar', 'Iniciar', 'Parar']);
+    expect(labels(el, '.commands hubb-action-button')).toEqual(['Iniciar', 'Parar']);
     expect(buttons().every((b) => b.disabled)).toBe(true);
-    expect(await said(buttons()[1]!)).toBe('Ligando…');
+    expect(await said(buttons()[0]!)).toBe('Ligando…');
 
     el.hass = withState(idle, 'sensor.lavadora_appliancestate', 'Ready To Start');
     await vi.advanceTimersByTimeAsync(300);
     await el.updateComplete;
-    // Ready To Start alone would offer Iniciar and Desligar: Desligar would sit where Iniciar was.
-    expect(labels(el, '.commands hubb-action-button')).toEqual(['Ligar', 'Iniciar', 'Parar']);
-    expect(await said(buttons()[1]!)).toBe('Iniciando…');
-    (buttons()[1]!.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
+    // Ready To Start alone would offer Iniciar and Desligar: Desligar would take the place of Parar, or appear.
+    expect(labels(el, '.commands hubb-action-button')).toEqual(['Iniciar', 'Parar']);
+    expect(await said(buttons()[0]!)).toBe('Iniciando…');
+    (buttons()[0]!.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
     expect(idle.calls.map((c) => c.target)).toEqual([
       { entity_id: 'button.lavadora_executecommand_2' },
       { entity_id: 'button.lavadora_executecommand_5' },
@@ -115,14 +115,14 @@ describe('hubb-appliance-panel', () => {
     vi.useFakeTimers();
     const idle = casa2Hass('Idle', '80');
     const first = await mount(idle);
-    const start = first.shadowRoot!.querySelectorAll('.commands hubb-action-button')[1] as HubbActionButton;
+    const start = first.shadowRoot!.querySelectorAll('.commands hubb-action-button')[0] as HubbActionButton;
     await start.updateComplete;
     (start.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
     await vi.advanceTimersByTimeAsync(300);
     first.hass = withState(idle, 'sensor.lavadora_appliancestate', 'Ready To Start');
     document.body.replaceChildren();
     const again = await mount(withState(idle, 'sensor.lavadora_appliancestate', 'Ready To Start'));
-    expect(labels(again, '.commands hubb-action-button')).toEqual(['Ligar', 'Iniciar', 'Parar']);
+    expect(labels(again, '.commands hubb-action-button')).toEqual(['Iniciar', 'Parar']);
     await vi.advanceTimersByTimeAsync(300);
     first.hass = withState(idle, 'sensor.lavadora_appliancestate', 'Running');
     again.hass = withState(idle, 'sensor.lavadora_appliancestate', 'Running');
@@ -170,12 +170,12 @@ describe('hubb-appliance-panel', () => {
     expect(names).toEqual(['Enxágue extra', 'Turbo centrifugação', 'Reuso de água']);
   });
 
-  it('offers Ligar and Iniciar to a washer that is switched off, and Iniciar and Desligar once it waits switched on', async () => {
+  it('offers Iniciar alone to a washer that is switched off, and Iniciar and Desligar once it waits switched on', async () => {
     const ready = await mount(casa2Hass('Ready To Start', '80'));
     expect(labels(ready, '.commands hubb-action-button')).toEqual(['Iniciar', 'Desligar', 'Parar']);
     document.body.replaceChildren();
     const off = await mount(casa2Hass('Off', '0'));
-    expect(labels(off, '.commands hubb-action-button')).toEqual(['Ligar', 'Iniciar', 'Parar']);
+    expect(labels(off, '.commands hubb-action-button')).toEqual(['Iniciar', 'Parar']);
   });
 
   it('takes back a choice: picking the current option while another waits sends it', async () => {

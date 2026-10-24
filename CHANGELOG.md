@@ -8,6 +8,23 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Changed
+
+- An appliance switched off offers **Iniciar** alone, no longer Ligar beside it: Iniciar already
+  switches it on first, and an Electrolux washer runs its program on Ligar alone, so the two buttons
+  did the same thing. An appliance with no Iniciar still offers Ligar.
+
+### Fixed
+
+- An Echo set up through Home Assistant's own **Alexa Devices** integration still showed as a speaker
+  card: only the Echos of Alexa Media Player left the panel. Both are the microphone of the house now.
+- Play on a speaker whose Music Assistant song had stopped woke the stream that had already ended: it
+  played a few seconds and stopped. The card and the sheet keep Music Assistant while the speaker
+  rests on its song, so play resumes the queue there; a speaker on a song of its own (its Spotify)
+  keeps showing it.
+- **Tocar junto** let a TV that was off join the group: Music Assistant moved everyone to AirPlay and
+  nothing played. A speaker that is off now shows "Desligado" there and joins once it is on.
+
 ## [2026.10.20] - 2026-10-23
 
 ### Added
