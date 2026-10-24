@@ -8,6 +8,21 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.22] - 2026-10-24
+
+### Changed
+
+- **Tocar algo** keeps its list while the resident types: the search starts at the third letter, and
+  while the answer comes "Buscando…" shows over what was there (the last answer, faded, or the songs
+  played last and the playlists). The list went blank at the first letter.
+- The sheets scroll with no scroll bar, like every screen of the panel.
+
+### Fixed
+
+- A speaker playing through Music Assistant still jumped to "DLNA" with no time when paused after
+  Próxima, and back on play: by DLNA the speaker gives the name of the song late or cut ("Feel So
+  Close" for its "(Radio Edit)"). On DLNA the song is now always the one Music Assistant says.
+
 ## [2026.10.21] - 2026-10-23
 
 ### Changed
@@ -658,7 +673,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.21...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.22...HEAD
+[2026.10.22]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.21...v2026.10.22
 [2026.10.21]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.20...v2026.10.21
 [2026.10.20]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.19...v2026.10.20
 [2026.10.19]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.18...v2026.10.19

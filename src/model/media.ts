@@ -80,13 +80,16 @@ export function mediaView(hass: HomeAssistant, speakerId: string): MediaView {
 }
 
 /** The inputs a Music Assistant player feeds a speaker through: DLNA alone, AirPlay in a group. */
-const STREAM_INPUT = /^(dlna|airplay|upnp)$/i;
+const DLNA_INPUT = /^(dlna|upnp)$/i;
+const AIRPLAY_INPUT = /^airplay$/i;
 
 /**
  * Which entity the music of a speaker comes from (spec Multiroom, 4.2): its Music Assistant player while
- * that plays; while it is paused, or stopped with its song still loaded, as long as the speaker rests
- * (paused or idle) or holds the stream open (DLNA, AirPlay), on that same song or on none; the speaker
- * itself otherwise, also with Music Assistant down. By DLNA the speaker only sees a stream, with no
+ * that plays; while it is paused, or stopped with its song still loaded, as long as the speaker is on
+ * DLNA (Music Assistant's own way to a speaker alone), or rests (paused, idle) or holds an AirPlay
+ * stream open on that same song or on none; the speaker itself otherwise, also with Music Assistant
+ * down. By DLNA the name of the song lags or is cut ("Feel So Close" for its "(Radio Edit)", the song
+ * before after "next", bench 24/10), so there the song is always Music Assistant's. By DLNA the speaker only sees a stream, with no
  * queue, no next and no time: those live on the Music Assistant player, and play on the speaker would
  * wake a stream that already ended (23/10). Music Assistant stops for a moment at each new song and 30 s
  * after a pause, and an AudioCast on AirPlay still says "playing" after the pause: the view stays put.
@@ -103,7 +106,9 @@ export function musicEntity(hass: HomeAssistant, entityId: string, ma: string | 
   // AirPlay with no source and no song even while the group is paused (bench, 23/10).
   const members = maSt?.attributes.group_members;
   if (loaded && Array.isArray(members) && members.length > 1) return ma!;
-  const resting = own?.state === 'paused' || own?.state === 'idle' || STREAM_INPUT.test(str(own?.attributes.source) ?? '');
+  const input = str(own?.attributes.source) ?? '';
+  if (loaded && DLNA_INPUT.test(input)) return ma!;
+  const resting = own?.state === 'paused' || own?.state === 'idle' || AIRPLAY_INPUT.test(input);
   const ownSong = str(own?.attributes.media_title);
   return resting && loaded && (ownSong === null || ownSong === song) ? ma! : entityId;
 }

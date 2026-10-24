@@ -126,7 +126,29 @@ describe('Tocar algo', () => {
     expect(el.shadowRoot!.querySelector('.art.note')).not.toBeNull();
   });
 
-  it('drops the answer of the last search as soon as the words change', async () => {
+  it('keeps the list while the first letters are typed, and searches from the third', async () => {
+    // Bench 24/10: the list went blank at the first letter, until an answer came.
+    const { h, pending } = house();
+    const el = await mount(h);
+    await type(el, 'di');
+    await vi.advanceTimersByTimeAsync(400);
+    await el.updateComplete;
+    expect(pending).toHaveLength(0);
+    expect(names(el)).toEqual(['Recente', 'Churrasco']);
+    await type(el, 'dir');
+    await vi.advanceTimersByTimeAsync(400);
+    await el.updateComplete;
+    expect(pending.map((p) => p.text)).toEqual(['dir']);
+    expect(el.shadowRoot!.querySelector('.searching')!.textContent!.trim()).toBe('Buscando…');
+    expect(names(el)).toEqual(['Recente', 'Churrasco']);
+    pending[0]!.resolve({ response: { tracks: [song(2, 'Sultans of Swing')] } });
+    await vi.advanceTimersByTimeAsync(0);
+    await el.updateComplete;
+    expect(names(el)).toEqual(['Sultans of Swing']);
+    expect(el.shadowRoot!.querySelector('.searching')).toBeNull();
+  });
+
+  it('keeps the last answer, faded, while new words are searched', async () => {
     const { h, pending } = house();
     const el = await mount(h);
     await type(el, 'dire');
@@ -134,9 +156,15 @@ describe('Tocar algo', () => {
     pending[0]!.resolve({ response: { tracks: [song(2, 'Sultans of Swing')] } });
     await vi.advanceTimersByTimeAsync(0);
     await el.updateComplete;
-    expect(names(el)).toEqual(['Sultans of Swing']);
     await type(el, 'queen');
     await el.updateComplete;
-    expect(names(el)).toEqual([]);
+    expect(names(el)).toEqual(['Sultans of Swing']);
+    expect(el.shadowRoot!.querySelector('.results.stale')).not.toBeNull();
+    await vi.advanceTimersByTimeAsync(400);
+    pending[1]!.resolve({ response: { tracks: [song(3, 'Bohemian Rhapsody')] } });
+    await vi.advanceTimersByTimeAsync(0);
+    await el.updateComplete;
+    expect(names(el)).toEqual(['Bohemian Rhapsody']);
+    expect(el.shadowRoot!.querySelector('.results.stale')).toBeNull();
   });
 });

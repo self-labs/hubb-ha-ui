@@ -9,6 +9,8 @@ import { icon } from './icon';
 
 /** How long the search waits for the last key. */
 const SEARCH_MS = 400;
+/** The letters a search needs: one or two find everything and nothing (bench, 24/10). */
+const MIN_LETTERS = 3;
 
 /**
  * Tocar algo, on the sheet of a speaker with Music Assistant: the search, the songs played last and the
@@ -22,6 +24,7 @@ export class HubbMediaBrowse extends LitElement {
     recent: { state: true },
     playlists: { state: true },
     results: { state: true },
+    answered: { state: true },
     query: { state: true },
     off: { state: true },
     broken: { state: true },
@@ -34,6 +37,8 @@ export class HubbMediaBrowse extends LitElement {
   declare playlists: LibraryItem[];
   /** The answer of the last search; null while none has come. */
   declare results: LibraryItem[] | null;
+  /** The words that answer was for: other words on screen show it faded while theirs comes. */
+  declare answered: string;
   declare query: string;
   declare off: boolean;
   /** Covers that failed to load: the note stands in for them. */
@@ -51,6 +56,7 @@ export class HubbMediaBrowse extends LitElement {
     this.recent = [];
     this.playlists = [];
     this.results = null;
+    this.answered = '';
     this.query = '';
     this.off = false;
     this.broken = new Set();
@@ -93,19 +99,21 @@ export class HubbMediaBrowse extends LitElement {
     this.query = text;
     if (this.#timer) clearTimeout(this.#timer);
     const asked = ++this.#asked;
-    // The answer to the words before is not an answer to these.
-    this.results = null;
-    if (!text.trim()) return;
+    // Below three letters the list stays as it was: the songs played last and the playlists.
+    if (text.trim().length < MIN_LETTERS) {
+      this.results = null;
+      return;
+    }
     this.#timer = setTimeout(() => {
       this.#timer = null;
       const hass = this.hass;
       if (!hass) return;
       search(hass, text.trim())
         .then((found) => {
-          if (asked === this.#asked) this.results = found;
+          if (asked === this.#asked) [this.results, this.answered] = [found, text.trim()];
         })
         .catch(() => {
-          if (asked === this.#asked) this.results = [];
+          if (asked === this.#asked) [this.results, this.answered] = [[], text.trim()];
         });
     }, SEARCH_MS);
   }
@@ -129,7 +137,11 @@ export class HubbMediaBrowse extends LitElement {
 
   render() {
     if (this.off || !this.hass) return nothing;
-    const searching = this.query.trim() !== '';
+    const words = this.query.trim();
+    const searching = words.length >= MIN_LETTERS;
+    // While the answer to these words is on its way, what was there stays: the last answer faded, or
+    // the songs played last and the playlists. The list never goes blank under the fingers.
+    const waiting = searching && (this.results === null || this.answered !== words);
     return html`<p class="label">${MEDIA.playSomething}</p>
       <input
         class="search"
@@ -139,12 +151,11 @@ export class HubbMediaBrowse extends LitElement {
         aria-label=${MEDIA.searchPlaceholder}
         @input=${(e: Event) => this.#typed((e.target as HTMLInputElement).value)}
       />
-      ${searching
-        ? this.results === null
-          ? nothing
-          : this.results.length
-            ? this.#list(this.results)
-            : html`<p class="none">${MEDIA.nothingFound}</p>`
+      ${waiting ? html`<p class="searching">${MEDIA.searching}</p>` : nothing}
+      ${searching && this.results !== null
+        ? html`<div class="results ${waiting ? 'stale' : ''}">
+            ${this.results.length ? this.#list(this.results) : waiting ? nothing : html`<p class="none">${MEDIA.nothingFound}</p>`}
+          </div>`
         : html`${this.recent.length ? html`<p class="section">${MEDIA.recent}</p>${this.#list(this.recent)}` : nothing}
           ${this.playlists.length ? html`<p class="section">${MEDIA.playlists}</p>${this.#list(this.playlists)}` : nothing}`}`;
   }
@@ -225,6 +236,15 @@ export class HubbMediaBrowse extends LitElement {
     .sub {
       font-size: 12px;
       color: var(--hubb-text-2);
+    }
+    .searching {
+      margin: 10px 2px 0;
+      font-size: 12px;
+      color: var(--hubb-text-2);
+    }
+    .results.stale {
+      opacity: 0.5;
+      transition: opacity var(--hubb-motion, 200ms) ease;
     }
     .none {
       margin: 12px 2px;

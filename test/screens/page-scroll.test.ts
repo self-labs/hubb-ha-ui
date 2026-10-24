@@ -52,6 +52,18 @@ describe('the screen is the scroller', () => {
     expect(host).toContain('overscroll-behavior: contain');
   });
 
+  it('no part of the panel that scrolls shows a bar, the sheets included', () => {
+    // Scrolling to see more is what the resident expects; a bar is only noise (Gustavo, 24/10, the
+    // sheet of a speaker showed one).
+    const sources = import.meta.glob('../../src/**/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+    const bars = Object.entries(sources).flatMap(([file, text]) =>
+      (text.match(/[^{}]*\{[^{}]*\}/g) ?? [])
+        .filter((block) => /overflow(-[xy])?:\s*auto/.test(block) && !/scrollbar-width:\s*none/.test(block))
+        .map((block) => `${file}: ${block.split('{')[0]!.trim()}`),
+    );
+    expect(bars).toEqual([]);
+  });
+
   it('a rebuild of Home Assistant keeps the place on the page', async () => {
     let el = await room();
     el.scrollTop = 320;

@@ -684,6 +684,7 @@ export const MEDIA = {
   recent: 'Tocadas recentemente',
   playlists: 'Playlists',
   nothingFound: 'Nada encontrado',
+  searching: 'Buscando…',
   pauseAll: 'Pausar tudo',
   nothingPlaying: 'Nada tocando',
   /** The line of the Mídia tab: "1 tocando", "3 tocando". */

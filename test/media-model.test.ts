@@ -222,6 +222,15 @@ describe('where the music of a speaker comes from', () => {
     expect(musicEntity(h, 'media_player.tv', 'media_player.tv_ma')).toBe('media_player.tv_ma');
   });
 
+  it('keeps Music Assistant over DLNA whatever song the speaker says', () => {
+    // Bench 24/10: by DLNA the AudioCast cut "(Radio Edit)" from the name, and after "next" it still said
+    // the song before; paused, the sheet jumped to the speaker ("DLNA", no time) and back on play.
+    expect(musicEntity(songs(['paused', 'Feel So Close', 'DLNA'], ['paused', 'Feel So Close (Radio Edit)']), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa_ma');
+    expect(musicEntity(songs(['paused', 'Afraid To Feel', 'DLNA'], ['paused', 'Jamaican (Bam Bam)']), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa_ma');
+    // A phone on AirPlay with a song of its own, while Music Assistant rests on another, keeps the speaker.
+    expect(musicEntity(songs(['playing', 'Garota de Ipanema', 'AirPlay'], ['paused', 'Pieces']), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+  });
+
   it('leaves Music Assistant behind when the speaker shows another song of its own', () => {
     // The speaker's own Spotify paused on one song, Music Assistant paused on an older one (23/10).
     expect(musicEntity(songs(['paused', 'Message In A Bottle'], ['paused', 'Walk Of Life']), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');

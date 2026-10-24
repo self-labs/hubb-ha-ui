@@ -122,11 +122,16 @@ export class HubbSheet extends LitElement {
       box-sizing: border-box;
       max-height: 75vh;
       overflow-y: auto;
+      /* It scrolls with no bar, like every screen: the resident scrolls to see more (Gustavo, 24/10). */
+      scrollbar-width: none;
       padding: 8px 16px calc(24px + env(safe-area-inset-bottom));
       border-radius: var(--hubb-radius-sheet, 24px) var(--hubb-radius-sheet, 24px) 0 0;
       background: var(--hubb-sheet);
       color: var(--hubb-text);
       font-family: var(--hubb-font);
+    }
+    .sheet::-webkit-scrollbar {
+      display: none;
     }
     /* It takes the focus only to hand it to its content; the whole sheet needs no ring. */
     .sheet:focus {
