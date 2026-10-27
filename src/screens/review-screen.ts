@@ -3,7 +3,18 @@ import { css, html, nothing, type PropertyValues } from 'lit';
 import { live } from 'lit/directives/live.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { copyText } from '../actions/clipboard';
-import { putBack, putBackRooms, putBackTabs, setEntity, setRoles, setRooms, setTabs } from '../actions/dashboard-config';
+import {
+  CONFIG_SAVED,
+  dashboardPath,
+  putBack,
+  putBackRooms,
+  putBackTabs,
+  setEntity,
+  setRoles,
+  setRooms,
+  setTabs,
+  type ConfigSaved,
+} from '../actions/dashboard-config';
 import { setEntityArea } from '../actions/entity-area';
 import { haptic } from '../actions/haptic';
 import { loadUsers, type HaUser } from '../actions/people';
@@ -157,8 +168,24 @@ export class HubbReviewScreen extends HubbScreen {
     </li>`;
   }
 
+  /**
+   * A save of this dashboard (a role, Desfazer, a room) shows on the list at once. Home Assistant
+   * rebuilds the dashboard after a save too, but not on every device: without this the item tapped
+   * stayed on the list until the page was reloaded.
+   */
+  #onSaved = (e: Event): void => {
+    const { urlPath, strategy } = (e as CustomEvent<ConfigSaved>).detail;
+    if (this.config && urlPath === dashboardPath()) this.config = { ...this.config, options: strategy };
+  };
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    window.addEventListener(CONFIG_SAVED, this.#onSaved);
+  }
+
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    window.removeEventListener(CONFIG_SAVED, this.#onSaved);
     if (this.#timer) clearTimeout(this.#timer);
     this.#timer = null;
   }

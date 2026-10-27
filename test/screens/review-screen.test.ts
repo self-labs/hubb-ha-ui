@@ -92,6 +92,23 @@ describe('hubb-review-screen', () => {
     expect(entitiesOf(saves[1]!)).toEqual(CASA2_CONFIG.entities);
   });
 
+  it('takes the item out of the list as soon as it is saved, without waiting for Home Assistant to rebuild, and Desfazer brings it back', async () => {
+    const h = admin(casa2Hass());
+    withDashboard(h, { strategy: { type: 'custom:hubb', ...CASA2_CONFIG } });
+    const el = await mount(h, CASA2_CONFIG);
+    const listed = () => $$(el, '.item .where').some((w) => w.textContent!.includes('switch.jet_mode'));
+    expect(listed()).toBe(true);
+    await tap(el, roleButton(el, 'Não mostrar'));
+    expect(listed()).toBe(false);
+    const toast = el.shadowRoot!.querySelector('hubb-toast') as HubbToast;
+    await toast.updateComplete;
+    (toast.shadowRoot!.querySelector('.toast button') as HTMLButtonElement).click();
+    await flush();
+    await flush();
+    await el.updateComplete;
+    expect(listed()).toBe(true);
+  });
+
   it('saves every suggestion at once with "Aceitar todas as sugestões", and says how many', async () => {
     const h = admin(casa2Hass());
     const saves = withDashboard(h, { strategy: { type: 'custom:hubb', ...LIGHTS_ONLY } });

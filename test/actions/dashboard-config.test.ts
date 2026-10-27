@@ -113,4 +113,35 @@ describe('showEntity', () => {
       entities: { 'switch.jet': { role: 'hidden', name: 'Jet' } },
     });
   });
+
+  it('gives back the role the entity had before Não mostrar, with its sensor, and the undo hides it again', async () => {
+    const gate = { role: 'gate', name: 'Portão', sensor: 'binary_sensor.porta' };
+    const { h, saves } = withDashboard({ strategy: { type: 'custom:hubb', entities: { 'switch.portao': gate } } });
+    await setEntity(h, 'hubb-casa', 'switch.portao', { role: 'hidden' });
+    const hidden = { role: 'hidden', name: 'Portão', sensor: 'binary_sensor.porta', shown_as: 'gate' };
+    expect(entitiesOf(saves.at(-1)!)).toEqual({ 'switch.portao': hidden });
+    const undo = await showEntity(h, 'hubb-casa', 'switch.portao');
+    expect(entitiesOf(saves.at(-1)!)).toEqual({ 'switch.portao': gate });
+    await undo(h);
+    expect(entitiesOf(saves.at(-1)!)).toEqual({ 'switch.portao': hidden });
+  });
+
+  it('remembers the role when Revisar hides, and not when there was none', async () => {
+    const { h, saves } = withDashboard({ strategy: { type: 'custom:hubb', entities: { 'switch.bomba': { role: 'equipment' }, 'switch.x': { name: 'X' } } } });
+    await setRoles(h, 'hubb-casa', { 'switch.bomba': 'hidden', 'switch.x': 'hidden' });
+    expect(entitiesOf(saves.at(-1)!)).toEqual({ 'switch.bomba': { role: 'hidden', shown_as: 'equipment' }, 'switch.x': { name: 'X', role: 'hidden' } });
+    await showEntity(h, 'hubb-casa', 'switch.x');
+    expect(entitiesOf(saves.at(-1)!)).toEqual({ 'switch.bomba': { role: 'hidden', shown_as: 'equipment' }, 'switch.x': { name: 'X' } });
+  });
+
+  it('keeps the remembered role through a rename, and forgets it when a role is chosen by hand', async () => {
+    const { h, saves } = withDashboard({ strategy: { type: 'custom:hubb', entities: { 'switch.portao': { role: 'hidden', shown_as: 'gate' } } } });
+    await setEntity(h, 'hubb-casa', 'switch.portao', { name: 'Portão' });
+    expect(entitiesOf(saves.at(-1)!)).toEqual({ 'switch.portao': { role: 'hidden', shown_as: 'gate', name: 'Portão' } });
+    await setEntity(h, 'hubb-casa', 'switch.portao', { role: 'light' });
+    expect(entitiesOf(saves.at(-1)!)).toEqual({ 'switch.portao': { role: 'light', name: 'Portão' } });
+    await setEntity(h, 'hubb-casa', 'switch.portao', { role: 'hidden' });
+    await setEntity(h, 'hubb-casa', 'switch.portao', { role: undefined });
+    expect(entitiesOf(saves.at(-1)!)).toEqual({ 'switch.portao': { name: 'Portão' } });
+  });
 });

@@ -42,8 +42,17 @@ async function read(hass: HomeAssistant, urlPath: string | null): Promise<{ save
   return { saved, strategy };
 }
 
-function save(hass: HomeAssistant, urlPath: string | null, saved: SavedDashboard, strategy: HubbConfig): Promise<unknown> {
-  return hass.callWS!({ type: 'lovelace/config/save', url_path: urlPath, config: { ...saved, strategy } });
+/** The event a successful save sends on `window`, so a screen can show it before Home Assistant rebuilds. */
+export const CONFIG_SAVED = 'hubb-config-saved';
+export interface ConfigSaved {
+  urlPath: string | null;
+  strategy: HubbConfig;
+}
+
+async function save(hass: HomeAssistant, urlPath: string | null, saved: SavedDashboard, strategy: HubbConfig): Promise<unknown> {
+  const result = await hass.callWS!({ type: 'lovelace/config/save', url_path: urlPath, config: { ...saved, strategy } });
+  window.dispatchEvent(new CustomEvent<ConfigSaved>(CONFIG_SAVED, { detail: { urlPath, strategy } }));
+  return result;
 }
 
 /**
@@ -81,12 +90,23 @@ function edit<T extends object>(
 
 /** Gives roles to entities, keeping the rest of each entry (name, icon, area). */
 export function setRoles(hass: HomeAssistant, urlPath: string | null, roles: Readonly<Record<string, Role>>): Promise<EntityEntries> {
-  return edit<EntityConfig>(hass, urlPath, 'entities', Object.keys(roles), (prev, id) => ({ ...(prev ?? {}), role: roles[id] }));
+  return edit<EntityConfig>(hass, urlPath, 'entities', Object.keys(roles), (prev, id) => ({ ...(prev ?? {}), ...withRole(prev, roles[id]) }));
+}
+
+/**
+ * A new role, and what Mostrar will give back: Não mostrar keeps the role it covers in `shown_as`
+ * (a pulse relay is a gate only by its role), and a role chosen by hand forgets it.
+ */
+function withRole(prev: EntityConfig | undefined, role: string | undefined): Pick<EntityConfig, 'role' | 'shown_as'> {
+  if (role !== 'hidden') return { role, shown_as: undefined };
+  return { role, shown_as: prev?.role && prev.role !== 'hidden' ? prev.role : prev?.shown_as };
 }
 
 /** Changes one entity entry; a key set to undefined goes back to what Home Assistant says. */
 export function setEntity(hass: HomeAssistant, urlPath: string | null, id: string, patch: Partial<EntityConfig>): Promise<EntityEntries> {
-  return edit<EntityConfig>(hass, urlPath, 'entities', [id], (prev) => clean({ ...(prev ?? {}), ...patch }));
+  return edit<EntityConfig>(hass, urlPath, 'entities', [id], (prev) =>
+    clean({ ...(prev ?? {}), ...patch, ...('role' in patch ? withRole(prev, patch.role) : {}) }),
+  );
 }
 
 /** The place of several items inside their block, in one save. */
@@ -159,8 +179,8 @@ export function putBackRooms(hass: HomeAssistant, urlPath: string | null, before
 }
 
 /**
- * Shows again an entity the configuration hides: drops the hidden role and takes it out of
- * hide_entities. Returns the undo, which puts both back as they were.
+ * Shows again an entity the configuration hides: gives back the role it had before Não mostrar (none
+ * when it had none) and takes it out of hide_entities. Returns the undo, which puts both back as they were.
  */
 export function showEntity(hass: HomeAssistant, urlPath: string | null, id: string): Promise<(hass: HomeAssistant) => Promise<unknown>> {
   return serial(() => showNow(hass, urlPath, id));
@@ -171,7 +191,7 @@ async function showNow(hass: HomeAssistant, urlPath: string | null, id: string):
   const entry = strategy.entities?.[id];
   const entities: Record<string, EntityConfig> = { ...(strategy.entities ?? {}) };
   if (entry?.role === 'hidden') {
-    const rest = clean({ ...entry, role: undefined });
+    const rest = clean({ ...entry, role: entry.shown_as, shown_as: undefined });
     if (rest) entities[id] = rest;
     else delete entities[id];
   }

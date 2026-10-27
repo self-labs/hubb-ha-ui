@@ -103,7 +103,7 @@ describe('editing a room', () => {
     expect(roles.map((b) => b.textContent!.trim())).toEqual(['Luz', 'Tomada', 'Equipamento', 'Portão', 'Não mostrar']);
     expect(roles.filter((b) => b.classList.contains('current')).map((b) => b.textContent!.trim())).toEqual(['Luz']);
     await tap(el, roles[4]);
-    expect((saves.at(-1)!.entities as Record<string, unknown>)['switch.escritorio_luz']).toEqual({ role: 'hidden' });
+    expect((saves.at(-1)!.entities as Record<string, unknown>)['switch.escritorio_luz']).toEqual({ role: 'hidden', shown_as: 'light' });
     expect(await toastText(el)).toContain('Teto não aparece mais no painel.');
   });
 

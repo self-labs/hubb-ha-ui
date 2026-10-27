@@ -206,8 +206,9 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
       else add(`${at}.hidden_for`, entityId, CFG.badList('hidden_for', 'id do usuário'));
     }
     // The sensor of a pulse gate: a cover or a lock says its own state. The role read is the one
-    // accepted above, so a sensor on a refused role is reported too.
-    if (v.sensor !== undefined) {
+    // accepted above, so a sensor on a refused role is reported too. A hidden gate keeps its sensor
+    // for Mostrar, and nothing reads it meanwhile.
+    if (v.sensor !== undefined && s.role !== 'hidden') {
       const ref = v.sensor;
       if (s.role !== 'gate' || /^(cover|lock)\./.test(entityId)) add(`${at}.sensor`, entityId, CFG.sensorOnly);
       else if (typeof ref !== 'string' || !hass.states[ref]) add(`${at}.sensor`, entityId, CFG.missingEntity(String(ref)));

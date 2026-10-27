@@ -267,6 +267,8 @@ export interface RoomOverride {
 /** What the YAML says about one entity, before `readConfig` checks it. */
 export interface EntityConfig {
   role?: string;
+  /** The role it had before Não mostrar, given back by Mostrar. */
+  shown_as?: string;
   name?: string;
   icon?: string;
   area?: string;

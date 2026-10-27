@@ -8,6 +8,19 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.24] - 2026-10-27
+
+### Fixed
+
+- Não mostrar followed by Mostrar gives an item back as it was. A pulse relay shown as Portão came
+  back as a plain switch, left only in Revisar and gone from its room and from Segurança, and a gate
+  lost its door sensor. The role hidden by Não mostrar is now kept in `entities.<id>.shown_as`, and
+  the sensor stays with it. An item hidden before this version still needs its role chosen again.
+- Revisar o painel takes an item off the list as soon as its role is saved, and Desfazer puts it
+  back. It waited for Home Assistant to rebuild the dashboard, which did not always happen (seen on
+  Chrome on a PC): the item tapped stayed on the list with its suggestion lit until the page was
+  reloaded.
+
 ## [2026.10.23] - 2026-10-27
 
 ### Fixed
@@ -681,7 +694,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.23...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.24...HEAD
+[2026.10.24]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.23...v2026.10.24
 [2026.10.23]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.22...v2026.10.23
 [2026.10.22]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.21...v2026.10.22
 [2026.10.21]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.20...v2026.10.21

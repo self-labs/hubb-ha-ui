@@ -587,15 +587,23 @@ describe('the review of the gate sensor', () => {
     expect(tiles).toContain('Contato do portão');
   });
 
-  it('clears the sensor when the gate stops being a gate, so Revisar has nothing it cannot fix', async () => {
+  it('clears the sensor when the gate becomes something else, and keeps it through Não mostrar for Mostrar', async () => {
     const h = admin(garage());
     const el = await editor(h, pulseGate, { role: 'gate', sensor: 'binary_sensor.portao_contato' }, gateSensorCandidates(h, PAIRED, 'garagem', 'switch.portao'));
     let asked: unknown = null;
     el.addEventListener('hubb-edit', (e) => (asked = (e as CustomEvent).detail));
-    const hide = [...el.shadowRoot!.querySelectorAll('button.role')].find((b) => b.textContent!.trim() === 'Não mostrar') as HTMLButtonElement;
-    hide.click();
-    expect(asked).toMatchObject({ patch: { role: 'hidden', sensor: undefined } });
+    const role = (label: string) => [...el.shadowRoot!.querySelectorAll('button.role')].find((b) => b.textContent!.trim() === label) as HTMLButtonElement;
+    role('Luz').click();
+    expect(asked).toMatchObject({ patch: { role: 'light', sensor: undefined } });
     expect(Object.keys((asked as { patch: object }).patch)).toContain('sensor');
+    role('Não mostrar').click();
+    expect((asked as { patch: object }).patch).toStrictEqual({ role: 'hidden' });
+  });
+
+  it('says nothing about the sensor of a hidden gate: Mostrar gives it back', () => {
+    const r = readConfig(garage(), { entities: { 'switch.portao': { role: 'hidden', shown_as: 'gate', sensor: 'binary_sensor.portao_contato' } } });
+    expect(r.problems).toEqual([]);
+    expect(r.entities['switch.portao']?.sensor).toBeUndefined();
   });
 
   it('shows a sensor the YAML names that no longer exists, by its id, as the one in use', async () => {

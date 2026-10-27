@@ -235,7 +235,8 @@ export class HubbItemEditor extends LitElement {
     if (!item) return;
     const message = kind === 'hidden' ? REVIEW.savedHidden(item.name) : REVIEW.savedAs(item.name, KIND_LABELS[kind]);
     // A gate that stops being one takes its sensor along: Revisar would report one the editor no longer shows.
-    const sensor = kind !== 'gate' && this.settings?.sensor !== undefined ? { sensor: undefined } : {};
+    // Não mostrar keeps it, for Mostrar to give back with the role.
+    const sensor = kind !== 'gate' && kind !== 'hidden' && this.settings?.sensor !== undefined ? { sensor: undefined } : {};
     // Cortina is no role: a cover is a curtain when nothing says otherwise.
     if (kind === 'cover') this.#ask({ patch: { role: undefined, ...sensor }, message });
     else if (isRole(kind)) this.#ask({ patch: { role: kind, ...sensor }, message });
