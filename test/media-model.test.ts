@@ -81,6 +81,23 @@ describe('the view of a speaker', () => {
     expect(mediaLine(mediaView(h, 'media_player.caixa_sala'), h.states['media_player.caixa_sala'])).toBe('Música · Banda');
   });
 
+  it('names the song Music Assistant has loaded, never its "Music Assistant Queue"', () => {
+    // Bench 25/10: the Mídia tab said "Ligado · Music Assistant Queue" under the AudioCast.
+    const h = makeHass({
+      entities: [
+        {
+          entity_id: 'media_player.caixa_ma',
+          platform: 'music_assistant',
+          state: 'idle',
+          attributes: { mass_player_type: 'player', source: 'Music Assistant Queue', media_title: 'Pieces' },
+        },
+        { entity_id: 'media_player.caixa_ma_vazia', platform: 'music_assistant', state: 'idle', attributes: { mass_player_type: 'player', source: 'Music Assistant Queue' } },
+      ],
+    });
+    expect(mediaLine(mediaView(h, 'media_player.caixa_ma'), h.states['media_player.caixa_ma'])).toBe('Ligado · Pieces');
+    expect(mediaLine(mediaView(h, 'media_player.caixa_ma_vazia'), h.states['media_player.caixa_ma_vazia'])).toBe('Ligado');
+  });
+
   it('says "Tocando" only when there is nothing else to say: the card already shows it plays (Gustavo, 21/10)', () => {
     const h = house({ sala: {} });
     expect(mediaLine(mediaView(h, 'media_player.caixa_sala'), h.states['media_player.caixa_sala'])).toBe('Tocando');

@@ -8,6 +8,14 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.23] - 2026-10-27
+
+### Fixed
+
+- A speaker left paused for a while (Music Assistant lets it go after 30 s) said "Ligado · Music
+  Assistant Queue" on its card, and the TV playing with it only "Ligado"; both now name the song
+  Music Assistant keeps loaded, "Ligado · Pieces".
+
 ## [2026.10.22] - 2026-10-24
 
 ### Changed
@@ -673,7 +681,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.22...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.23...HEAD
+[2026.10.23]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.22...v2026.10.23
 [2026.10.22]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.21...v2026.10.22
 [2026.10.21]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.20...v2026.10.21
 [2026.10.20]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.19...v2026.10.20

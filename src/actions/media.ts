@@ -39,7 +39,10 @@ export function mediaLine(view: MediaView, st: HassEntityState | undefined): str
   }
   if (st.state === 'paused') return MEDIA.paused;
   if (st.state === 'off' || st.state === 'standby') return MEDIA.off;
-  return typeof a.source === 'string' && a.source ? `${MEDIA.on} · ${a.source}` : MEDIA.on;
+  // A player of Music Assistant names its own queue as the source ("Music Assistant Queue"): the song
+  // it has loaded says more.
+  const source = 'mass_player_type' in a ? view.title : a.source;
+  return typeof source === 'string' && source ? `${MEDIA.on} · ${source}` : MEDIA.on;
 }
 
 /** A channel option of the WiiM select in the words of the house; an unknown one as it comes. */
