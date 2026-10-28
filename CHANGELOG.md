@@ -8,6 +8,23 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.25] - 2026-10-28
+
+### Added
+
+- Revisar o painel removes the errors of the YAML it lists. Each one (an entity gone from Home
+  Assistant, a gate sensor that no longer exists, a value the panel cannot use) has **Remover**, and
+  two or more have **Remover todos**, one save with Desfazer. Until now the only way out was the raw
+  configuration editor, so a camera or script deleted from Home Assistant stayed on the list for good.
+
+### Fixed
+
+- Revisar o painel no longer suggests Portão for a switch that reads a contact ("Sensor Portão",
+  "Contato", "Fim de curso", "Reed"), such as a MINIR4 wired to the reed of the gate: it suggests Não
+  mostrar. Taken as a gate, it showed up as a second Portão whose slide flipped the relay that holds
+  the reading. To use it as the sensor of the gate, the installer mirrors it in a template binary
+  sensor of class garage door and picks that one in the gate's editor.
+
 ## [2026.10.24] - 2026-10-27
 
 ### Fixed
@@ -694,7 +711,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.24...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.25...HEAD
+[2026.10.25]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.24...v2026.10.25
 [2026.10.24]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.23...v2026.10.24
 [2026.10.23]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.22...v2026.10.23
 [2026.10.22]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.21...v2026.10.22

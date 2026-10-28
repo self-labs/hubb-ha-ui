@@ -345,6 +345,11 @@ export const REVIEW = {
   copiedInstead: 'Não deu para salvar aqui. A linha foi copiada: cole no YAML do painel.',
   copiedAllInstead: 'Não deu para salvar aqui. As linhas foram copiadas: cole no YAML do painel.',
   copyFailed: 'Não deu para salvar nem copiar. Copie a linha abaixo e cole no YAML do painel.',
+  drop: 'Remover',
+  dropAll: (n: number): string => `Remover todos (${n})`,
+  dropped: (key: string): string => `${key} saiu do YAML do painel.`,
+  droppedAll: (n: number): string => (n === 1 ? '1 linha saiu do YAML do painel.' : `${n} linhas saíram do YAML do painel.`),
+  dropFailed: (keys: string): string => `Não deu para remover aqui. Apague ${keys} no YAML do painel.`,
   groups: {
     role: 'Escolha como mostrar',
     appliance: 'Aparelhos encontrados',

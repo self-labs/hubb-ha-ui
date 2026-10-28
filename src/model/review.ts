@@ -3,7 +3,7 @@ import { CFG, REVIEW } from '../strings';
 import { APPLIANCE_PLATFORMS, applianceName, findParts, stateSensorOf } from './appliances';
 import { buildHouse } from './build-house';
 import { applianceAreaOf, areaOf, classify, classifyContext, type ClassifyContext } from './classify';
-import { readConfig, type PanelConfig, type Role } from './config';
+import { readConfig, type ConfigProblem, type PanelConfig, type Role } from './config';
 import { displayName } from './names';
 import { originOf } from './origin';
 import type { HubbConfig } from './types';
@@ -69,6 +69,20 @@ export interface ReviewItem {
   roles: readonly Role[];
   /** The role shown highlighted, and the one "Copiar tudo" takes. */
   suggested: Role | null;
+  /** An error of the YAML: the path of its line in the strategy, which Remover takes out. */
+  drop?: readonly string[];
+}
+
+/**
+ * The path of the line a problem names: "entities.switch.x.sensor" is ['entities', 'switch.x',
+ * 'sensor'], since an entity id has a dot of its own. Areas, users and tabs have none.
+ */
+function problemPath(p: ConfigProblem): string[] {
+  const entry = p.entityId ? `entities.${p.entityId}` : null;
+  if (entry && (p.key === entry || p.key.startsWith(`${entry}.`))) {
+    return ['entities', p.entityId!, ...(p.key === entry ? [] : p.key.slice(entry.length + 1).split('.'))];
+  }
+  return p.key.split('.');
 }
 
 /** The part of the review that comes from the registry, and the entities whose silence it watches. */
@@ -89,6 +103,8 @@ export function suggestRole(name: string): Role {
   if (/\bmode\b|display|do not disturb|não perturbe|announcements|communications|anúncios|comunicações/.test(n)) return 'hidden';
   // Lights first: "Luz do portão" lights the gate, it does not open it.
   if (/\bluz\b|luzes|l[aâ]mpada|lumin[aá]ria|plafon|sanca|\bteto\b|spot|pendente|arandela|\bled\b|fita|lustre|abajur|refletor|holofote/.test(n)) return 'light';
+  // A relay that reads a contact (a MINIR4 on the reed of the gate) is the sensor of the gate, not a second one.
+  if (/sensor|contato|fim de curso|\breed\b/.test(n)) return 'hidden';
   // A gate is neither a light nor equipment: it opens with the slide to confirm.
   if (/port[aã]o|\bgate\b/.test(n)) return 'gate';
   return 'equipment';
@@ -144,6 +160,7 @@ export function staticReview(hass: HomeAssistant, config: HubbConfig): StaticRev
     reason: p.message,
     roles: [],
     suggested: null,
+    drop: problemPath(p),
   }));
   const watched: string[] = [];
   const devices = new Set<string>();

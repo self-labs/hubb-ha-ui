@@ -1,5 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
-import { dashboardPath, putBack, putBackRooms, setEntity, setOrders, setRoles, setRooms, showEntity } from '../../src/actions/dashboard-config';
+import {
+  dashboardPath,
+  dropKeys,
+  putBack,
+  putBackRoot,
+  putBackRooms,
+  setEntity,
+  setOrders,
+  setRoles,
+  setRooms,
+  showEntity,
+} from '../../src/actions/dashboard-config';
 import { makeHass, type FakeHass } from '../helpers/fake-hass';
 
 /** A Home Assistant whose dashboard holds `saved`; every save replaces it, the way the real one does. */
@@ -143,5 +154,46 @@ describe('showEntity', () => {
     await setEntity(h, 'hubb-casa', 'switch.portao', { role: 'hidden' });
     await setEntity(h, 'hubb-casa', 'switch.portao', { role: undefined });
     expect(entitiesOf(saves.at(-1)!)).toEqual({ 'switch.portao': { name: 'Portão' } });
+  });
+});
+
+describe('dropKeys and putBackRoot', () => {
+  const saved = {
+    strategy: {
+      type: 'custom:hubb',
+      house_power: 'sensor.sumiu',
+      entities: {
+        'camera.frente_hd': { name: 'Frente' },
+        'switch.portao': { role: 'gate', sensor: 'binary_sensor.sumiu' },
+        'switch.bomba': { order: 'x' },
+      },
+      rooms: { sala: { art: 'nenhuma' } },
+    },
+  };
+
+  it('takes every key named out in one save, and an entry or section left empty goes with it', async () => {
+    const { h, saves } = withDashboard(structuredClone(saved));
+    await dropKeys(h, 'hubb-casa', [
+      ['entities', 'camera.frente_hd'],
+      ['entities', 'switch.portao', 'sensor'],
+      ['entities', 'switch.bomba', 'order'],
+      ['rooms', 'sala', 'art'],
+      ['house_power'],
+    ]);
+    expect(saves).toHaveLength(1);
+    expect(strategyOf(saves[0]!)).toEqual({ type: 'custom:hubb', entities: { 'switch.portao': { role: 'gate' } } });
+  });
+
+  it('leaves alone a key that is no longer there', async () => {
+    const { h, saves } = withDashboard(structuredClone(saved));
+    await dropKeys(h, 'hubb-casa', [['entities', 'switch.nada'], ['tablets', 'u1']]);
+    expect(strategyOf(saves[0]!)).toEqual(saved.strategy);
+  });
+
+  it('Desfazer puts back the sections as they were, and takes out one that did not exist', async () => {
+    const { h, saves } = withDashboard(structuredClone(saved));
+    const before = await dropKeys(h, 'hubb-casa', [['entities', 'camera.frente_hd'], ['house_power']]);
+    await putBackRoot(h, 'hubb-casa', before);
+    expect(strategyOf(saves.at(-1)!)).toEqual(saved.strategy);
   });
 });

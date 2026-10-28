@@ -6,7 +6,9 @@ import { copyText } from '../actions/clipboard';
 import {
   CONFIG_SAVED,
   dashboardPath,
+  dropKeys,
   putBack,
+  putBackRoot,
   putBackRooms,
   putBackTabs,
   setEntity,
@@ -224,6 +226,22 @@ export class HubbReviewScreen extends HubbScreen {
     } else await this.#copy(text, copied);
   }
 
+  /**
+   * Remover: takes the wrong lines of the YAML out of the dashboard, with Desfazer. The panel already
+   * ignores them, so nothing on it changes; the list just stops naming them.
+   */
+  async #drop(items: readonly ReviewItem[]): Promise<void> {
+    const paths = items.flatMap((i) => (i.drop ? [i.drop] : []));
+    if (!paths.length) return;
+    const message = items.length === 1 ? REVIEW.dropped(items[0]!.name) : REVIEW.droppedAll(items.length);
+    const ok = await this.saveChange(message, async (hass, urlPath) => {
+      const before = await dropKeys(hass, urlPath, paths);
+      return (h) => putBackRoot(h, urlPath, before);
+    });
+    if (ok) this.notice = null;
+    else this.#say(REVIEW.dropFailed(items.map((i) => i.name).join(', ')), FAILED_NOTICE_MS);
+  }
+
   #setQuiet(open: boolean): void {
     this.quietOpen = open;
     if (this.hass) keptOf(this.hass).quietOpen = open;
@@ -352,6 +370,7 @@ export class HubbReviewScreen extends HubbScreen {
       ${where ? html`<span class="where">${where}</span>` : nothing}
       <span class="why">${item.reason}</span>
       ${entityId && item.group === 'area' ? this.#roomPicker(entityId, item.name, areas, 'group-area') : nothing}
+      ${item.drop ? html`<div class="roles"><button class="role drop" @click=${() => void this.#drop([item])}>${REVIEW.drop}</button></div>` : nothing}
       ${entityId && item.roles.length
         ? html`<div class="roles">
             ${item.roles.map(
@@ -403,8 +422,12 @@ export class HubbReviewScreen extends HubbScreen {
           : nothing}
         ${REVIEW_GROUPS.map((group) => {
           const mine = items.filter((i) => i.group === group);
+          const droppable = mine.filter((i) => i.drop);
           return mine.length
             ? html`<h2 id=${`group-${group}`} tabindex="-1">${REVIEW.groups[group]} (${mine.length})</h2>
+                ${droppable.length > 1
+                  ? html`<button class="role drop-all" @click=${() => void this.#drop(droppable)}>${REVIEW.dropAll(droppable.length)}</button>`
+                  : nothing}
                 <ul>
                   ${repeat(
                     mine,
@@ -583,6 +606,11 @@ export class HubbReviewScreen extends HubbScreen {
         width: 100%;
         justify-content: center;
         margin-top: 16px;
+      }
+      .drop-all {
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 8px;
       }
       .quiet-list .hint {
         margin: 10px 2px;

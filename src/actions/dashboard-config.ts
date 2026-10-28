@@ -173,6 +173,52 @@ export function setRootKeys(hass: HomeAssistant, urlPath: string | null, patch: 
   });
 }
 
+/** `value` without the key at `path`; an object left empty on the way down goes too (undefined). */
+function without(value: unknown, path: readonly string[]): unknown {
+  if (!path.length) return undefined;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const [head, ...rest] = path as [string, ...string[]];
+  const obj = value as Record<string, unknown>;
+  if (!(head in obj)) return value;
+  const { [head]: inner, ...others } = obj;
+  const left = without(inner, rest);
+  const next = left === undefined ? others : { ...others, [head]: left };
+  return Object.keys(next).length ? next : undefined;
+}
+
+/**
+ * Takes keys out of the strategy in one save, each named by its path (`['entities', id, 'sensor']`):
+ * the wrong lines Revisar lists. Returns the sections touched as they were, for putBackRoot.
+ */
+export function dropKeys(hass: HomeAssistant, urlPath: string | null, paths: readonly (readonly string[])[]): Promise<Partial<HubbConfig>> {
+  return serial(async () => {
+    const { saved, strategy } = await read(hass, urlPath);
+    const before: Record<string, unknown> = {};
+    let next = strategy as unknown as Record<string, unknown>;
+    for (const path of paths) {
+      const top = path[0];
+      if (!top || top === 'type') continue;
+      if (!(top in before)) before[top] = next[top];
+      next = (without(next, path) as Record<string, unknown> | undefined) ?? {};
+    }
+    await save(hass, urlPath, saved, { type: strategy.type, ...next } as HubbConfig);
+    return before as Partial<HubbConfig>;
+  });
+}
+
+/** Desfazer of dropKeys: the sections of the strategy as they were; one that did not exist leaves. */
+export function putBackRoot(hass: HomeAssistant, urlPath: string | null, before: Partial<HubbConfig>): Promise<unknown> {
+  return serial(async () => {
+    const { saved, strategy } = await read(hass, urlPath);
+    const next: Record<string, unknown> = { ...strategy };
+    for (const [key, value] of Object.entries(before)) {
+      if (value === undefined) delete next[key];
+      else next[key] = value;
+    }
+    await save(hass, urlPath, saved, next as unknown as HubbConfig);
+  });
+}
+
 /** Desfazer: the room entries as they were before a write. */
 export function putBackRooms(hass: HomeAssistant, urlPath: string | null, before: RoomEntries): Promise<RoomEntries> {
   return edit<RoomOverride>(hass, urlPath, 'rooms', Object.keys(before), (_prev, id) => before[id] ?? null);

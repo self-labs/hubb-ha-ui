@@ -31,6 +31,16 @@ describe('suggestRole and the lines of YAML', () => {
     ).toEqual(['hidden', 'hidden', 'hidden', 'light', 'light', 'light', 'light', 'equipment', 'gate']);
   });
 
+  it('suggests hidden, not Portão, for a relay that reads a contact (a MINIR4 on the gate reed)', () => {
+    expect(['Sensor Portão', 'Contato do portão', 'Fim de curso portão', 'Reed portão', 'Luz do sensor'].map(suggestRole)).toEqual([
+      'hidden',
+      'hidden',
+      'hidden',
+      'hidden',
+      'light',
+    ]);
+  });
+
   it('writes the lines the installer pastes', () => {
     expect(yamlLine('switch.jet_mode', 'hidden')).toBe('switch.jet_mode: { role: hidden }');
     expect(yamlBlock(['switch.a: { role: light }', 'switch.b: { role: hidden }'])).toBe(
@@ -112,6 +122,37 @@ describe('staticReview', () => {
         'entities.button.forno_ligar',
         'Não achei o estado do aparelho de button.forno_ligar. Marque com role: appliance o sensor de estado dele.',
       ],
+    ]);
+  });
+
+  it('names the line each error of the YAML sits on, for Remover; the appliance with no state has none', () => {
+    const h = makeHass({
+      areas: [area('cozinha', 'Cozinha')],
+      devices: [device('d_forno', 'cozinha', 'Forno')],
+      entities: [
+        { entity_id: 'button.forno_ligar', device_id: 'd_forno', state: 'unknown' },
+        { entity_id: 'switch.portao', area_id: 'cozinha', state: 'off' },
+      ],
+    });
+    const r = staticReview(h, {
+      profile: 'clinica',
+      house_power: 'sensor.sumiu',
+      entities: {
+        'button.forno_ligar': { role: 'appliance' },
+        'camera.frente_av_hd': { name: 'Frente' },
+        'switch.portao': { role: 'gate', sensor: 'binary_sensor.sumiu' },
+      },
+      rooms: { garagem: {} },
+      tablets: { u1: { rest_after: 7 } },
+    });
+    expect(r.items.filter((i) => i.group === 'config').map((i) => [i.name, i.drop ?? null])).toEqual([
+      ['profile', ['profile']],
+      ['entities.camera.frente_av_hd', ['entities', 'camera.frente_av_hd']],
+      ['entities.switch.portao.sensor', ['entities', 'switch.portao', 'sensor']],
+      ['rooms.garagem', ['rooms', 'garagem']],
+      ['tablets.u1.rest_after', ['tablets', 'u1', 'rest_after']],
+      ['house_power', ['house_power']],
+      ['entities.button.forno_ligar', null],
     ]);
   });
 });

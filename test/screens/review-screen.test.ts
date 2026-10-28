@@ -173,6 +173,52 @@ describe('hubb-review-screen', () => {
     expect(el.shadowRoot!.querySelector('.manual')!.textContent).toBe('switch.jet_mode: { role: light }');
   });
 
+  it('takes a wrong line out of the YAML with Remover, and Desfazer puts it back', async () => {
+    const h = admin(casa2Hass());
+    const options: HubbConfig = { ...CASA2_CONFIG, entities: { ...CASA2_CONFIG.entities, 'camera.frente_av_hd': { name: 'Frente' } } };
+    const saves = withDashboard(h, { strategy: { type: 'custom:hubb', ...options } });
+    const el = await mount(h, options);
+    const errors = () => $$(el, '.item').filter((i) => i.querySelector('strong')!.textContent === 'entities.camera.frente_av_hd');
+    expect(errors()).toHaveLength(1);
+    await tap(el, errors()[0]!.querySelector('.drop')!);
+    expect(entitiesOf(saves[0]!)).toEqual(CASA2_CONFIG.entities);
+    await el.updateComplete;
+    expect(errors()).toHaveLength(0);
+    const toast = el.shadowRoot!.querySelector('hubb-toast') as HubbToast;
+    await toast.updateComplete;
+    expect(toast.shadowRoot!.querySelector('.toast')!.textContent).toContain('entities.camera.frente_av_hd saiu do YAML do painel.');
+    (toast.shadowRoot!.querySelector('.toast button') as HTMLButtonElement).click();
+    await flush();
+    await flush();
+    expect(entitiesOf(saves[1]!)).toEqual(options.entities);
+  });
+
+  it('takes every wrong line out at once with "Remover todos", in one save', async () => {
+    const h = admin(casa2Hass());
+    const options: HubbConfig = {
+      ...CASA2_CONFIG,
+      house_power: 'sensor.sumiu',
+      entities: { ...CASA2_CONFIG.entities, 'camera.frente_av_hd': {}, 'script.desligar_casa': { role: 'action' } },
+    };
+    const saves = withDashboard(h, { strategy: { type: 'custom:hubb', ...options } });
+    const el = await mount(h, options);
+    const all = el.shadowRoot!.querySelector('.drop-all')!;
+    expect(all.textContent!.trim()).toBe('Remover todos (3)');
+    await tap(el, all);
+    expect(saves).toHaveLength(1);
+    expect(saves[0]!.strategy).toEqual({ type: 'custom:hubb', ...CASA2_CONFIG });
+    expect(el.shadowRoot!.querySelector('#group-config')).toBeNull();
+  });
+
+  it('says what to delete by hand when it cannot remove the line', async () => {
+    const h = admin(casa2Hass());
+    const options: HubbConfig = { ...CASA2_CONFIG, house_power: 'sensor.sumiu' };
+    withDashboard(h, { strategy: { type: 'custom:hubb', ...options } }, true);
+    const el = await mount(h, options);
+    await tap(el, el.shadowRoot!.querySelector('.item .drop')!);
+    expect(el.shadowRoot!.querySelector('.notice')!.textContent).toBe('Não deu para remover aqui. Apague house_power no YAML do painel.');
+  });
+
   it('says there is nothing to review', async () => {
     const el = await mount(admin(casa2Hass()), { entities: { ...CASA2_CONFIG.entities, 'switch.jet_mode': { role: 'hidden' } } });
     expect(el.shadowRoot!.querySelector('.empty')!.textContent!.trim()).toBe('Nada para revisar.');

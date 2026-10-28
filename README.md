@@ -505,6 +505,12 @@ answered for more than a day. A tap on a role saves it into the dashboard config
 for 5 seconds. "Aplicar sugestões" saves every suggested role together. On a dashboard frozen with
 "Take control" it copies the line of YAML instead, to paste under `strategy:` by hand.
 
+Each problem of the configuration (an entity that no longer exists, a sensor that is gone, a value the
+panel cannot use) has **Remover**, which takes that line out of the dashboard configuration with
+"Desfazer"; with two or more, **Remover todos** takes them out in one save. The panel already ignores
+those lines, so nothing on it changes. On a dashboard frozen with "Take control" it says which keys to
+delete by hand.
+
 An item with no room gets a **Cômodo** list and **Mover** (choosing alone saves nothing). The choice is
 saved in Home Assistant as the area of that entity, with "Desfazer", and never as the area of its
 device: a relay board is one device for its 16 channels, and an area on the device moves all of them.
