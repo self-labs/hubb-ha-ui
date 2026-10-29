@@ -8,6 +8,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.26] - 2026-10-29
+
 ### Changed
 
 - The sentence at the top of the home screen puts its grey part on the line below. "2 luzes
@@ -717,7 +719,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.25...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.26...HEAD
+[2026.10.26]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.25...v2026.10.26
 [2026.10.25]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.24...v2026.10.25
 [2026.10.24]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.23...v2026.10.24
 [2026.10.23]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.22...v2026.10.23
