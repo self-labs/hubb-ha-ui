@@ -796,7 +796,9 @@ export class HubbHomeScreen extends HubbScreen {
         line-height: 1.3;
         letter-spacing: -0.01em;
       }
+      /* On its own line: trailing the count, it broke mid-phrase (Gustavo, 29/10). */
       .headline span {
+        display: block;
         font-weight: 500;
         color: var(--hubb-text-2);
       }

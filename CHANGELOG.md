@@ -8,6 +8,12 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Changed
+
+- The sentence at the top of the home screen puts its grey part on the line below. "2 luzes
+  acesas em 2 ambientes." stays on the first line and "Quarto e Escritório." goes on the second;
+  before, the grey part trailed the count and broke in the middle of a room name.
+
 ## [2026.10.25] - 2026-10-28
 
 ### Added

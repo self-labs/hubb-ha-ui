@@ -62,6 +62,12 @@ describe('nothing jumps when a light turns on', () => {
   });
 });
 
+describe('home headline', () => {
+  it('puts the grey part on the line below, not trailing the count', () => {
+    expect(cssOf(HubbHomeScreen.styles)).toMatch(/\.headline span\s*\{[^}]*display: block/);
+  });
+});
+
 describe('top spacing', () => {
   it('leaves the status bar to Home Assistant instead of adding the safe area a second time', () => {
     expect(cssOf(HubbScreen.baseStyles)).not.toContain('safe-area-inset-top');
