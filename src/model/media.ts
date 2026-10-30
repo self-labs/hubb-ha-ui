@@ -130,6 +130,15 @@ export function viewPlaying(hass: HomeAssistant, view: MediaView): boolean {
   return view.state === 'playing' || (!!view.spotify && hass.states[view.spotify]?.state === 'playing');
 }
 
+/**
+ * A Music Assistant player stopped with its queue still active and a song loaded: play resumes it where
+ * it stopped (`players/cmd/play` on a player that is not paused resumes its queue). Music Assistant stops
+ * a queue 30 s after a pause (`_watch_pause`, a fixed 30 s), so every longer pause ends here.
+ */
+export function resumable(st: HassEntityState | undefined): boolean {
+  return st?.state === 'idle' && !!st.attributes.active_queue && str(st.attributes.media_title) !== null;
+}
+
 /** The speaker behind a player of a group: a Music Assistant player maps back to its speaker. */
 export function speakerOf(pairs: Readonly<Record<string, string>>, playerId: string): string {
   return Object.entries(pairs).find(([, ma]) => ma === playerId)?.[0] ?? playerId;

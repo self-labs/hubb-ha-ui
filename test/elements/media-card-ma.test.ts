@@ -10,6 +10,7 @@ import { nowPlaying } from '../../src/model/media';
 import type { HubbScreen } from '../../src/screens/base';
 import '../../src/screens/home-screen';
 import { generateDashboard } from '../../src/strategy/generate';
+import { MEDIA } from '../../src/strings';
 import { area, device, makeHass, type FakeHass } from '../helpers/fake-hass';
 
 const F = MEDIA_FEATURE;
@@ -65,6 +66,26 @@ describe('the card and the mini player follow Music Assistant', () => {
       ['media_play_pause', MA],
       ['turn_off', SPEAKER],
     ]);
+  });
+
+  it('keeps play when Music Assistant stopped the queue 30 s after a pause, and resumes it', async () => {
+    // Seen 27/10: 30 s after a pause Music Assistant stopped the queue and stayed idle on the song, the
+    // speaker idle on DLNA, and the card lost play: only power was left.
+    const h = house('idle');
+    h.states[MA] = { ...h.states[MA]!, attributes: { ...h.states[MA]!.attributes, active_queue: 'caixa_sala' } };
+    h.states[SPEAKER] = { ...h.states[SPEAKER]!, state: 'idle', attributes: { ...h.states[SPEAKER]!.attributes, source: 'DLNA' } };
+    const el = await mount<HubbMediaCard>('hubb-media-card', h);
+    const play = el.shadowRoot!.querySelector<HTMLButtonElement>('.play');
+    expect(play?.getAttribute('aria-label')).toBe(MEDIA.play);
+    play!.click();
+    expect(calls(h)).toEqual([['media_play_pause', MA]]);
+  });
+
+  it('offers no play for a stopped Music Assistant with no queue to resume', async () => {
+    const h = house('idle');
+    h.states[SPEAKER] = { ...h.states[SPEAKER]!, state: 'idle', attributes: { ...h.states[SPEAKER]!.attributes, source: 'DLNA' } };
+    const el = await mount<HubbMediaCard>('hubb-media-card', h);
+    expect(el.shadowRoot!.querySelector('.play')).toBeNull();
   });
 
   it('the mini player plays the next song on Music Assistant', async () => {

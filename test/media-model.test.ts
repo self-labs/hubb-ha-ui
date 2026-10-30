@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MEDIA_FEATURE, mediaLine } from '../src/actions/media';
 import { classify, classifyContext } from '../src/model/classify';
 import { readConfig } from '../src/model/config';
-import { channelSelect, commandTarget, groupCandidates, groupOf, linkedSpotify, mediaView, musicEntity } from '../src/model/media';
+import { channelSelect, commandTarget, groupCandidates, groupOf, linkedSpotify, mediaView, musicEntity, resumable } from '../src/model/media';
 import { area, device, makeHass, type FakeEntity, type FakeHass } from './helpers/fake-hass';
 
 const SPEAKER = MEDIA_FEATURE.pause | MEDIA_FEATURE.play | MEDIA_FEATURE.volumeSet | MEDIA_FEATURE.grouping;
@@ -212,6 +212,19 @@ describe('where the music of a speaker comes from', () => {
     // Seen 23/10: the stream ended, both went idle on "Pieces", and play on the speaker woke a dead DLNA stream.
     expect(musicEntity(songs(['idle', 'Pieces'], ['idle', 'Pieces']), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa_ma');
     expect(musicEntity(songs(['idle', null], ['idle', null]), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+  });
+
+  it('resumes a Music Assistant player stopped with its queue loaded, and nothing else', () => {
+    // Music Assistant stops a queue 30 s after a pause and the player stays idle on the song, its queue
+    // still active: play resumes it where it stopped.
+    const ma = (state: string, attributes: Record<string, unknown>) =>
+      makeHass({ entities: [{ entity_id: 'media_player.caixa_ma', platform: 'music_assistant', state, attributes: { mass_player_type: 'player', ...attributes } }] })
+        .states['media_player.caixa_ma'];
+    expect(resumable(ma('idle', { active_queue: 'caixa', media_title: 'Pieces' }))).toBe(true);
+    expect(resumable(ma('idle', { active_queue: 'caixa' }))).toBe(false);
+    expect(resumable(ma('idle', { media_title: 'Pieces' }))).toBe(false);
+    expect(resumable(ma('off', { active_queue: 'caixa', media_title: 'Pieces' }))).toBe(false);
+    expect(resumable(undefined)).toBe(false);
   });
 
   it('keeps Music Assistant while the speaker still holds its stream open', () => {

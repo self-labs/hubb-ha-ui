@@ -8,6 +8,15 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.10.27] - 2026-10-30
+
+### Fixed
+
+- A speaker played by Music Assistant keeps its play button on the card after a long pause. Music
+  Assistant stops a queue 30 s after a pause and leaves the song loaded; the card then showed only
+  power, and the music could only come back from the sheet. Play now resumes the song where it
+  stopped.
+
 ## [2026.10.26] - 2026-10-29
 
 ### Changed
@@ -719,7 +728,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.26...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.27...HEAD
+[2026.10.27]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.26...v2026.10.27
 [2026.10.26]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.25...v2026.10.26
 [2026.10.25]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.24...v2026.10.25
 [2026.10.24]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.23...v2026.10.24

@@ -3,7 +3,7 @@ import { LitElement, css, html, nothing } from 'lit';
 import { has } from '../actions/climate';
 import { haptic } from '../actions/haptic';
 import { MEDIA_FEATURE, mediaLine } from '../actions/media';
-import { commandTarget, groupOf, speakerMusic, speakerOf } from '../model/media';
+import { commandTarget, groupOf, resumable, speakerMusic, speakerOf } from '../model/media';
 import { displayName } from '../model/names';
 import type { HomeAssistant } from '../ha/types';
 import type { MediaItem } from '../model/types';
@@ -107,12 +107,15 @@ export class HubbMediaCard extends LitElement {
     // on the speaker. A member plays what its leader plays, and its play button commands the leader.
     const { source, member, view } = speakerMusic(hass, item.entityId, item.ma);
     const sourceSt = hass.states[source] ?? st;
-    const playing = (member ? view.state : sourceSt?.state) === 'playing';
+    const musicSt = member ? hass.states[view.entityId] : sourceSt;
+    const playing = musicSt?.state === 'playing';
     // Off, a speaker may still report its last cover: the icon says it is off.
     const picture = on && view.picture && view.picture !== this.broken ? view.picture : null;
     const playPause = commandTarget(hass, view, MEDIA_FEATURE.pause) ?? commandTarget(hass, view, MEDIA_FEATURE.play);
     const together = this.#together(hass, source);
-    const playable = on && (playing || (member ? view.state : sourceSt?.state) === 'paused');
+    // Paused, or stopped by Music Assistant 30 s after a pause with the song still loaded (seen 27/10:
+    // the card lost play there and only power was left).
+    const playable = on && (playing || musicSt?.state === 'paused' || resumable(musicSt));
     this.#line = mediaLine(view, sourceSt);
     return html`<div class="card ${on ? 'on' : ''} ${down ? 'na' : ''}">
       <button class="body" @click=${this.#open}>
