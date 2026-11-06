@@ -23,6 +23,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   Spotify, since all of it plays from the house's Spotify. On a TV app, an HDMI or Line In it sat on
   the sheet with nothing to do. Picking Spotify with nothing to resume now keeps Fonte on Spotify and
   opens Tocar algo under it.
+- The notes of each release on GitHub, which HACS shows in its update dialog, are now that version's
+  section of this changelog, instead of the commit message.
 
 ### Fixed
 

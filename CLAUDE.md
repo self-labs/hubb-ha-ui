@@ -98,13 +98,15 @@ CalVer `YYYY.M.R`. **A version only when Gustavo orders it**: until then every c
 1. `npm run check` green.
 2. CHANGELOG: `[Unreleased]` becomes `## [YYYY.M.R] - YYYY-MM-DD` under a fresh empty
    `[Unreleased]`, and the footer gets the new compare link; validate with
-   `pwsh -File ~/.claude/skills/changelog/scripts/check-changelog.ps1`.
+   `python3 ~/.claude/skills/changelog/scripts/check-changelog.py`.
 3. `version` in `package.json` and in both entries of `package-lock.json` (the build injects it
    into `src/version.ts`; `test/version.test.ts` keeps them in step).
 4. Commit `feat:` or `fix:` with the version in the subject (`... (2026.10.8)`), staging the files by
    name; push `master`; annotated tag `vYYYY.M.R`; push the tag.
 5. Wait for CI and Release (`gh run list`); the Release must carry `hubb-ha-ui.js`, which is what
-   HACS serves.
+   HACS serves. Its notes are the version's section of `CHANGELOG.md`, taken by `release.yml`
+   (HACS shows them in its update dialog): never the commit or the tag message, never
+   `--notes-from-tag` or `--generate-notes`.
 6. Houses update through HACS (Redownload) only with Gustavo's approval, house by house. Client
    accounts are not administrators: installer features stay invisible to them.
 

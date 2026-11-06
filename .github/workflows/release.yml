@@ -31,10 +31,43 @@ jobs:
       - name: Version matches the tag
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
 
+      # The notes are this version's section of CHANGELOG.md (Added, Changed, Fixed...), which HACS
+      # shows in its update dialog: never the commit or the tag message. Same program as
+      # release-notes.awk of the changelog skill: wrapped lines are joined, since GitHub turns every
+      # newline of a release into a line break.
+      - name: Release notes from the CHANGELOG
+        run: |
+          awk -v version="${GITHUB_REF_NAME#v}" '
+            function emit(s) {
+              if (s ~ /^[ \t]*$/) { if (started) blanks++; return }
+              while (blanks > 0) { print ""; blanks-- }
+              print s
+              started = 1
+            }
+            function flush() { if (buf != "") emit(buf); buf = "" }
+            BEGIN { head = "## [" version "]" }
+            index($0, head) == 1 { on = 1; next }
+            !on { next }
+            /^## / || /^\[[^]]*\]: / { exit }
+            /^[ \t]*```/ { flush(); fence = !fence; emit($0); next }
+            fence { emit($0); next }
+            /^[ \t]*$/ { flush(); emit(""); next }
+            /^#/ || /^[ \t]*[|>]/ || /^[ \t]*([-*+]|[0-9]+\.)[ \t]/ { flush(); buf = $0; next }
+            {
+              line = $0
+              if (buf != "" && buf !~ /^#/ && buf !~ /^[ \t]*[|>]/) { sub(/^[ \t]+/, "", line); buf = buf " " line }
+              else { flush(); buf = $0 }
+            }
+            END {
+              flush()
+              if (!started) { print "CHANGELOG.md has no notes for " version > "/dev/stderr"; exit 1 }
+            }
+          ' CHANGELOG.md > notes.md
+
       - name: Publish the Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/hubb-ha-ui.js --title "$GITHUB_REF_NAME" --notes-from-tag
+        run: gh release create "$GITHUB_REF_NAME" dist/hubb-ha-ui.js --title "$GITHUB_REF_NAME" --notes-file notes.md
 
   # A Release made with GITHUB_TOKEN triggers no other workflow, so hacs.yml never sees it:
   # the validation runs here, once the Release and its asset exist.
