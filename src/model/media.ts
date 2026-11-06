@@ -84,6 +84,16 @@ const DLNA_INPUT = /^(dlna|upnp)$/i;
 const AIRPLAY_INPUT = /^airplay$/i;
 
 /**
+ * A source the player lists as its own (an app of the TV, an HDMI, Line In) and not one of the ways in
+ * of Music Assistant: on it the player plays that, whatever state it says.
+ */
+function onOwnSource(st: HassEntityState | undefined): boolean {
+  const input = str(st?.attributes.source);
+  const list = st?.attributes.source_list;
+  return input !== null && Array.isArray(list) && list.includes(input) && !DLNA_INPUT.test(input) && !AIRPLAY_INPUT.test(input);
+}
+
+/**
  * Which entity the music of a speaker comes from (spec Multiroom, 4.2): its Music Assistant player while
  * that plays; while it is paused, or stopped with its song still loaded, as long as the speaker is on
  * DLNA (Music Assistant's own way to a speaker alone), or rests (paused, idle) or holds an AirPlay
@@ -93,13 +103,18 @@ const AIRPLAY_INPUT = /^airplay$/i;
  * queue, no next and no time: those live on the Music Assistant player, and play on the speaker would
  * wake a stream that already ended (23/10). Music Assistant stops for a moment at each new song and 30 s
  * after a pause, and an AudioCast on AirPlay still says "playing" after the pause: the view stays put.
- * A TV that says `on` (webOS, Denon) shows its own channel or input, and a speaker on a song of its own
- * (its Spotify) keeps it: the paused song of Music Assistant is an old one.
+ * A player on a source of its own (Disney+, HDMI 1, Line In) plays that, whatever state it says; a TV
+ * that says `on` (webOS, Denon) shows its own channel or input, and a speaker on a song of its own (its
+ * Spotify) keeps it: the paused song of Music Assistant is an old one.
  */
 export function musicEntity(hass: HomeAssistant, entityId: string, ma: string | null | undefined): string {
   const maSt = ma ? hass.states[ma] : undefined;
   if (maSt?.state === 'playing') return ma!;
   const own = hass.states[entityId];
+  // webOS says playing, paused and idle inside an app too: idle on Disney+, the LG showed the old song
+  // of Music Assistant and Fonte jumped to Spotify (06/11). Music Assistant reaches it by AirPlay, with
+  // no source said (27/10).
+  if (onOwnSource(own)) return entityId;
   const song = str(maSt?.attributes.media_title);
   const loaded = maSt?.state === 'paused' || (maSt?.state === 'idle' && song !== null);
   // In a group of Music Assistant the speaker only plays what the group sends: a TV says "playing" on

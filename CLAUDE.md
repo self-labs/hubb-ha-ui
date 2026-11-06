@@ -259,8 +259,10 @@ operation.
   paired player (`part`), Music Assistant group players and every `alexa_media` player (role `media`
   brings one back). `MediaItem.ma` and `Shared.mediaPairs` carry the pair. `musicEntity` decides
   where the music comes from (the Music Assistant player while it plays, or paused with the speaker
-  idle); card, mini player, sheet and the Mídia tab use it, while source, volume, power and the Canal
-  stay on the speaker. `groupingEntity` makes Tocar junto join through Music Assistant when the
+  idle, never while the speaker is on a source it lists as its own); card, mini player, sheet and the
+  Mídia tab use it, while source, volume, power and the Canal stay on the speaker. The sheet shows
+  Tocar algo only with Fonte on Spotify, and binds Fonte with `live()`: an option picked by hand stops
+  following its `selected`. `groupingEntity` makes Tocar junto join through Music Assistant when the
   speaker has a player there. Tocar algo (`model/ma-library.ts`) gets the integration's entry from
   `config_entries/get` (no administrator needed) and calls the actions with `return_response`.
 - `cachedStaticReview` keys on the identity of `hass.entities`, `hass.devices`, `hass.areas`,

@@ -17,12 +17,25 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   `administracao` and `administrativo` an office, and `descanso` a living room. "Roupeiro do
   Corredor" was drawn as a corridor, and in a clinic "Sala de Administração" was a consulting room.
 
+### Changed
+
+- **Tocar algo** (the search, Tocadas recentemente and Playlists) shows only while Fonte is on
+  Spotify, since all of it plays from the house's Spotify. On a TV app, an HDMI or Line In it sat on
+  the sheet with nothing to do. Picking Spotify with nothing to resume now keeps Fonte on Spotify and
+  opens Tocar algo under it.
+
 ### Fixed
 
 - The area icon now comes before the words that only say "a room" ("Sala", "Quarto", "Salão"). In
   a clinic every "Sala" with a word the panel does not know was drawn as a consulting room, even when
   the icon said otherwise: "Sala VIP" with `mdi:sofa` and "Sala de Preparo" with `mdi:medical-bag`
   now show a lounge and a procedure room. A "Sala 3" with no icon is still a consulting room.
+- A TV paused or stopped inside an app showed the last song Music Assistant had paused, with Fonte on
+  Spotify: LG TVs now say paused and idle in Disney+ or Crunchyroll, and the panel took that for a
+  speaker resting after Music Assistant. A TV or speaker on a source of its own (an app, an HDMI,
+  Line In) now shows its own, whatever state it says.
+- Fonte follows the TV or speaker again after a pick by hand: it stayed on the last option picked
+  while the device had moved on.
 
 ## [2026.10.27] - 2026-10-30
 

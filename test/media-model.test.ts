@@ -267,6 +267,33 @@ describe('where the music of a speaker comes from', () => {
     expect(musicEntity(songs(['idle', 'Message In A Bottle'], ['idle', 'Walk Of Life']), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
   });
 
+  it('leaves Music Assistant behind a player on a source of its own, whatever state it says', () => {
+    /** An LG and its Music Assistant player idle on an old queue (seen 06/11). */
+    const tv = (state: string, source?: string) =>
+      makeHass({
+        entities: [
+          { entity_id: 'media_player.tv', platform: 'webostv', state, attributes: { ...(source ? { source } : {}), source_list: ['Disney+', 'HDMI 1', 'Spotify'] } },
+          { entity_id: 'media_player.tv_ma', platform: 'music_assistant', state: 'idle', attributes: { mass_player_type: 'player', media_title: 'Papercut (Live at BBC1)', active_queue: 'tv' } },
+        ],
+      });
+    // webOS says playing, paused and idle inside an app: idle on Disney+, the sheet showed the old song
+    // of Music Assistant and Fonte went to Spotify (06/11).
+    expect(musicEntity(tv('idle', 'Disney+'), 'media_player.tv', 'media_player.tv_ma')).toBe('media_player.tv');
+    expect(musicEntity(tv('paused', 'HDMI 1'), 'media_player.tv', 'media_player.tv_ma')).toBe('media_player.tv');
+    // Music Assistant reaches the LG by AirPlay, and there the TV says no source (27/10): its song.
+    expect(musicEntity(tv('idle'), 'media_player.tv', 'media_player.tv_ma')).toBe('media_player.tv_ma');
+    // A speaker on Line In plays Line In; on DLNA, listed too, it plays Music Assistant.
+    const speaker = (source: string) =>
+      makeHass({
+        entities: [
+          { entity_id: 'media_player.caixa', platform: 'wiim', state: 'paused', attributes: { source, source_list: ['Bluetooth', 'Line In', 'DLNA', 'Network'] } },
+          { entity_id: 'media_player.caixa_ma', platform: 'music_assistant', state: 'paused', attributes: { mass_player_type: 'player', media_title: 'Pieces' } },
+        ],
+      });
+    expect(musicEntity(speaker('Line In'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
+    expect(musicEntity(speaker('DLNA'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa_ma');
+  });
+
   it('falls back to the speaker when Music Assistant is down or absent', () => {
     expect(musicEntity(pair('playing', 'unavailable'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');
     expect(musicEntity(pair('playing', 'idle'), 'media_player.caixa', 'media_player.caixa_ma')).toBe('media_player.caixa');

@@ -171,8 +171,10 @@ never rests.
   forces the pair, or turns it off with an empty value). While Music Assistant plays, the song, the
   time, next, previous, shuffle and repeat come from it (by DLNA the speaker only sees a stream);
   source, volume, power and the Canal stay on the speaker. Fonte then has one **Spotify**, which
-  resumes Music Assistant in that room, and the sheet adds **Tocar algo**: a search, the songs played
-  last and the playlists of the house's Spotify, one tap to play here. **Tocar junto** goes through
+  resumes Music Assistant in that room, and while Fonte is on it the sheet adds **Tocar algo**: a
+  search, the songs played last and the playlists of the house's Spotify, one tap to play here. On any
+  other source (a TV app, an HDMI, Line In) the sheet is the device's, and an old paused song of Music
+  Assistant stays out of it. **Tocar junto** goes through
   Music Assistant too, so a speaker plays together with any brand (a TV, a receiver). Groups of Music
   Assistant (a fixed sync group) are not cards.
 - **Echos** are the microphone of the house, not speakers of it: they stay off the panel. The role

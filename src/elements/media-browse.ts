@@ -13,9 +13,10 @@ const SEARCH_MS = 400;
 const MIN_LETTERS = 3;
 
 /**
- * Tocar algo, on the sheet of a speaker with Music Assistant: the search, the songs played last and the
- * playlists of the house's Spotify; a tap plays it here. When Music Assistant does not answer (not set
- * up, or the call fails), the part leaves the sheet in silence: the rest of the sheet still works.
+ * Tocar algo, on the sheet of a speaker with Music Assistant while Fonte is on Spotify: the search, the
+ * songs played last and the playlists of the house's Spotify; a tap plays it here. When Music Assistant
+ * does not answer (not set up, or the call fails), the part leaves the sheet in silence: the rest of
+ * the sheet still works.
  */
 export class HubbMediaBrowse extends LitElement {
   static properties = {

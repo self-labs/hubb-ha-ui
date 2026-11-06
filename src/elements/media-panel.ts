@@ -15,6 +15,7 @@ import {
   mdiVolumeOff,
 } from '@mdi/js';
 import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
+import { live } from 'lit/directives/live.js';
 import { has } from '../actions/climate';
 import { haptic } from '../actions/haptic';
 import { MEDIA_FEATURE, channelWord, mediaLine } from '../actions/media';
@@ -58,6 +59,12 @@ export class HubbMediaPanel extends LitElement {
   declare pairs: Readonly<Record<string, string>>;
   /** A cover that failed to load: left out until the cover changes. */
   declare broken: string | null;
+
+  /**
+   * The source picked in Fonte, and where the player was (`over`) when it was picked: it holds until the
+   * speaker or Music Assistant moves, so "Spotify" with nothing to resume stays with Tocar algo open.
+   */
+  #picked: { entityId: string; value: string; over: unknown } | null = null;
 
   constructor() {
     super();
@@ -109,19 +116,29 @@ export class HubbMediaPanel extends LitElement {
   }
 
   /**
-   * The "Spotify" of Fonte: resumes the queue of Music Assistant in this room, or, with none to resume,
-   * takes the person to Tocar algo and leaves Fonte where the speaker is, since nothing changed on it.
-   * With Tocar algo off (Music Assistant does not answer its library), play is all there is to ask.
+   * A pick in Fonte. A source of the speaker switches it. The "Spotify" of Fonte resumes the queue of
+   * Music Assistant in this room, or, with none to resume, opens Tocar algo under it, where the person
+   * picks what plays. With Tocar algo off (Music Assistant does not answer its library), play is all
+   * there is to ask.
    */
-  #pickSource(hass: HomeAssistant, select: HTMLSelectElement): void {
+  async #pickSource(hass: HomeAssistant, select: HTMLSelectElement, current: unknown): Promise<void> {
     const value = select.value;
     const ma = this.#ma(hass);
+    this.#picked = { entityId: this.entityId, value, over: current };
+    this.requestUpdate();
     if (value !== MA_SOURCE || !ma) return this.#call('select_source', { source: value });
     const a = hass.states[ma]?.attributes ?? {};
     const browse = this.renderRoot.querySelector<HubbMediaBrowse>('hubb-media-browse');
     if ((a.active_queue && a.media_title) || !browse || browse.off) return this.#call('media_play', undefined, ma);
-    select.selectedIndex = [...select.options].findIndex((o) => o.hasAttribute('selected'));
+    await this.updateComplete;
     browse.focusSearch();
+  }
+
+  /** What Fonte shows: the source picked here while the player stays where it was, else where it is. */
+  #fonte(current: unknown): unknown {
+    const p = this.#picked;
+    if (p && (p.entityId !== this.entityId || p.over !== current)) this.#picked = null;
+    return this.#picked ? this.#picked.value : current;
   }
 
   /** The cover, large, then the title, and the artist with the album. */
@@ -160,6 +177,11 @@ export class HubbMediaPanel extends LitElement {
     // two different things under one name.
     const sources = ma ? own.filter((s) => !OWN_SPOTIFY.test(s)) : own;
     const current = ma && source === ma ? MA_SOURCE : a.source;
+    const fonte = this.#fonte(current);
+    const choices = ma ? [MA_SOURCE, ...sources] : sources;
+    // Set on every render: an option picked by hand stops following its `selected`, and Fonte stayed on
+    // the last pick while the speaker had moved on.
+    const fonteValue = typeof fonte === 'string' && choices.includes(fonte) ? fonte : '';
     const modes = Array.isArray(a.sound_mode_list) ? a.sound_mode_list.filter((s): s is string => typeof s === 'string') : [];
     const channel = channelSelect(hass, this.entityId);
     // A member shows the leader's play state, since its play button commands the leader.
@@ -251,10 +273,10 @@ export class HubbMediaPanel extends LitElement {
       ${!member && (ma || sources.length)
         ? html`<label class="field">
             <span>${MEDIA.source}</span>
-            <select class="source" @change=${(e: Event) => this.#pickSource(hass, e.target as HTMLSelectElement)}>
-              ${unlisted(current, ma ? [MA_SOURCE, ...sources] : sources, (s) => s)}
-              ${ma ? html`<option value=${MA_SOURCE} ?selected=${current === MA_SOURCE}>${MEDIA.spotifySource}</option>` : nothing}
-              ${sources.map((s) => html`<option value=${s} ?selected=${s === current}>${s}</option>`)}
+            <select class="source" .value=${live(fonteValue)} @change=${(e: Event) => void this.#pickSource(hass, e.target as HTMLSelectElement, current)}>
+              ${unlisted(fonte, choices, (s) => s)}
+              ${ma ? html`<option value=${MA_SOURCE} ?selected=${fonte === MA_SOURCE}>${MEDIA.spotifySource}</option>` : nothing}
+              ${sources.map((s) => html`<option value=${s} ?selected=${s === fonte}>${s}</option>`)}
             </select>
           </label>`
         : nothing}
@@ -268,7 +290,10 @@ export class HubbMediaPanel extends LitElement {
           </label>`
         : nothing}
       ${channel ? this.#channelField(hass, channel) : nothing}
-      ${ma && !member ? html`<hubb-media-browse .hass=${hass} .ma=${ma}></hubb-media-browse>` : nothing}
+      ${ma && !member
+        ? // Tocar algo is Spotify's: out of sight on any other source, its lists loaded for when it is asked.
+          html`<hubb-media-browse ?hidden=${fonte !== MA_SOURCE} .hass=${hass} .ma=${ma}></hubb-media-browse>`
+        : nothing}
       ${has(hass.states[groupingEntity(hass, this.entityId, this.pairs)] ?? st, MEDIA_FEATURE.grouping)
         ? html`<hubb-media-group .hass=${hass} .entityId=${this.entityId} .visible=${this.visible} .pairs=${this.pairs}></hubb-media-group>`
         : nothing}`;
@@ -335,6 +360,10 @@ export class HubbMediaPanel extends LitElement {
     }
     hubb-media-progress {
       margin: 4px 2px 6px;
+    }
+    /* The browse says display: block on its host, which outweighs the browser's own rule for hidden. */
+    hubb-media-browse[hidden] {
+      display: none;
     }
     .label,
     .field span {

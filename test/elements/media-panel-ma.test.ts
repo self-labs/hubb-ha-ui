@@ -144,14 +144,54 @@ describe('the sheet of a speaker with Music Assistant', () => {
     const el = await mount(empty);
     const browse = $(el, 'hubb-media-browse') as HubbMediaBrowse;
     expect(browse.ma).toBe(MA);
+    // On Line In it waits out of sight, its songs and playlists already asked for.
+    expect(browse.hidden).toBe(true);
     const focus = vi.spyOn(browse, 'focusSearch');
-    pickSource(el, $(el, 'select.source option')!.getAttribute('value')!);
+    const spotify = $(el, 'select.source option')!.getAttribute('value')!;
+    pickSource(el, spotify);
+    await el.updateComplete;
     expect(focus).toHaveBeenCalledOnce();
     expect(calls(empty)).toEqual([]);
-    // Nothing changed on the speaker: Fonte still says where it is.
-    expect(($(el, 'select.source') as HTMLSelectElement).value).toBe('Line In');
+    // Spotify asked for: Fonte keeps it, and Tocar algo, open under it, is how it starts.
+    expect(($(el, 'select.source') as HTMLSelectElement).value).toBe(spotify);
+    expect(browse.hidden).toBe(false);
     document.body.replaceChildren();
     expect($(await mount(house({ state: 'unavailable' })), 'hubb-media-browse')).toBeNull();
+  });
+
+  it('shows Tocar algo only while Fonte is on Spotify', async () => {
+    const el = await mount(house());
+    const browse = () => $(el, 'hubb-media-browse') as HubbMediaBrowse;
+    expect(browse().hidden).toBe(false);
+    // Paused on Line In, the paused song of Music Assistant is an old one: no Spotify, no Tocar algo.
+    el.hass = house({ state: 'paused' }, { source: 'Line In' }, 'paused');
+    await el.updateComplete;
+    expect(($(el, 'select.source') as HTMLSelectElement).value).toBe('Line In');
+    expect($(el, '.music')).toBeNull();
+    expect(browse().hidden).toBe(true);
+  });
+
+  it('hides Tocar algo once another source is picked, and Fonte follows the speaker from then on', async () => {
+    const h = house();
+    const el = await mount(h);
+    const select = () => $(el, 'select.source') as HTMLSelectElement;
+    const spotify = select().value;
+    pickSource(el, 'Line In');
+    await el.updateComplete;
+    expect(calls(h)).toEqual([['media_player.select_source', { source: 'Line In' }, SPEAKER]]);
+    expect(($(el, 'hubb-media-browse') as HubbMediaBrowse).hidden).toBe(true);
+    // The speaker goes to Line In, Music Assistant plays again (asked by voice), then the speaker goes
+    // back to Line In: the option picked by hand must not keep Fonte from following.
+    const lineIn = () => house({ state: 'idle', attributes: { media_title: undefined, active_queue: undefined } }, { source: 'Line In' }, 'idle');
+    for (const [hass, value] of [
+      [lineIn(), 'Line In'],
+      [house({}, { source: 'DLNA' }), spotify],
+      [lineIn(), 'Line In'],
+    ] as const) {
+      el.hass = hass;
+      await el.updateComplete;
+      expect(select().value).toBe(value);
+    }
   });
 
   it('keeps the speaker alone when Music Assistant is down', async () => {
