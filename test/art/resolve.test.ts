@@ -58,6 +58,15 @@ describe('artFromName', () => {
     ['Show Room', 'loja'],
     ['Toilette', 'lavabo'],
     ['Cafeteria', 'copa'],
+    ['Roupeiro do Corredor', 'closet'],
+    ['Rouparia', 'closet'],
+    ['Financeiro', 'escritorio'],
+    ['Sala Apoio Financeiro', 'escritorio'],
+    ['Sala de Administração', 'escritorio'],
+    ['Administrativo', 'escritorio'],
+    ['Sala de Fotografia', 'fotografia'],
+    ['Estúdio Fotográfico', 'fotografia'],
+    ['Fotos', 'fotografia'],
   ])('draws %s as %s', (name, art) => {
     expect(artFromName(name)).toBe(art);
   });
@@ -77,6 +86,7 @@ describe('artFromIcon and artFor', () => {
     expect(artFromIcon('mdi:sofa')).toBe('sala');
     expect(artFromIcon('mdi:stove')).toBe('cozinha');
     expect(artFromIcon('mdi:bed')).toBe('quarto');
+    expect(artFromIcon('mdi:camera')).toBe('fotografia');
     expect(artFromIcon('mdi:rocket')).toBeNull();
     expect(artFromIcon('constructor')).toBeNull();
     expect(artFromIcon(null)).toBeNull();
@@ -104,6 +114,20 @@ describe('artFor in each kind of place', () => {
     expect(artFor('Sala de Espera', null, 'predio', { sala: 'consultorio' })).toBe('espera');
     expect(artFor('Recepção', null, 'predio', { sala: 'consultorio' })).toBe('recepcao');
     expect(artFor('Sala', null, 'casa', {})).toBe('sala');
+  });
+
+  it('lets the area icon speak before a generic word alone', () => {
+    expect(artFor('Sala VIP', 'mdi:sofa', 'predio', { sala: 'consultorio' })).toBe('sala');
+    expect(artFor('Sala de Preparo', 'mdi:medical-bag', 'predio', { sala: 'consultorio' })).toBe('procedimento');
+    expect(artFor('Quarto 12', 'mdi:bed-king', 'predio', { quarto: 'quarto-hotel' })).toBe('suite');
+  });
+
+  it('draws the rooms of a clinic that are no consulting room by their own word', () => {
+    const clinic = { sala: 'consultorio' } as const;
+    expect(artFor('Sala de Administração', null, 'predio', clinic)).toBe('escritorio');
+    expect(artFor('Sala Apoio Financeiro', null, 'predio', clinic)).toBe('escritorio');
+    expect(artFor('Sala de Descanso', null, 'predio', clinic)).toBe('sala');
+    expect(artFor('Sala de Fotografia', null, 'predio', clinic)).toBe('fotografia');
   });
 
   it('uses the default of the place when nothing matches', () => {

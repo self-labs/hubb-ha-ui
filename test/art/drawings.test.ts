@@ -5,9 +5,9 @@ import { ART_IDS, DRAWINGS, isArtId } from '../../src/art/drawings';
 const SHAPE = /<(path|rect|circle|ellipse)(\s+[a-z-]+="[^"]*")+\s*\/>/g;
 
 describe('room drawings', () => {
-  it('has the 59 approved drawings, one per id', () => {
-    expect(ART_IDS).toHaveLength(59);
-    expect(new Set(ART_IDS).size).toBe(59);
+  it('has the 60 drawings, one per id', () => {
+    expect(ART_IDS).toHaveLength(60);
+    expect(new Set(ART_IDS).size).toBe(60);
     expect(Object.keys(DRAWINGS).sort()).toEqual([...ART_IDS].sort());
   });
 

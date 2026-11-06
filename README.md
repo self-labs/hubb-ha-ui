@@ -63,7 +63,7 @@ described once, in Home Assistant itself, and one HACS update reaches every clie
 - Chips for what needs attention: the lights on (a tap lists them and turns them all off), an
   appliance running ("Lavadora · 40 min"), a window left open ("Janela aberta · Quarto", with the
   icon of a window, so it reads as a sensor).
-- The first four scenes, then one card per room with its photo or one of [59 drawings](docs/drawings.md),
+- The first four scenes, then one card per room with its photo or one of [60 drawings](docs/drawings.md),
   lit while a light is on, with "Ocupado" when someone is in.
 - **Smoke, gas, carbon monoxide, a leak or the alarm going off** turn into a red strip on top of every
   screen. It vibrates once, leads to the room and stays while the sensor is on. When the house is out

@@ -42,6 +42,7 @@ export const ART_IDS = [
   'estetica',
   'esterilizacao',
   'laboratorio',
+  'fotografia',
   'salao',
   'bar',
   'cozinha-industrial',
@@ -142,6 +143,8 @@ export const DRAWINGS: Record<ArtId, string> = {
     '<rect x="14" y="40" width="50" height="32" rx="4"/><circle cx="32" cy="56" r="10"/><path d="M52 46 v20 M8 72 H132 M8 72 V86 M132 72 V86 M82 72 v4 a8 8 0 0 0 8 8 h20 a8 8 0 0 0 8 -8 v-4 M100 72 V60 h8"/><rect x="80" y="14" width="44" height="6" rx="3" style="fill:var(--glow,none)"/>',
   laboratorio:
     '<path d="M30 40 V24 h12 V40 l14 30 a4 4 0 0 1 -4 6 h-32 a4 4 0 0 1 -4 -6 z M22 60 h28"/><path d="M60 58 h32 M66 58 V40 M76 58 V40 M86 58 V40"/><path d="M100 86 H132 M116 86 V70 M112 70 l12 -24 M106 76 h16 M120 40 l8 4"/><path d="M70 0 V8"/><circle cx="70" cy="13" r="5" style="fill:var(--glow,none)"/><path d="M4 86 H96"/>',
+  fotografia:
+    '<path d="M14 66 h22 M18 66 l-3 20 M32 66 l3 20"/><rect x="48" y="30" width="36" height="24" rx="4"/><circle cx="66" cy="42" r="7"/><path d="M55 30 v-5 h12 v5"/><path d="M66 54 V64 M66 64 L52 86 M66 64 L80 86 M66 64 V86"/><path d="M122 28 H128 V80 M128 80 L118 86 M128 80 L136 86"/><path d="M98 8 V48 L122 37 V19 z" style="fill:var(--glow,none)"/>',
   salao:
     '<ellipse cx="40" cy="58" rx="22" ry="5"/><path d="M40 63 V84 M30 84 H50 M10 44 V84 M10 66 H20"/><ellipse cx="104" cy="58" rx="22" ry="5"/><path d="M104 63 V84 M94 84 H114 M134 44 V84 M134 66 H124 M40 0 V18 M104 0 V18"/><path d="M30 28 a10 10 0 0 1 20 0 z M94 28 a10 10 0 0 1 20 0 z" style="fill:var(--glow,none)"/>',
   bar:

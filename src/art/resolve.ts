@@ -18,14 +18,14 @@ export function normalizeName(name: string): string {
  * because the first noun says what the room is ("Banheiro da Suíte" is a bathroom).
  */
 export const KEYWORDS: ReadonlyArray<readonly [ArtId, readonly string[]]> = [
-  ['sala', ['estar', 'living']],
+  ['sala', ['estar', 'living', 'descanso']],
   ['jantar', ['jantar']],
   ['tv', ['tv', 'home theater', 'cinema']],
   ['quarto', ['dormitorio']],
   ['suite', ['suite', 'master']],
   ['crianca', ['crianca', 'bebe', 'infantil', 'kids']],
   ['hospedes', ['hospede', 'quarto de visita']],
-  ['closet', ['closet', 'vestir']],
+  ['closet', ['closet', 'vestir', 'roupeiro', 'rouparia']],
   ['cozinha', ['cozinha']],
   ['copa', ['copa', 'cafe', 'cafeteria']],
   ['gourmet', ['gourmet', 'churrasqueira', 'churrasco']],
@@ -36,7 +36,7 @@ export const KEYWORDS: ReadonlyArray<readonly [ArtId, readonly string[]]> = [
   ['banheiro', ['banheiro', 'wc', 'ducha']],
   ['lavabo', ['lavabo', 'toalete', 'toilette']],
   ['lavanderia', ['lavanderia', 'servico']],
-  ['escritorio', ['escritorio', 'home office', 'estudio']],
+  ['escritorio', ['escritorio', 'home office', 'estudio', 'financeiro', 'administracao', 'administrativo']],
   ['biblioteca', ['biblioteca', 'leitura']],
   ['academia', ['academia', 'fitness', 'ginastica']],
   ['adega', ['adega', 'vinho']],
@@ -55,6 +55,7 @@ export const KEYWORDS: ReadonlyArray<readonly [ArtId, readonly string[]]> = [
   ['estetica', ['estetica', 'facial', 'beleza', 'laser']],
   ['esterilizacao', ['esterilizacao', 'expurgo', 'cme']],
   ['laboratorio', ['laboratorio', 'analise']],
+  ['fotografia', ['fotografia', 'foto', 'estudio fotografico']],
   ['salao', ['mesa', 'restaurante']],
   ['bar', ['bar', 'balcao', 'drink']],
   ['cozinha-industrial', ['cozinha industrial', 'producao']],
@@ -79,8 +80,9 @@ export const KEYWORDS: ReadonlyArray<readonly [ArtId, readonly string[]]> = [
 ];
 
 /**
- * Words that only say "a room". They count only when nothing else matched: "Sala de Jantar" is a
- * dining room, "Sala" alone is a living room.
+ * Words that only say "a room". They count only when nothing else matched, the area icon included:
+ * "Sala de Jantar" is a dining room, "Sala" alone is a living room, and a clinic's "Sala VIP" with a
+ * sofa icon is a lounge, not the consulting room a clinic's "Sala 3" is.
  */
 const GENERIC: ReadonlyArray<readonly [ArtId, string]> = [
   ['sala', 'sala'],
@@ -199,6 +201,8 @@ const ICONS: Readonly<Record<string, ArtId>> = {
   'mdi:flask-outline': 'laboratorio',
   'mdi:microscope': 'laboratorio',
   'mdi:test-tube': 'laboratorio',
+  'mdi:camera': 'fotografia',
+  'mdi:camera-outline': 'fotografia',
   'mdi:silverware': 'salao',
   'mdi:silverware-variant': 'salao',
   'mdi:food': 'salao',
@@ -267,9 +271,12 @@ function find(words: readonly string[], phrase: readonly string[]): number {
   return -1;
 }
 
-/** `meaning` says what a generic word alone draws in this kind of place (src/model/profiles.ts). */
-export function artFromName(name: string, meaning: Readonly<Partial<Record<string, ArtId>>> = {}): ArtId | null {
-  const words = normalizeName(name).split(' ').filter(Boolean);
+type Meaning = Readonly<Partial<Record<string, ArtId>>>;
+
+const wordsOf = (name: string): string[] => normalizeName(name).split(' ').filter(Boolean);
+
+/** The drawing the specific words of a name give, generic words left out. */
+function artFromKeywords(words: readonly string[]): ArtId | null {
   let best: { art: ArtId; len: number; at: number } | null = null;
   for (const k of TABLE) {
     const at = find(words, k.words);
@@ -278,7 +285,11 @@ export function artFromName(name: string, meaning: Readonly<Partial<Record<strin
       best = { art: k.art, len: k.words.length, at };
     }
   }
-  if (best) return best.art;
+  return best?.art ?? null;
+}
+
+/** `meaning` says what a generic word alone draws in this kind of place (src/model/profiles.ts). */
+function artFromGeneric(words: readonly string[], meaning: Meaning): ArtId | null {
   let generic: { art: ArtId; at: number } | null = null;
   for (const [art, word] of GENERIC) {
     const at = find(words, [word]);
@@ -287,16 +298,25 @@ export function artFromName(name: string, meaning: Readonly<Partial<Record<strin
   return generic?.art ?? null;
 }
 
+export function artFromName(name: string, meaning: Meaning = {}): ArtId | null {
+  const words = wordsOf(name);
+  return artFromKeywords(words) ?? artFromGeneric(words, meaning);
+}
+
 export function artFromIcon(icon: string | null | undefined): ArtId | null {
   return icon && Object.hasOwn(ICONS, icon) ? ICONS[icon]! : null;
 }
 
-/** The drawing for an area: by its name, else by its icon, else the default of the place. */
+/**
+ * The drawing for an area: by the specific words of its name, else by its icon, else by a generic
+ * word of its name, else the default of the place.
+ */
 export function artFor(
   name: string,
   icon: string | null | undefined,
   fallback: ArtId = 'casa',
-  meaning: Readonly<Partial<Record<string, ArtId>>> = {},
+  meaning: Meaning = {},
 ): ArtId {
-  return artFromName(name, meaning) ?? artFromIcon(icon) ?? fallback;
+  const words = wordsOf(name);
+  return artFromKeywords(words) ?? artFromIcon(icon) ?? artFromGeneric(words, meaning) ?? fallback;
 }

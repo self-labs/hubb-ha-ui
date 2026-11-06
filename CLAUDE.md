@@ -39,7 +39,7 @@ src/
                        navigate, climate and media (feature bits and the words of a state), energy
                        (watts, today's kWh from the statistics)
   theme/               CSS tokens (screens only) and the embedded Manrope font
-  art/                 the 59 room drawings, the name/icon resolver, the render helper
+  art/                 the 60 room drawings, the name/icon resolver, the render helper
   editing.ts           the edit mode (module state: it survives the view rebuild after a save)
   sheets.ts, layout.ts, selection.ts, actions/rest.ts, server-clock.ts, actions/climate-target.ts
                        module state too: the open sheets, the layout and size of the screen, the

@@ -8,6 +8,22 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### Added
+
+- A drawing for a photo studio, `fotografia`: a camera on a tripod and a softbox that lights up. The
+  area name picks it with `fotografia`, `foto` or `estudio fotografico`, and the icon with
+  `mdi:camera`. There are 60 drawings now.
+- More words for drawings that already exist: `roupeiro` and `rouparia` draw a closet, `financeiro`,
+  `administracao` and `administrativo` an office, and `descanso` a living room. "Roupeiro do
+  Corredor" was drawn as a corridor, and in a clinic "Sala de Administração" was a consulting room.
+
+### Fixed
+
+- The area icon now comes before the words that only say "a room" ("Sala", "Quarto", "Salão"). In
+  a clinic every "Sala" with a word the panel does not know was drawn as a consulting room, even when
+  the icon said otherwise: "Sala VIP" with `mdi:sofa` and "Sala de Preparo" with `mdi:medical-bag`
+  now show a lounge and a procedure room. A "Sala 3" with no icon is still a consulting room.
+
 ## [2026.10.27] - 2026-10-30
 
 ### Fixed

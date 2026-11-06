@@ -1,9 +1,9 @@
 # Room drawings
 
-A room with no photo shows one of these 59 drawings on the right of its card and of its header.
+A room with no photo shows one of these 60 drawings on the right of its card and of its header.
 The lamp in the drawing lights up in amber while the room has a light on.
 
-![The 59 drawings, each with its id](images/drawings.png)
+![The 60 drawings, each with its id](images/drawings.png)
 
 ## How the panel picks one
 
@@ -14,12 +14,14 @@ zones. The drawing follows it:
 2. The words of the area name, compared in lowercase, without accents and without numbers
    ("Consultório 3" reads `consultorio`). A word also matches in the plural: "s" or "es" added
    ("Vinhos", "Bares"), "ão" made "ões" ("Reuniões"), "m" made "ns" ("Jardins"). The longest match
-   wins; on a tie, the word nearer the start ("Banheiro da Suíte" is a bathroom). `sala`, `quarto` and `salao` count only when nothing else matched ("Sala de Jantar"
-   is a dining room), and the kind of place (`profile`) decides what they draw alone: in a
-   `clinic` "Sala 3" is a `consultorio`, in an `office` an `escritorio`; in a `hotel` "Quarto 12"
-   is a `quarto-hotel`; in a `salon` "Salão" is a `salao-beleza`.
-3. The area icon (`mdi:sofa`, `mdi:stove`, `mdi:bed` and 155 more, listed in `src/art/resolve.ts`).
-4. `casa` for a home, `predio` for every other kind of place.
+   wins; on a tie, the word nearer the start ("Banheiro da Suíte" is a bathroom).
+3. The area icon (`mdi:sofa`, `mdi:stove`, `mdi:bed` and 157 more, listed in `src/art/resolve.ts`).
+4. `sala`, `quarto` and `salao` in the name, which count only when nothing above matched ("Sala de
+   Jantar" is a dining room, and a "Sala VIP" with `mdi:sofa` is a lounge). The kind of place
+   (`profile`) decides what they draw alone: in a `clinic` "Sala 3" is a `consultorio`, in an
+   `office` an `escritorio`; in a `hotel` "Quarto 12" is a `quarto-hotel`; in a `salon` "Salão" is
+   a `salao-beleza`.
+5. `casa` for a home, `predio` for every other kind of place.
 
 To use another drawing:
 
@@ -38,14 +40,14 @@ An id that does not exist is ignored and the room keeps the drawing its name giv
 
 | Id | Room | Words in the area name |
 | :--- | :--- | :--- |
-| `sala` | Sala de estar | `estar`, `living`, `sala` (alone) |
+| `sala` | Sala de estar | `estar`, `living`, `descanso`, `sala` (alone) |
 | `jantar` | Sala de jantar | `jantar` |
 | `tv` | Sala de TV | `tv`, `home theater`, `cinema` |
 | `quarto` | Quarto | `dormitorio`, `quarto` (alone) |
 | `suite` | Suíte | `suite`, `master` |
 | `crianca` | Quarto infantil | `crianca`, `bebe`, `infantil`, `kids` |
 | `hospedes` | Quarto de hóspedes | `hospede`, `quarto de visita` |
-| `closet` | Closet | `closet`, `vestir` |
+| `closet` | Closet | `closet`, `vestir`, `roupeiro`, `rouparia` |
 | `cozinha` | Cozinha | `cozinha` |
 | `copa` | Copa | `copa`, `cafe`, `cafeteria` |
 | `gourmet` | Área gourmet | `gourmet`, `churrasqueira`, `churrasco` |
@@ -56,7 +58,7 @@ An id that does not exist is ignored and the room keeps the drawing its name giv
 | `banheiro` | Banheiro | `banheiro`, `wc`, `ducha` |
 | `lavabo` | Lavabo | `lavabo`, `toalete`, `toilette` |
 | `lavanderia` | Lavanderia | `lavanderia`, `servico` |
-| `escritorio` | Escritório | `escritorio`, `home office`, `estudio` |
+| `escritorio` | Escritório | `escritorio`, `home office`, `estudio`, `financeiro`, `administracao`, `administrativo` |
 | `biblioteca` | Biblioteca | `biblioteca`, `leitura` |
 | `academia` | Academia | `academia`, `fitness`, `ginastica` |
 | `adega` | Adega | `adega`, `vinho` |
@@ -79,6 +81,7 @@ An id that does not exist is ignored and the room keeps the drawing its name giv
 | `estetica` | Sala de estética | `estetica`, `facial`, `beleza`, `laser` |
 | `esterilizacao` | Esterilização | `esterilizacao`, `expurgo`, `cme` |
 | `laboratorio` | Laboratório | `laboratorio`, `analise` |
+| `fotografia` | Estúdio de fotografia | `fotografia`, `foto`, `estudio fotografico` |
 
 ### Food and drink
 
