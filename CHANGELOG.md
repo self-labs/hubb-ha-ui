@@ -10,7 +10,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.11.1] - 2026-11-06
 
-### Added
+### ✨ Added
 
 - A drawing for a photo studio, `fotografia`: a camera on a tripod and a softbox that lights up. The
   area name picks it with `fotografia`, `foto` or `estudio fotografico`, and the icon with
@@ -19,7 +19,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   `administracao` and `administrativo` an office, and `descanso` a living room. "Roupeiro do
   Corredor" was drawn as a corridor, and in a clinic "Sala de Administração" was a consulting room.
 
-### Changed
+### 🔧 Changed
 
 - **Tocar algo** (the search, Tocadas recentemente and Playlists) shows only while Fonte is on
   Spotify, since all of it plays from the house's Spotify. On a TV app, an HDMI or Line In it sat on
@@ -28,7 +28,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - The notes of each release on GitHub, which HACS shows in its update dialog, are now that version's
   section of this changelog, instead of the commit message.
 
-### Fixed
+### 🐛 Fixed
 
 - The area icon now comes before the words that only say "a room" ("Sala", "Quarto", "Salão"). In
   a clinic every "Sala" with a word the panel does not know was drawn as a consulting room, even when
@@ -43,7 +43,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.27] - 2026-10-30
 
-### Fixed
+### 🐛 Fixed
 
 - A speaker played by Music Assistant keeps its play button on the card after a long pause. Music
   Assistant stops a queue 30 s after a pause and leaves the song loaded; the card then showed only
@@ -52,7 +52,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.26] - 2026-10-29
 
-### Changed
+### 🔧 Changed
 
 - The sentence at the top of the home screen puts its grey part on the line below. "2 luzes
   acesas em 2 ambientes." stays on the first line and "Quarto e Escritório." goes on the second;
@@ -60,14 +60,14 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.25] - 2026-10-28
 
-### Added
+### ✨ Added
 
 - Revisar o painel removes the errors of the YAML it lists. Each one (an entity gone from Home
   Assistant, a gate sensor that no longer exists, a value the panel cannot use) has **Remover**, and
   two or more have **Remover todos**, one save with Desfazer. Until now the only way out was the raw
   configuration editor, so a camera or script deleted from Home Assistant stayed on the list for good.
 
-### Fixed
+### 🐛 Fixed
 
 - Revisar o painel no longer suggests Portão for a switch that reads a contact ("Sensor Portão",
   "Contato", "Fim de curso", "Reed"), such as a MINIR4 wired to the reed of the gate: it suggests Não
@@ -77,7 +77,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.24] - 2026-10-27
 
-### Fixed
+### 🐛 Fixed
 
 - Não mostrar followed by Mostrar gives an item back as it was. A pulse relay shown as Portão came
   back as a plain switch, left only in Revisar and gone from its room and from Segurança, and a gate
@@ -90,7 +90,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.23] - 2026-10-27
 
-### Fixed
+### 🐛 Fixed
 
 - A speaker left paused for a while (Music Assistant lets it go after 30 s) said "Ligado · Music
   Assistant Queue" on its card, and the TV playing with it only "Ligado"; both now name the song
@@ -98,14 +98,14 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.22] - 2026-10-24
 
-### Changed
+### 🔧 Changed
 
 - **Tocar algo** keeps its list while the resident types: the search starts at the third letter, and
   while the answer comes "Buscando…" shows over what was there (the last answer, faded, or the songs
   played last and the playlists). The list went blank at the first letter.
 - The sheets scroll with no scroll bar, like every screen of the panel.
 
-### Fixed
+### 🐛 Fixed
 
 - A speaker playing through Music Assistant still jumped to "DLNA" with no time when paused after
   Próxima, and back on play: by DLNA the speaker gives the name of the song late or cut ("Feel So
@@ -113,7 +113,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.21] - 2026-10-23
 
-### Changed
+### 🔧 Changed
 
 - An appliance switched off offers **Iniciar** alone, no longer Ligar beside it: Iniciar already
   switches it on first, and an Electrolux washer runs its program on Ligar alone, so the two buttons
@@ -130,7 +130,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   the mode picked, the icon and the card. What the installer chose to show (modes, settings,
   functions) still holds.
 
-### Fixed
+### 🐛 Fixed
 
 - An Echo set up through Home Assistant's own **Alexa Devices** integration still showed as a speaker
   card: only the Echos of Alexa Media Player left the panel. Both are the microphone of the house now.
@@ -146,7 +146,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.20] - 2026-10-23
 
-### Added
+### ✨ Added
 
 - **Mídia** in the bar, with two or more speakers: every room with sound in one place, how many play,
   **Pausar tudo**, and the sheet of each speaker right there. `tabs.media.hidden_for` hides it.
@@ -158,21 +158,21 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - `entities.<id>.music_assistant` forces the pair of a speaker and its Music Assistant player, or
   turns it off (`''`); the role `media` brings back a player the panel leaves out, such as an Echo.
 
-### Changed
+### 🔧 Changed
 
 - **One card per speaker:** the second player Music Assistant gives every speaker no longer shows as
   a card of its own; the speaker's card shows and commands what Music Assistant plays. Fonte has one
   **Spotify**, which resumes Music Assistant in that room (or opens Tocar algo with nothing to resume).
 - **Echos** are off the panel: they are the microphone of the house.
 
-### Fixed
+### 🐛 Fixed
 
 - A speaker playing through Music Assistant showed no time and could not go to the next song or
   shuffle: by DLNA it only sees a stream, and those commands now go to Music Assistant.
 
 ## [2026.10.19] - 2026-10-22
 
-### Fixed
+### 🐛 Fixed
 
 - A second tap on **Iniciar** while it switched a washer on could turn it off: once the washer said
   "Pronta para iniciar", the row became Iniciar and Desligar, with Desligar where Iniciar had been.
@@ -181,7 +181,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.18] - 2026-10-22
 
-### Added
+### ✨ Added
 
 - **Tablet layout.** On a screen 600 px or wider the panel spreads out: upright, three rooms and four
   scenes a row; lying down (900 by 600 px or more), a column on the left with the clock, the weather
@@ -209,7 +209,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   each by its name and room, in red. The strip of an alert with no room leads there, and the tab
   used to show nothing of it.
 
-### Changed
+### 🔧 Changed
 
 - On a tablet, a scene with no size chosen is Pequeno (four a row) instead of half the row.
 - A player playing says what plays ("Pieces · KVSH"), not "Tocando" before it: the card already shows
@@ -222,7 +222,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - An air conditioner, a fan, a curtain, a TV, a gate or a lock named only after its room (the device
   "Sala" in the Sala) shows what it is ("Ar", "Cortina 1"), like lights and outlets do.
 
-### Fixed
+### 🐛 Fixed
 
 - **Iniciar** did nothing on an Electrolux washer switched off: it says "Idle" after Desligar and
   ignores Iniciar until Ligar, and the sheet took Idle for switched on. Idle now reads **Desligada**,
@@ -267,20 +267,20 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.17] - 2026-10-19
 
-### Added
+### ✨ Added
 
 - **Canal of each speaker** on the leader's sheet, in Tocar junto, and **Formar par estéreo** for a
   group of two (left on the leader, right on the other).
 - A group mark next to the name of a grouped speaker, which says who it plays with.
 
-### Changed
+### 🔧 Changed
 
 - The card of a speaker in a group shows the song again, not "Tocando junto com ..."; a line longer
   than the card scrolls to its end and back (still when the phone asks for less motion).
 - The sheet fits a phone better: a smaller cover and no "Tocando" under the music, which the pause
   button already says.
 
-### Fixed
+### 🐛 Fixed
 
 - WiiM's "Group Master" player showed as a second card of the leader, with the same music.
 - The sheet of a speaker in someone else's group showed its own stale repeat and shuffle (seen on
@@ -294,7 +294,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.16] - 2026-10-19
 
-### Added
+### ✨ Added
 
 - **Mídia with the music:** the card shows the cover of what plays and bars that move while it
   plays (still when the phone asks for less motion), and says "Tocando junto com ..." in a group.
@@ -308,14 +308,14 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   integration, each with a switch that groups them in Home Assistant. A speaker in another group
   offers only Sair do grupo, naming the leader; the leader adds Volume de todas.
 
-### Fixed
+### 🐛 Fixed
 
 - Quick taps on − or + of the volume went from the volume Home Assistant had not updated yet, so
   three taps moved it one step. They now add up from the target and leave as one command.
 
 ## [2026.10.15] - 2026-10-16
 
-### Fixed
+### 🐛 Fixed
 
 - Each **Mover** in Revisar o painel closed "Mostrar interruptores sem cômodo" and sent the page back
   to the top: Home Assistant makes a new screen after every registry change. The open list, the rooms
@@ -323,7 +323,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.14] - 2026-10-16
 
-### Added
+### ✨ Added
 
 - **Cômodo** in Revisar o painel: an item with no room gets a list of the rooms and **Mover**, and
   the choice is saved in Home Assistant as the area of that entity, with Desfazer, never as the area
@@ -332,7 +332,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   device (they stay out of the count on the wrench), so the channels of a board get their room there
   too. The notices of the review and of the empty home say so.
 
-### Changed
+### 🔧 Changed
 
 - The README says how to make the panel everyone's default dashboard (**Set as default** on
   Settings → Dashboards), so that residents open Home Assistant straight on it, also with
@@ -340,7 +340,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.13] - 2026-10-16
 
-### Added
+### ✨ Added
 
 - **Residents see the panel alone:** with [kiosk-mode](https://github.com/NemesisRE/kiosk-mode)
   installed from HACS, the header and the sidebar of Home Assistant are hidden for every user who is
@@ -355,7 +355,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   Sensores of the gate's room only in edit mode, and still counts as open on the home and in
   Segurança; a cover used as the sensor leaves Acesso.
 
-### Fixed
+### 🐛 Fixed
 
 - The README said the HACS button learns the address of Home Assistant from **Settings → System →
   Network**. my.home-assistant.io keeps it in the browser (`localStorage`, read in its code) and never
@@ -363,13 +363,13 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.12] - 2026-10-15
 
-### Added
+### ✨ Added
 
 - How wide each card is: **Tamanho** in the editor of an item and on each scene of Cenas in edit
   mode, Pequeno, Médio or Grande (a third, half or the whole row; `entities.<id>.size`). Cards with
   buttons or a slide (air conditioner, TV, gate, lock, appliance) always take the whole row.
 
-### Changed
+### 🔧 Changed
 
 - The scenes of Cenas go two to a row instead of one, at one height per row, and a small one shows as
   a tile, like on the home. An appliance card takes the whole row instead of two thirds.
@@ -378,7 +378,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.11] - 2026-10-15
 
-### Added
+### ✨ Added
 
 - Who sees the tabs: **Quem vê esta aba** on Cenas and Segurança in edit mode, and **Quem vê** on each
   scene, camera and alarm (`tabs.<tab>.hidden_for`). A tab with nothing for someone leaves their
@@ -390,7 +390,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   works). A scene leaves Cenas with Não mostrar, and "Mostrar como" offers Cena for a script of a
   room. On Segurança the edit mode switches nothing: the alarm and the cameras become rows.
 
-### Fixed
+### 🐛 Fixed
 
 - Two quick changes in the edit mode (two scenes added, two rooms moved) no longer undo each other:
   the saves of the dashboard go one at a time.
@@ -400,7 +400,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.10] - 2026-10-15
 
-### Added
+### ✨ Added
 
 - Who sees what: a room or an item can be hidden for chosen users of Home Assistant (`hidden_for`),
   picked on the panel (**Quem vê** on a room card in edit mode, **Quem vê este item** in the item
@@ -416,14 +416,14 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   and the review, since they belong to the sheet. The editor of the air conditioner picks them too
   (`entities.<id>.hide`).
 
-### Changed
+### 🔧 Changed
 
 - The target of an air conditioner moves by whole degrees in every mode, like a remote control, even
   when the integration allows half degrees (an LG in Auto takes 18,5 and keeps 18, tested on a real
   unit); a half degree set elsewhere goes to the next whole one. − and + never move the wrong way, as
   when the device sits below the lowest target Home Assistant allows.
 
-### Fixed
+### 🐛 Fixed
 
 - The sheet of an air conditioner no longer sends a target after the mode changed to one that takes
   none: picking Ventilar right after − or + made LG answer "Command not supported in FAN". A blink of
@@ -434,7 +434,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.9] - 2026-10-14
 
-### Added
+### ✨ Added
 
 - `npm run preview`: the real bundle over a made-up house (`dev/`), to see every screen in a
   browser and to take the screenshots of the README.
@@ -449,7 +449,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - The editor of an air conditioner picks the modes and the settings its sheet offers
   (`entities.<id>.modes`, `entities.<id>.controls`); it offers only the settings the sheet would show.
 
-### Changed
+### 🔧 Changed
 
 - The sheet of an air conditioner is compact: − and + with the power button on top, the modes in
   one row (Desligado is the power button now), and ventilation, swing and preset closed under "Mais
@@ -471,7 +471,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - The README says how to prepare a house for the device blocks, the sensors, the consumption and
   the remote control of an appliance, and CLAUDE.md lists the release steps in order.
 
-### Fixed
+### 🐛 Fixed
 
 - On an iPhone, a long press opened a sheet and letting go closed it again: the click of the release
   landed on the dark backdrop. The backdrop now closes the sheet only when the touch began on it, and
@@ -490,7 +490,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.8] - 2026-10-14
 
-### Added
+### ✨ Added
 
 - **Acesso** on the room page, first of all blocks: a gate (`cover` of class gate, garage or door,
   or with no class and named "portão"), a lock, or a pulse relay, button or script with the new
@@ -533,7 +533,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   ("Ligada · 120 W"); a long press opens Consumo with Agora and Hoje. `entities.<id>.power` and
   `.energy` name the sensors when the panel cannot match them.
 
-### Changed
+### 🔧 Changed
 
 - The Segurança tab no longer shows dimmed as "Em breve": it is there when the house has something
   for it, and gone when it has not. The `seguranca` view sits right after the scenes.
@@ -549,7 +549,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - A name drops the word that tied it to the room: "Ar da sala" in the Sala reads "Ar", "Luz do
   quarto" in the Quarto reads "Luz".
 
-### Fixed
+### 🐛 Fixed
 
 - Saving from "Revisar o painel" or from the edit mode no longer throws you onto another screen
   (the last room) when the change makes a room appear or go: every view keeps its place, with one
@@ -557,7 +557,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.7] - 2026-10-13
 
-### Added
+### ✨ Added
 
 - The edit mode, for administrators: a pencil on the home and on each room page. On the home, arrows
   change the order of the rooms and "Esconder" takes a room off the home (hidden rooms come back
@@ -567,7 +567,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   configuration, the panel rebuilds itself, and "Desfazer" takes it back for 5 seconds.
 - `entities.<id>.order`: the place of an item inside its block.
 
-### Changed
+### 🔧 Changed
 
 - "Revisar o painel" saves what you tap: a role goes straight into the dashboard configuration
   and the panel rebuilds itself, with "Desfazer" for 5 seconds; "Aplicar sugestões" (it was
@@ -582,7 +582,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   "Continuar", like the washer itself.
 - "Luminária", "plafon", "sanca" and "teto" in a name suggest the light role.
 
-### Fixed
+### 🐛 Fixed
 
 - The review no longer lists or watches what sits in a room hidden with `rooms.<area>.hidden`.
 - An appliance keeps its state sensor when its device name holds a word like "Link", and `hide`
@@ -598,7 +598,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.6] - 2026-10-13
 
-### Changed
+### 🔧 Changed
 
 - The commands of the appliance sheet sit on one row, as many columns as buttons (up to three):
   Iniciar, Desligar and Parar side by side.
@@ -609,7 +609,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   the Banheiro) shows what it is instead: "Luz", "Tomada" or "Equipamento", numbered when the
   room has several ("Luz 1", "Luz 2"). A `name` set in the configuration is kept as it is.
 
-### Fixed
+### 🐛 Fixed
 
 - Lights and outlets named after their device (an empty name in the registry, as Sonoff and
   "Show as" entities have) lost their label: the cards read only "Apagada" and the "Luzes
@@ -617,7 +617,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.5] - 2026-10-13
 
-### Fixed
+### 🐛 Fixed
 
 - "Revisar o painel" no longer lists the switches that have no class and no room (AdGuard,
   containers and the like): no role could put them on the panel, and on a real house they buried
@@ -625,7 +625,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.4] - 2026-10-13
 
-### Added
+### ✨ Added
 
 - Roles from the dashboard configuration (`entities.<entity_id>.role`): a `switch` given the `light`
   role counts as a light everywhere (card, "Apagar tudo", "Apagar todas", the home sentence and
@@ -658,7 +658,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - A value the panel does not know (a role, a profile, a drawing, a floor, an area, an icon without
   `mdi:`) is ignored and listed on "Revisar o painel" instead of breaking the dashboard.
 
-### Changed
+### 🔧 Changed
 
 - A `switch` with no class and no role still stays out of the panel, and now waits on "Revisar o
   painel" instead of disappearing in silence.
@@ -666,7 +666,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.3] - 2026-10-12
 
-### Added
+### ✨ Added
 
 - Room drawings. A room with no photo shows a line drawing on the right of its card and of its
   header, picked from the area name (59 kinds of room for homes, clinics, restaurants, offices,
@@ -681,7 +681,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   equipamentos" on its room page, and a room with only outlets now appears. "Apagar tudo",
   "Apagar todas" and Desfazer never touch outlets.
 
-### Changed
+### 🔧 Changed
 
 - README rewritten in the house layout: badges, screenshots of the sample house in both themes,
   one-click buttons to open the repository in HACS and the dashboards page, the options table and
@@ -696,7 +696,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   so both pass AA contrast. The first Areia grey (`#6e7a82`) failed it on every light surface, and
   white on the amber was 2.2:1.
 
-### Fixed
+### 🐛 Fixed
 
 - A late confirmation ends "Sem resposta" at once, instead of four seconds later.
 - A second tap that races the first no longer passes for done on the old state: the tile waits for
@@ -727,12 +727,12 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.2] - 2026-10-10
 
-### Changed
+### 🔧 Changed
 
 - The room page opens with a compact header: back arrow, room name and status on one row, and
   the tall hero only when the area has a photo.
 
-### Fixed
+### 🐛 Fixed
 
 - Content started too far from the top on phones: the screens added the status-bar safe area on
   top of Home Assistant's own.
@@ -743,7 +743,7 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [2026.10.1] - 2026-10-10
 
-### Added
+### ✨ Added
 
 - Dashboard strategy `custom:hubb` that builds the home, room and scenes screens from Home
   Assistant areas, with no card YAML per client.
