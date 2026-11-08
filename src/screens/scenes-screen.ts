@@ -75,7 +75,7 @@ export class HubbScenesScreen extends HubbScreen {
     });
   }
 
-  /** The room of a scene: '' for the one of Home Assistant, `none` for only on Cenas, or an area. */
+  /** The room of a scene: '' for Padrão (its room in Home Assistant), `none` for only on Cenas, or an area. */
   #moveScene(scene: SceneItem, value: string): void {
     const hass = this.hass;
     if (!hass) return;
@@ -94,6 +94,13 @@ export class HubbScenesScreen extends HubbScreen {
     if (!hass) return;
     if (!value) return this.#saveScene(scene, { follows: undefined }, EDIT.followsCleared(scene.name));
     this.#saveScene(scene, { follows: value }, EDIT.followsSaved(scene.name, this.#lightName(hass, value)));
+  }
+
+  /** The room a scene has in Home Assistant, whatever the panel picked. */
+  #haRoom(scene: SceneItem): string | null {
+    const hass = this.hass;
+    const areaId = hass ? areaOf(hass, scene.entityId) : null;
+    return areaId ? (hass?.areas[areaId]?.name ?? null) : null;
   }
 
   /** A light as the panel names it: the name given in the editor, else the one of Home Assistant. */
@@ -137,7 +144,7 @@ export class HubbScenesScreen extends HubbScreen {
         <label for=${roomId}>${EDIT.room}</label>
         <select id=${roomId} class="scene-room" @change=${(e: Event) => this.#moveScene(scene, (e.target as HTMLSelectElement).value)}>
           ${unlisted(room, ['', NO_ROOM, ...choices.areas.map((a) => a.areaId)], (x) => x)}
-          <option value="" ?selected=${room === ''}>${EDIT.sceneRoomHa}</option>
+          <option value="" ?selected=${room === ''}>${EDIT.sceneRoomDefault(this.#haRoom(scene))}</option>
           <option value=${NO_ROOM} ?selected=${room === NO_ROOM}>${EDIT.sceneRoomNone}</option>
           ${choices.areas.map((a) => html`<option value=${a.areaId} ?selected=${room === a.areaId}>${a.name}</option>`)}
         </select>

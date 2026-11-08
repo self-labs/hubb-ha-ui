@@ -260,7 +260,7 @@ never rests.
   Rename an item, move it to another room, change how it shows, reorder it, pick how wide its card
   is (**Pequeno**, **Médio** or **Grande**: a third, half or the whole row; a scene of Cenas too),
   hide a room or a sensor, pick the modes of an air conditioner. On Cenas, each scene also takes its
-  room (**Cômodo**: the one of Home Assistant, none, or any room), the light or switch its button
+  room (**Cômodo**: **Padrão**, its room in Home Assistant; none; or any room), the light or switch its button
   follows (**Acompanha**) and a place on the home screen (**Fixar na tela inicial**, four at most).
   Every change goes into the dashboard configuration with **Desfazer** for 5 s.
 - **Who sees what:** a room or an item can be hidden for chosen users (**Quem vê**), see

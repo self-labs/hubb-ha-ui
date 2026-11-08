@@ -12,9 +12,9 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 - A room page shows its scenes in one strip under **Apagar tudo** that scrolls sideways, so many
   scenes never push the lights down. A room with only scenes now shows too.
-- On Cenas, in the edit mode, each scene takes its room: the one of Home Assistant, any other room,
-  or none (only on Cenas), so a scene can live in a room that is not the one of its keypad. Picking a
-  room hidden for someone says that they stop seeing the scene.
+- On Cenas, in the edit mode, each scene takes its room: **Padrão** (its room in Home Assistant), any
+  other room, or none (only on Cenas), so a scene can live in a room that is not the one of its keypad.
+  Picking a room hidden for someone says that they stop seeing the scene.
 - A scene's button can follow a light or a switch (**Acompanha**): it lights up amber while that
   one is on, on the home, in its room and on Cenas.
 - The installer picks the scenes of the home screen (**Fixar na tela inicial**, four at most).

@@ -80,7 +80,7 @@ describe('a scene in the edit mode of Cenas', () => {
     const el = await cenas(h, {});
     const select = rowOf(el, 'Atendimento').querySelector('select.scene-room') as HTMLSelectElement;
     expect([...select.options].map((o) => [o.value, o.textContent!.trim()])).toEqual([
-      ['', EDIT.sceneRoomHa],
+      ['', 'Padrão (sem cômodo)'],
       ['none', EDIT.sceneRoomNone],
       ['consultorio_1', 'Consultório 1'],
       ['recepcao', 'Recepção'],
@@ -90,7 +90,20 @@ describe('a scene in the edit mode of Cenas', () => {
     expect(await toastText(el)).toBe(EDIT.movedTo('Atendimento', 'Consultório 1'));
   });
 
-  it('saves none, and the room of Home Assistant takes the pick away', async () => {
+  it('says which room Padrão is: the one the scene has in Home Assistant', async () => {
+    const h = admin(
+      makeHass({
+        areas: [area('recepcao', 'Recepção')],
+        entities: [{ ...scene('atendimento', 'Atendimento'), area_id: 'recepcao' }],
+      }),
+    );
+    withDashboard(h, { strategy: { type: 'custom:hubb' } });
+    const el = await cenas(h, {});
+    const select = rowOf(el, 'Atendimento').querySelector('select.scene-room') as HTMLSelectElement;
+    expect(select.options[0]!.textContent!.trim()).toBe('Padrão (Recepção)');
+  });
+
+  it('saves none, and Padrão takes the pick away', async () => {
     const h = clinic();
     const saves = withDashboard(h, { strategy: { type: 'custom:hubb', entities: { 'scene.atendimento': { area: 'recepcao' } } } });
     const el = await cenas(h, { entities: { 'scene.atendimento': { area: 'recepcao' } } });

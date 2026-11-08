@@ -534,9 +534,10 @@ export const EDIT = {
   nameBack: 'Voltou ao nome do Home Assistant.',
   movedTo: (name: string, room: string): string => `${name} foi para ${room}.`,
   /** A scene in the edit mode of Cenas: its room, the light it follows, the home (spec Cenas no cômodo). */
-  sceneRoomHa: 'O do Home Assistant',
+  /** The room the scene has in Home Assistant, which holds until the installer picks another. */
+  sceneRoomDefault: (room: string | null): string => (room ? `Padrão (${room})` : 'Padrão (sem cômodo)'),
   sceneRoomNone: 'Nenhum, só em Cenas',
-  sceneRoomBack: (name: string): string => `${name} voltou ao cômodo do Home Assistant.`,
+  sceneRoomBack: (name: string): string => `${name} voltou ao cômodo padrão.`,
   sceneRoomOff: (name: string): string => `${name} fica só em Cenas.`,
   sceneRoomHiddenFor: (room: string): string => `Quem não vê ${room} deixa de ver esta cena.`,
   follows: 'Acompanha',
