@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HubbToast } from '../../src/elements/toast';
+import { navigate } from '../../src/actions/navigate';
 import { reportArea, resetLayoutForTests } from '../../src/layout';
 import { allLightIds, buildHouse } from '../../src/model/build-house';
 import '../../src/screens/home-screen';
@@ -17,13 +18,13 @@ type Screen = HubbScreen & { setConfig(c: unknown): void };
 const cssOf = (styles: unknown): string =>
   ([] as unknown[]).concat(styles).map((s) => (s as { cssText: string }).cssText).join('\n');
 
-function house() {
-  const h = makeHass({ areas: [area('sala', 'Sala')], entities: [{ entity_id: 'light.teto', area_id: 'sala', name: 'Teto', state: 'on' }] });
+function house(areaId = 'sala') {
+  const h = makeHass({ areas: [area(areaId, 'Sala')], entities: [{ entity_id: 'light.teto', area_id: areaId, name: 'Teto', state: 'on' }] });
   return { h, house: buildHouse(h) };
 }
 
-async function room(): Promise<Screen> {
-  const { h, house: b } = house();
+async function room(areaId = 'sala'): Promise<Screen> {
+  const { h, house: b } = house(areaId);
   const el = document.createElement('hubb-room-screen') as Screen;
   el.setConfig({ type: 'custom:hubb-room-screen', room: b.rooms[0]!, lightIds: allLightIds(b) });
   el.hass = h;
@@ -33,7 +34,11 @@ async function room(): Promise<Screen> {
 }
 
 describe('the screen is the scroller', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/sala'));
+  beforeEach(() => {
+    history.replaceState(null, '', '/hubb-casa/sala');
+    // Whatever the last test did, this one starts as if a tap had opened the page.
+    window.dispatchEvent(new CustomEvent('location-changed', { detail: { replace: false } }));
+  });
   afterEach(() => {
     vi.restoreAllMocks();
     resetLayoutForTests();
@@ -108,5 +113,72 @@ describe('the screen is the scroller', () => {
     await el.updateComplete;
     expect((el.shadowRoot!.querySelector('.side') as HTMLElement).scrollTop).toBe(200);
     expect((el.shadowRoot!.querySelector('.pane') as HTMLElement).scrollTop).toBe(150);
+  });
+
+  // Back from a room, the home was at the top again: a clinic with 24 rooms scrolled down again
+  // after every room (Gustavo, 07/11). Home Assistant keeps the view and puts the same screen back,
+  // and the browser forgets the place of a box taken off the page.
+  it('back to the page Home Assistant kept, it is where the reader left it', async () => {
+    const el = await room('kept');
+    el.scrollTop = 320;
+    el.dispatchEvent(new Event('scroll'));
+    el.remove();
+    el.scrollTop = 0;
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 60_000);
+    window.dispatchEvent(new Event('popstate'));
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.scrollTop).toBe(320);
+  });
+
+  it('back to the page Home Assistant rebuilt meanwhile, it is where the reader left it', async () => {
+    let el = await room('rebuilt');
+    el.scrollTop = 320;
+    el.dispatchEvent(new Event('scroll'));
+    el.remove();
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 60_000);
+    window.dispatchEvent(new Event('popstate'));
+    el = await room('rebuilt');
+    await el.updateComplete;
+    expect(el.scrollTop).toBe(320);
+  });
+
+  it('the same page reached by a tap, not by going back, starts at the top', async () => {
+    const el = await room('tapped');
+    el.scrollTop = 320;
+    el.dispatchEvent(new Event('scroll'));
+    el.remove();
+    el.scrollTop = 0;
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 120_000);
+    navigate('/hubb-casa/tapped', { back: true });
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.scrollTop).toBe(0);
+  });
+
+  it('a room tapped right after going back starts at the top, however quick the tap', async () => {
+    const el = await room('quick');
+    el.scrollTop = 320;
+    el.dispatchEvent(new Event('scroll'));
+    el.remove();
+    el.scrollTop = 0;
+    window.dispatchEvent(new Event('popstate'));
+    navigate('/hubb-casa/quick', { back: true });
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.scrollTop).toBe(0);
+  });
+
+  it('back on a slow tablet, whose view takes seconds to come back, still finds its place', async () => {
+    const el = await room('slow');
+    el.scrollTop = 320;
+    el.dispatchEvent(new Event('scroll'));
+    el.remove();
+    el.scrollTop = 0;
+    window.dispatchEvent(new Event('popstate'));
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 10_000);
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(el.scrollTop).toBe(320);
   });
 });

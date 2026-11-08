@@ -23,6 +23,35 @@ describe('hubb-nav-bar', () => {
     expect((await mount('home', false)).shadowRoot!.querySelectorAll('button')).toHaveLength(2);
   });
 
+  it('in a room opened from the home, the home tab goes back, so the home is where it was', async () => {
+    history.replaceState({ hubbBack: true }, '', '/hubb-casa/sala');
+    const el = await mount('home');
+    const back = vi.spyOn(history, 'back').mockImplementation(() => undefined);
+    buttons(el)[0]!.click();
+    expect(back).toHaveBeenCalledOnce();
+    back.mockRestore();
+  });
+
+  it('in a room opened by a link, the home tab swaps the entry for the home, with nothing to go back to', async () => {
+    history.replaceState(null, '', '/hubb-casa/sala');
+    const el = await mount('home');
+    const back = vi.spyOn(history, 'back').mockImplementation(() => undefined);
+    buttons(el)[0]!.click();
+    expect(back).not.toHaveBeenCalled();
+    expect(location.pathname).toBe('/hubb-casa/home');
+    back.mockRestore();
+  });
+
+  it('on another tab, the home tab never goes back through history', async () => {
+    history.replaceState({ hubbBack: true }, '', '/hubb-casa/scenes');
+    const el = await mount('scenes');
+    const back = vi.spyOn(history, 'back').mockImplementation(() => undefined);
+    buttons(el)[0]!.click();
+    expect(back).not.toHaveBeenCalled();
+    expect(location.pathname).toBe('/hubb-casa/home');
+    back.mockRestore();
+  });
+
   it('goes to the scenes screen of the same dashboard, replacing the entry so tabs do not stack', async () => {
     const el = await mount('home');
     const push = vi.spyOn(history, 'pushState');

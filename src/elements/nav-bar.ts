@@ -1,7 +1,7 @@
 import { mdiChevronDoubleLeft, mdiChevronDoubleRight, mdiCreationOutline, mdiHomeOutline, mdiShieldHomeOutline, mdiSpeakerMultiple } from '@mdi/js';
 import { LitElement, css, html, nothing } from 'lit';
 import { haptic } from '../actions/haptic';
-import { basePath, navigate } from '../actions/navigate';
+import { basePath, goBack, navigate } from '../actions/navigate';
 import { LayoutWatcher, onLayoutChange, railHidden, setRailHidden } from '../layout';
 import type { Layout } from '../model/layout';
 import { S } from '../strings';
@@ -67,6 +67,8 @@ export class HubbNavBar extends LitElement {
 
   #go(path: NavCurrent): void {
     haptic('selection');
+    // In a room opened from the home, the home tab is its back arrow: the home is where it was left.
+    if (path === 'home' && this.current === 'home' && (history.state as { hubbBack?: boolean } | null)?.hubbBack) return goBack();
     navigate(`${basePath()}/${path}`, { replace: true });
   }
 

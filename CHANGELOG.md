@@ -8,6 +8,13 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### 🐛 Fixed
+
+- Going back from a room (the arrow, the back gesture of the phone, or the home tab of the bar) brings
+  the home back where it was scrolled, however long the reader stayed in the room, instead of at the
+  top. In a place with many rooms the reader had to scroll down again after every room. Opening a page
+  with a tap still starts it at the top.
+
 ## [2026.11.1] - 2026-11-06
 
 ### ✨ Added

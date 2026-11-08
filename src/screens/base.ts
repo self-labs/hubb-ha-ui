@@ -41,6 +41,17 @@ interface KeptScroll {
 }
 const keptScroll = new Map<string, KeptScroll>();
 
+/**
+ * Whether the page on show was reached through history: the back arrow of a room, the back gesture of
+ * the phone. It finds its place however long ago it was left, as in a browser (Gustavo, 07/11: a clinic
+ * with 24 rooms); a tap, which always says `location-changed`, starts the next page at the top.
+ * Not a time window: a slow tablet takes seconds to bring the view back, and a tap can be quicker.
+ * Capture runs this before Home Assistant switches the view.
+ */
+let cameThroughHistory = false;
+window.addEventListener('popstate', () => (cameThroughHistory = true), { capture: true });
+window.addEventListener('location-changed', () => (cameThroughHistory = false), { capture: true });
+
 export abstract class HubbScreen extends LitElement {
   // Typed as PropertyDeclarations so screens can declare their own properties; Lit merges them.
   static properties: PropertyDeclarations = {
@@ -385,18 +396,27 @@ export abstract class HubbScreen extends LitElement {
     keptScroll.set(this.#scrollKey(), { tops: this.scrollers().map((e) => e.scrollTop), owner: this, left: null });
   };
 
-  /** The place of the page this screen replaces, when it left a moment ago (a rebuild, not a new visit). */
+  /**
+   * The place of the page this screen replaces, when it left a moment ago (a rebuild, not a new
+   * visit); or its own place, back through history. Home Assistant keeps a view and puts the same
+   * screen back, which the browser has scrolled to the top on taking it off the page.
+   */
   #takeScroll(): void {
     const key = this.#scrollKey();
     const k = keptScroll.get(key);
-    if (!k || k.owner === this) return;
-    if (k.left !== null && Date.now() - k.left > REBUILD_MS) {
-      keptScroll.delete(key);
-      return;
+    if (!k) return;
+    if (!cameThroughHistory) {
+      if (k.owner === this) return;
+      if (k.left !== null && Date.now() - k.left > REBUILD_MS) {
+        keptScroll.delete(key);
+        return;
+      }
     }
     k.owner = this;
     k.left = null;
     this.#restore = { tops: k.tops, until: Date.now() + REBUILD_MS };
+    // A screen put back renders again only when something changes; the place cannot wait for that.
+    this.requestUpdate();
   }
 
   #applyScroll(): void {
