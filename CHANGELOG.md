@@ -8,6 +8,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.11.2] - 2026-11-08
+
 ### ✨ Added
 
 - A room page shows its scenes beside **Apagar tudo**, in one strip that scrolls sideways and fades at
@@ -788,7 +790,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.1...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.2...HEAD
+[2026.11.2]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.1...v2026.11.2
 [2026.11.1]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.27...v2026.11.1
 [2026.10.27]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.26...v2026.10.27
 [2026.10.26]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.25...v2026.10.26
