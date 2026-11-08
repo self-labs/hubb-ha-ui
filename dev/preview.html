@@ -22,13 +22,29 @@
   const dashboard = await strategy.generate(config, hass);
   // Screens read their base path from the first segment of the address, like /hubb-casa/home.
   history.replaceState(null, '', `/hubb-casa/${q.get('view') ?? 'home'}${location.search}`);
-  const view = dashboard.views.find((v) => v.path === (q.get('view') ?? 'home')) ?? dashboard.views[0];
-  const card = view.cards[0];
-  const el = document.createElement(card.type.replace('custom:', ''));
-  el.setConfig(card);
-  el.hass = hass;
-  document.body.appendChild(el);
-  await el.updateComplete;
+  const draw = async (path) => {
+    const view = dashboard.views.find((v) => v.path === path) ?? dashboard.views[0];
+    const card = view.cards[0];
+    const screen = document.createElement(card.type.replace('custom:', ''));
+    screen.setConfig(card);
+    screen.hass = hass;
+    document.body.replaceChildren(screen);
+    await screen.updateComplete;
+    return screen;
+  };
+  const el = await draw(q.get('view') ?? 'home');
+  // Follows the bar, the room cards and the back arrow as Home Assistant does: on a wide screen a room
+  // goes to the right of the home, and only that shows what the panel really looks like there.
+  const shown = () => location.pathname.split('/')[2] ?? 'home';
+  let current = q.get('view') ?? 'home';
+  const follow = () => {
+    if (shown() === current) return;
+    current = shown();
+    void draw(current);
+  };
+  window.addEventListener('location-changed', follow);
+  window.addEventListener('popstate', follow);
+  follow();
   if (q.get('edit') === '1') {
     el.shadowRoot.querySelector('.edit')?.click();
     await el.updateComplete;
