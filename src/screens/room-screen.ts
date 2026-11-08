@@ -30,6 +30,7 @@ import '../elements/outlet-tile';
 import '../elements/power-panel';
 import '../elements/sensor-tile';
 import '../elements/scene-button';
+import '../elements/scene-strip';
 import '../elements/sheet';
 import { isEditing, setEditing } from '../editing';
 import { sceneIsOn } from '../model/scene-state';
@@ -249,28 +250,24 @@ export class HubbRoomScreen extends HubbScreen {
     const own = !this.embedded;
     // Wide, the air conditioner and the player sit side by side when the room has both.
     const pairUp = this.screenLayout === 'wide' && room.climate.length > 0 && room.media.length > 0;
-    // Apagar tudo, then the scenes in one strip that scrolls sideways: many scenes never push the
-    // lights down (spec Cenas no cômodo, opção C, 07/11).
-    const actions = editing
-      ? nothing
-      : html`${room.lights.length
-            ? html`<div class="actions">
-                <!-- Always rendered when the room has lights: hiding it would push them down the moment one turns on. -->
-                <button
-                  class="primary ${onIds.length ? '' : 'idle'}"
-                  ?disabled=${onIds.length === 0}
-                  aria-hidden=${onIds.length ? 'false' : 'true'}
-                  @click=${() => this.#turnOff(room, onIds)}
-                >
+    // Apagar tudo and the scenes on one line: the button stays in sight, dimmed with every light off, so
+    // nothing moves when one turns on and no blank band is left. The scenes swipe sideways in what is
+    // left of the line, so many of them never push the lights down (spec Cenas no cômodo, opção C).
+    const actions =
+      !editing && (room.lights.length || room.scenes.length)
+        ? html`<div class="actions">
+            ${room.lights.length
+              ? html`<button class="primary ${onIds.length ? '' : 'idle'}" ?disabled=${onIds.length === 0} @click=${() => this.#turnOff(room, onIds)}>
                   ${S.turnRoomOff}
-                </button>
-              </div>`
-            : nothing}
-          ${room.scenes.length
-            ? html`<div class="scene-strip">
-                ${room.scenes.map((s) => html`<hubb-scene-button variant="chip" .scene=${s} .on=${sceneIsOn(hass, s)}></hubb-scene-button>`)}
-              </div>`
-            : nothing}`;
+                </button>`
+              : nothing}
+            ${room.scenes.length
+              ? html`<hubb-scene-strip class="scene-strip">
+                  ${room.scenes.map((s) => html`<hubb-scene-button variant="chip" .scene=${s} .on=${sceneIsOn(hass, s)}></hubb-scene-button>`)}
+                </hubb-scene-strip>`
+              : nothing}
+          </div>`
+        : nothing;
     // Wide, they sit in the header beside the drawing, which is tall anyway: under it they left a
     // hole between the name of the room and its first block (the iPad Mini 5, 21/10).
     const actionsInHero = this.screenLayout === 'wide';
@@ -279,18 +276,21 @@ export class HubbRoomScreen extends HubbScreen {
         style=${room.photo ? `--photo:url("${room.photo}")` : ''}
       >
         ${room.photo ? nothing : roomArt(room.art)}
-        ${own ? html`<button class="back" aria-label=${S.back} @click=${() => goBack()}>${icon(mdiChevronLeft)}</button>` : nothing}
-        <div>
+        <!-- Only the name beside the arrow: what follows starts at the edge, with the blocks under it. -->
+        <div class="head">
+          ${own ? html`<button class="back" aria-label=${S.back} @click=${() => goBack()}>${icon(mdiChevronLeft)}</button>` : nothing}
           <h1>${room.name}</h1>
+          ${editable && own
+            ? html`<button class="edit ${editing ? 'on' : ''}" aria-label=${editing ? EDIT.done : EDIT.edit} @click=${() => setEditing(!editing)}>
+                ${icon(editing ? mdiCheck : mdiPencilOutline)}
+              </button>`
+            : nothing}
+        </div>
+        <div class="under">
           ${status ? html`<p>${status}</p>` : nothing}
           ${climate ? html`<p class="climate">${climate}</p>` : nothing}
           ${actionsInHero ? actions : nothing}
         </div>
-        ${editable && own
-          ? html`<button class="edit ${editing ? 'on' : ''}" aria-label=${editing ? EDIT.done : EDIT.edit} @click=${() => setEditing(!editing)}>
-              ${icon(editing ? mdiCheck : mdiPencilOutline)}
-            </button>`
-          : nothing}
       </header>
       <main>
         ${editing ? html`<p class="hint" role="status">${this.editNotice ?? EDIT.hintRoom}</p>` : nothing}
@@ -447,8 +447,9 @@ export class HubbRoomScreen extends HubbScreen {
         position: relative;
         box-sizing: border-box;
         display: flex;
-        align-items: center;
-        gap: 12px;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
         max-width: var(--hubb-col, 560px);
         min-height: 76px;
         margin: 0 auto;
@@ -461,13 +462,21 @@ export class HubbRoomScreen extends HubbScreen {
         width: 46%;
         height: calc(100% - 4px);
       }
-      .hero > div {
+      .head {
         position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+      }
+      .under {
+        position: relative;
+        width: 100%;
       }
       .hero.photo {
         max-width: none;
         min-height: 180px;
-        align-items: flex-end;
+        justify-content: flex-end;
         padding: 64px 16px 12px;
         background: linear-gradient(180deg, transparent 25%, var(--hubb-bg) 100%), var(--photo, none) center / cover;
       }
@@ -520,29 +529,23 @@ export class HubbRoomScreen extends HubbScreen {
       }
       .actions {
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        align-items: center;
         gap: 8px;
         min-height: 44px;
       }
-      .primary.idle {
-        visibility: hidden;
-      }
-      /* One line, swiped sideways; the swipe never moves the page. */
-      .scene-strip {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 8px;
-        margin-top: 8px;
-        overflow-x: auto;
-        overflow-y: hidden;
-        scrollbar-width: none;
-        overscroll-behavior-x: contain;
-      }
-      .scene-strip::-webkit-scrollbar {
-        display: none;
-      }
-      .scene-strip > hubb-scene-button {
+      .actions .primary {
         flex: none;
+      }
+      /* In sight with every light off: hidden, it left a blank band of its height above the blocks. */
+      .primary.idle {
+        background: var(--hubb-surface);
+        color: var(--hubb-text-2);
+        cursor: default;
+      }
+      .scene-strip {
+        flex: 1 1 0;
+        min-width: 0;
       }
       /* Six columns: a card takes a third (small), half (medium) or the whole row (large), as the
          installer picks (entities.<id>.size). Cards with buttons or a slide are never small. */
@@ -565,7 +568,8 @@ export class HubbRoomScreen extends HubbScreen {
         align-items: flex-start;
         padding-top: 16px;
       }
-      :host([screen-layout='wide']) .hero > div {
+      :host([screen-layout='wide']) .head,
+      :host([screen-layout='wide']) .under {
         max-width: 50%;
       }
       :host([screen-layout='wide']) .hero .actions {

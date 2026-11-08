@@ -42,18 +42,26 @@ describe('the scene strip of a room', () => {
     document.body.replaceChildren();
   });
 
-  it('holds the scenes, in their order, apart from Apagar tudo', async () => {
+  it('shares one line with Apagar tudo, with the scenes in their order', async () => {
     const el = await room([TETO, ...THREE]);
     const actions = el.shadowRoot!.querySelector('.actions')!;
-    expect(actions.querySelector('button.primary')).not.toBeNull();
-    expect(names(actions)).toEqual([]);
-    expect(names(el.shadowRoot!.querySelector('.scene-strip'))).toEqual(['Atendimento', 'Limpeza', 'Relaxar']);
+    expect(actions.querySelector(':scope > button.primary')).not.toBeNull();
+    expect(names(actions.querySelector(':scope > .scene-strip'))).toEqual(['Atendimento', 'Limpeza', 'Relaxar']);
+  });
+
+  it('keeps that line while every light is off, with Apagar tudo in sight and dimmed', async () => {
+    const el = await room([{ ...TETO, state: 'off' }, ...THREE]);
+    const button = el.shadowRoot!.querySelector('.actions button.primary') as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.classList.contains('idle')).toBe(true);
+    expect(button.hasAttribute('aria-hidden')).toBe(false);
+    expect(names(el.shadowRoot!.querySelector('.actions .scene-strip'))).toEqual(['Atendimento', 'Limpeza', 'Relaxar']);
   });
 
   it('stands alone in a room with no lights', async () => {
     const el = await room(THREE);
     expect(el.shadowRoot!.querySelector('button.primary')).toBeNull();
-    expect(names(el.shadowRoot!.querySelector('.scene-strip'))).toEqual(['Atendimento', 'Limpeza', 'Relaxar']);
+    expect(names(el.shadowRoot!.querySelector('.actions .scene-strip'))).toEqual(['Atendimento', 'Limpeza', 'Relaxar']);
   });
 
   it('is not there in a room with no scenes, nor in the edit mode', async () => {
@@ -70,13 +78,10 @@ describe('the scene strip of a room', () => {
     expect(names(el.shadowRoot!.querySelector('header.hero .scene-strip'))).toEqual(['Atendimento', 'Limpeza', 'Relaxar']);
   });
 
-  it('is one line that scrolls sideways, with no bar, and its buttons never shrink', () => {
+  it('takes the space left beside Apagar tudo, which never shrinks', () => {
     const css = cssOf(HubbRoomScreen.styles);
-    const strip = css.match(/\.scene-strip\s*\{[^}]*\}/)![0];
-    expect(strip).toContain('flex-wrap: nowrap');
-    expect(strip).toContain('overflow-x: auto');
-    expect(strip).toContain('scrollbar-width: none');
-    expect(strip).toContain('overscroll-behavior-x: contain');
-    expect(css).toMatch(/\.scene-strip > hubb-scene-button\s*\{[^}]*flex: none/);
+    expect(css.match(/\.actions\s*\{[^}]*\}/)![0]).toContain('flex-wrap: nowrap');
+    expect(css).toMatch(/\.actions \.primary\s*\{[^}]*flex: none/);
+    expect(css).toMatch(/\.scene-strip\s*\{[^}]*flex: 1 1 0[^}]*min-width: 0/);
   });
 });

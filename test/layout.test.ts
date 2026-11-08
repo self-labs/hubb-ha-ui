@@ -26,7 +26,7 @@ function sala(): FakeHass {
 describe('nothing jumps when a light turns on', () => {
   afterEach(() => { document.body.replaceChildren(); });
 
-  it('the room keeps its "Apagar tudo" slot while everything is off, disabled and invisible', async () => {
+  it('the room keeps its "Apagar tudo" while everything is off, disabled and dimmed', async () => {
     const h = sala();
     const house = buildHouse(h);
     const el = document.createElement('hubb-room-screen') as HubbRoomScreen;
@@ -43,7 +43,11 @@ describe('nothing jumps when a light turns on', () => {
     const on = el.shadowRoot!.querySelector('.actions .primary') as HTMLButtonElement;
     expect(on.disabled).toBe(false);
     expect(on.classList.contains('idle')).toBe(false);
-    expect(cssOf(HubbRoomScreen.styles)).toMatch(/\.primary\.idle\s*\{[^}]*visibility: hidden/);
+    // In sight: a hidden one left a blank band of its height above the blocks (Gustavo, 08/11).
+    const idle = cssOf(HubbRoomScreen.styles).match(/\.primary\.idle\s*\{[^}]*\}/)![0];
+    expect(idle).not.toContain('visibility');
+    expect(idle).toContain('background: var(--hubb-surface)');
+    expect(idle).toContain('color: var(--hubb-text-2)');
   });
 
   it('the home keeps the chip row and two lines of headline even when everything is off', async () => {

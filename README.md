@@ -124,9 +124,10 @@ never rests.
 </table>
 
 - The header reads the room: how many lights are on, and **"24° · 61%"** from its thermometer.
-- **Apagar tudo**, then the room's scenes in one strip that scrolls sideways (a scene that follows a
-  light lights up while it is on), then the blocks in a fixed order: Acesso, Luzes, Clima,
-  Cortinas, Mídia, Tomadas e equipamentos, Aparelhos, Ações, Sensores. A block with nothing stays out.
+- **Apagar tudo** (dimmed while every light is off) and, beside it, the room's scenes in one strip that
+  scrolls sideways and fades at an edge with more scenes past it; a scene that follows a light lights
+  up while it is on. Then the blocks in a fixed order: Acesso, Luzes, Clima, Cortinas, Mídia, Tomadas e
+  equipamentos, Aparelhos, Ações, Sensores. A block with nothing stays out.
 - **Sensores:** one card per sensor of the room, with its icon and what it reads (a window "Aberta",
   presence "Ocupado", "24,4°", "61%"); a tap opens its history in Home Assistant. A contact that is
   the sensor of a gate in the same room shows there only in edit mode: the card of the gate says it.

@@ -10,8 +10,9 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ### ✨ Added
 
-- A room page shows its scenes in one strip under **Apagar tudo** that scrolls sideways, so many
-  scenes never push the lights down. A room with only scenes now shows too.
+- A room page shows its scenes beside **Apagar tudo**, in one strip that scrolls sideways and fades at
+  an edge with more scenes past it, so many scenes never push the lights down. A room with only scenes
+  now shows too.
 - On Cenas, in the edit mode, each scene takes its room: **Padrão** (its room in Home Assistant), any
   other room, or none (only on Cenas), so a scene can live in a room that is not the one of its keypad.
   Picking a room hidden for someone says that they stop seeing the scene.
@@ -19,6 +20,13 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   one is on, on the home, in its room and on Cenas.
 - The installer picks the scenes of the home screen (**Fixar na tela inicial**, four at most).
   With none pinned, the first four still go there.
+
+### 🔧 Changed
+
+- **Apagar tudo** stays in sight, dimmed, while every light is off. It was invisible and left a blank
+  band above the blocks.
+- On a room page only the name sits beside the back arrow: the status starts at the left edge, in line
+  with the blocks under it.
 
 ### 🐛 Fixed
 
