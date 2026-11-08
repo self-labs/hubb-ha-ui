@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { NO_ROOM, readConfig, roleFits } from '../../src/model/config';
+import { NO_ROOM } from '../../src/model/classify';
+import { readConfig, roleFits } from '../../src/model/config';
 import { CFG } from '../../src/strings';
 import { area, device, floor, makeHass } from '../helpers/fake-hass';
 

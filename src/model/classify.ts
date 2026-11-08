@@ -1,8 +1,11 @@
 import type { HomeAssistant } from '../ha/types';
 import { isGroupMaster, isMaGroup, maPairs } from './ma-pair';
-import { NO_ROOM, type PanelConfig } from './config';
+import type { PanelConfig } from './config';
 
 export const SCENE_LABEL = 'hubb_cena';
+
+/** `entities.<id>.area` of a scene that stays in no room: only on Cenas (and the home). */
+export const NO_ROOM = 'none';
 
 /** The blocks of a room page, plus the scenes of the house. */
 export type Block =

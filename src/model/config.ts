@@ -1,6 +1,7 @@
 import { isArtId } from '../art/drawings';
 import type { HomeAssistant } from '../ha/types';
 import { CFG } from '../strings';
+import { NO_ROOM } from './classify';
 import { isProfileId, type ProfileId } from './profiles';
 import { isGateSensor } from './gate-sensor';
 import { isSize, wholeRowOnly } from './sizes';
@@ -90,9 +91,6 @@ export interface PanelConfig {
 }
 
 const domainOf = (entityId: string): string => entityId.slice(0, entityId.indexOf('.'));
-
-/** `entities.<id>.area` of a scene or script that stays in no room: only on Cenas (and the home). */
-export const NO_ROOM = 'none';
 
 /** What a scene's button can follow: a light, or a switch with the light role or not. */
 const FOLLOW_DOMAINS: ReadonlySet<string> = new Set(['light', 'switch']);
