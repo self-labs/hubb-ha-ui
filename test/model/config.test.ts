@@ -118,8 +118,10 @@ describe('scene settings', () => {
     return makeHass({
       areas: [area('consultorio_1', 'Consultório 1')],
       entities: [
-        { entity_id: 'scene.atendimento', state: 'unknown' },
-        { entity_id: 'script.limpeza', state: 'off' },
+        { entity_id: 'scene.atendimento', state: 'unknown', labels: ['hubb_cena'] },
+        { entity_id: 'script.limpeza', state: 'off', labels: ['hubb_cena'] },
+        { entity_id: 'script.portao', state: 'off', labels: ['hubb_cena'] },
+        { entity_id: 'script.solto', state: 'off' },
         { entity_id: 'light.teto', area_id: 'consultorio_1', state: 'off' },
         { entity_id: 'switch.spot', area_id: 'consultorio_1', state: 'off' },
         { entity_id: 'sensor.temp', area_id: 'consultorio_1', state: '24' },
@@ -171,6 +173,34 @@ describe('scene settings', () => {
     const cfg = readConfig(scenes(), { entities: { 'scene.atendimento': { area: 'none' }, 'light.teto': { area: 'none' } } });
     expect(cfg.entities['scene.atendimento']!.area).toBe(NO_ROOM);
     expect(cfg.entities['light.teto']!.area).toBeUndefined();
-    expect(problems(cfg)).toEqual([['entities.light.teto.area', CFG.unknownArea('none')]]);
+    expect(problems(cfg)).toEqual([['entities.light.teto.area', CFG.sceneOnly('area: none')]]);
+  });
+
+  it('refuses them on a script that is an action or a gate, where they would do nothing', () => {
+    const cfg = readConfig(scenes(), {
+      entities: { 'script.portao': { role: 'gate', area: 'none', follows: 'light.teto', pinned: true } },
+    });
+    expect(problems(cfg)).toEqual([
+      ['entities.script.portao.area', CFG.sceneOnly('area: none')],
+      ['entities.script.portao.follows', CFG.sceneOnly('follows')],
+      ['entities.script.portao.pinned', CFG.sceneOnly('pinned')],
+    ]);
+    expect(cfg.entities['script.portao']).toEqual({ role: 'gate', hide: [] });
+  });
+
+  it('refuses them on a scene or script that is not on Cenas', () => {
+    const cfg = readConfig(scenes(), { entities: { 'script.solto': { area: 'none', follows: 'light.teto', pinned: true } } });
+    expect(problems(cfg).map(([key]) => key)).toEqual(['entities.script.solto.area', 'entities.script.solto.follows', 'entities.script.solto.pinned']);
+  });
+
+  it('takes them on a scene put on Cenas from the panel, with no label', () => {
+    const cfg = readConfig(scenes(), { entities: { 'script.solto': { role: 'scene', area: 'none', follows: 'light.teto', pinned: true } } });
+    expect(cfg.problems).toEqual([]);
+    expect(cfg.entities['script.solto']).toMatchObject({ area: NO_ROOM, follows: 'light.teto', pinned: true });
+  });
+
+  it('says nothing about them on a scene hidden with Não mostrar: Mostrar gives them back', () => {
+    const cfg = readConfig(scenes(), { entities: { 'scene.atendimento': { role: 'hidden', area: 'none', follows: 'light.teto', pinned: true } } });
+    expect(cfg.problems).toEqual([]);
   });
 });

@@ -1,7 +1,7 @@
 import { isArtId } from '../art/drawings';
 import type { HomeAssistant } from '../ha/types';
 import { CFG } from '../strings';
-import { NO_ROOM } from './classify';
+import { NO_ROOM, SCENE_LABEL } from './classify';
 import { isProfileId, type ProfileId } from './profiles';
 import { isGateSensor } from './gate-sensor';
 import { isSize, wholeRowOnly } from './sizes';
@@ -95,7 +95,12 @@ const domainOf = (entityId: string): string => entityId.slice(0, entityId.indexO
 /** What a scene's button can follow: a light, or a switch with the light role or not. */
 const FOLLOW_DOMAINS: ReadonlySet<string> = new Set(['light', 'switch']);
 
-const isSceneId = (entityId: string): boolean => entityId.startsWith('scene.') || entityId.startsWith('script.');
+/** A scene or script on Cenas: the scene role, or the label with no other role (as classify places it). */
+function isOnCenas(hass: HomeAssistant, entityId: string, role: Role | undefined): boolean {
+  if (role === 'scene') return true;
+  const reg = hass.entities[entityId];
+  return !role && /^(scene|script)\./.test(entityId) && !!reg && !reg.entity_category && reg.labels.includes(SCENE_LABEL);
+}
 const isRole = (v: unknown): v is Role => typeof v === 'string' && (ROLES as readonly string[]).includes(v);
 
 /** Whether `role` can be given to `entityId`. */
@@ -162,22 +167,26 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
       if (ma === '' || (typeof ma === 'string' && ma.startsWith('media_player.') && hass.entities[ma]?.platform === 'music_assistant')) s.musicAssistant = ma;
       else add(`${at}.music_assistant`, entityId, CFG.notMusicAssistant(String(ma)));
     }
-    // A scene or a script: the room, the light it follows and the home are settings of its own.
-    const scene = isSceneId(entityId);
+    // Only a scene of Cenas has no room, a light to follow and a place on the home: anywhere else the
+    // key would do nothing, and the review says so. Não mostrar keeps them quiet for Mostrar.
+    const onCenas = isOnCenas(hass, entityId, s.role);
+    const sceneKey = (key: string, said: string = key): boolean => {
+      if (!onCenas && s.role !== 'hidden') add(`${at}.${key}`, entityId, CFG.sceneOnly(said));
+      return onCenas;
+    };
     if (v.area !== undefined) {
-      if (typeof v.area === 'string' && (hass.areas[v.area] || (scene && v.area === NO_ROOM))) s.area = v.area;
-      else add(`${at}.area`, entityId, CFG.unknownArea(String(v.area)));
+      if (typeof v.area === 'string' && hass.areas[v.area]) s.area = v.area;
+      else if (v.area !== NO_ROOM) add(`${at}.area`, entityId, CFG.unknownArea(String(v.area)));
+      else if (sceneKey('area', `area: ${NO_ROOM}`)) s.area = NO_ROOM;
     }
-    if (v.follows !== undefined) {
+    if (v.follows !== undefined && sceneKey('follows')) {
       const ref = v.follows;
-      if (!scene) add(`${at}.follows`, entityId, CFG.sceneOnly('follows'));
-      else if (typeof ref !== 'string' || !hass.states[ref]) add(`${at}.follows`, entityId, CFG.missingEntity(String(ref)));
+      if (typeof ref !== 'string' || !hass.states[ref]) add(`${at}.follows`, entityId, CFG.missingEntity(String(ref)));
       else if (!FOLLOW_DOMAINS.has(domainOf(ref))) add(`${at}.follows`, entityId, CFG.notALightToFollow(ref));
       else s.follows = ref;
     }
-    if (v.pinned !== undefined) {
-      if (!scene) add(`${at}.pinned`, entityId, CFG.sceneOnly('pinned'));
-      else if (typeof v.pinned !== 'boolean') add(`${at}.pinned`, entityId, CFG.badPinned);
+    if (v.pinned !== undefined && sceneKey('pinned')) {
+      if (typeof v.pinned !== 'boolean') add(`${at}.pinned`, entityId, CFG.badPinned);
       else if (v.pinned) s.pinned = true;
     }
     // hide, remaining and progress tune an appliance; on any other role they would do nothing.

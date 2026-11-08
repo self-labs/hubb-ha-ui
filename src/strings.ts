@@ -319,7 +319,7 @@ export const CFG = {
   sizeDoesNotFit: (value: string): string => `size: ${value} não cabe neste card: ele ocupa a linha toda.`,
   sensorOnly: 'sensor só vale para um portão por pulso (role: gate num switch, button, input_button ou script).',
   notAGateSensor: (id: string): string => `sensor: ${id} não é um sensor de porta nem um portão.`,
-  sceneOnly: (key: string): string => `${key} só vale em cena ou script.`,
+  sceneOnly: (key: string): string => `${key} só vale para uma cena da aba Cenas.`,
   notALightToFollow: (id: string): string => `${id} não é uma luz nem um interruptor.`,
   badPinned: 'pinned aceita só true ou false.',
   hideOnly: 'hide só vale para um aparelho (role: appliance) ou um ar-condicionado.',
