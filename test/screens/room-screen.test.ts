@@ -10,7 +10,7 @@ import { area, makeHass, withState, type FakeHass } from '../helpers/fake-hass';
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 async function runRoomScene(el: HubbRoomScreen): Promise<void> {
-  const button = el.shadowRoot!.querySelector('.actions hubb-scene-button')!;
+  const button = el.shadowRoot!.querySelector('.scene-strip hubb-scene-button')!;
   await (button as unknown as { updateComplete: Promise<unknown> }).updateComplete;
   (button.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
   await Promise.resolve();
@@ -110,7 +110,7 @@ describe('hubb-room-screen', () => {
   it('runs a scene of the room and offers to undo it', async () => {
     const h = hass();
     const el = await mount(h);
-    const button = $(el, '.actions hubb-scene-button')!;
+    const button = $(el, '.scene-strip hubb-scene-button')!;
     await (button as unknown as { updateComplete: Promise<unknown> }).updateComplete;
     (button.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
     await Promise.resolve();

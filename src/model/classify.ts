@@ -1,6 +1,6 @@
 import type { HomeAssistant } from '../ha/types';
 import { isGroupMaster, isMaGroup, maPairs } from './ma-pair';
-import type { PanelConfig } from './config';
+import { NO_ROOM, type PanelConfig } from './config';
 
 export const SCENE_LABEL = 'hubb_cena';
 
@@ -123,6 +123,11 @@ export function areaOf(hass: HomeAssistant, entityId: string, override?: string)
   return reg.device_id ? (hass.devices[reg.device_id]?.area_id ?? null) : null;
 }
 
+/** The room of a scene: none when the installer keeps it only on Cenas (`area: none`), else as any entity. */
+function sceneAreaOf(hass: HomeAssistant, entityId: string, override?: string): string | null {
+  return override === NO_ROOM ? null : areaOf(hass, entityId, override);
+}
+
 /** The room of an appliance: the `area` of the configuration, else its device's, else the entity's own. */
 export function applianceAreaOf(hass: HomeAssistant, entityId: string, override?: string): string | null {
   if (override && hass.areas[override]) return override;
@@ -164,7 +169,7 @@ export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyCon
   const role = s?.role;
   if (reg.hidden || ctx.hidden.has(entityId) || role === 'hidden') return { block: null, why: 'hidden', areaId: null };
   // A scene put in Cenas from the panel: with or without a room, like a labelled one.
-  if (role === 'scene') return { block: 'scene', areaId: areaOf(hass, entityId, s?.area) };
+  if (role === 'scene') return { block: 'scene', areaId: sceneAreaOf(hass, entityId, s?.area) };
   if (role === 'appliance') {
     const areaId = applianceAreaOf(hass, entityId, s?.area);
     return areaId ? { block: 'appliance', areaId } : roomless;
@@ -179,7 +184,9 @@ export function classify(hass: HomeAssistant, entityId: string, ctx: ClassifyCon
   if (isClimatePart(hass, entityId, ctx.climateDevices)) return { block: null, why: 'part', areaId: null };
   if (reg.entity_category) return { block: null, why: 'category', areaId: null };
   const areaId = areaOf(hass, entityId, s?.area);
-  if ((domain === 'scene' || domain === 'script') && reg.labels.includes(SCENE_LABEL)) return { block: 'scene', areaId };
+  if ((domain === 'scene' || domain === 'script') && reg.labels.includes(SCENE_LABEL)) {
+    return { block: 'scene', areaId: sceneAreaOf(hass, entityId, s?.area) };
+  }
   if (domain === 'light') return areaId ? { block: 'light', areaId } : roomless;
   if (domain === 'switch') {
     if (hass.states[entityId]?.attributes.device_class === 'outlet') return areaId ? { block: 'outlet', areaId } : roomless;

@@ -120,6 +120,8 @@ operation.
   `docs/images/` (same file names) and keep the README image links absolute (HACS).
 
 - happy-dom has no layout: tests that need sizes mock `getBoundingClientRect`.
+- happy-dom misreads `select.value` when Lit renders options marked `?selected` (it answers the
+  second option); Chromium picks the right one. Tests read the option's `selected` attribute instead.
 - `haptic` is a window event the Companion App turns into vibration; browsers ignore it.
 - The undo offer lives in module state of `elements/toast.ts`, shared by every screen's toast, so it
   survives a view switch within its 5 s. Tests that show one withdraw it with `hide()`.

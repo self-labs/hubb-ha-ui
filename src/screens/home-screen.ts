@@ -29,6 +29,7 @@ import { loadUsers, residents, type HaUser } from '../actions/people';
 import '../elements/place-picker';
 import { unlisted } from '../elements/unlisted';
 import '../elements/tablet-editor';
+import { sceneIsOn } from '../model/scene-state';
 import type { ProfileId } from '../model/profiles';
 import type { TabletChange } from '../elements/tablet-editor';
 import { DEFAULT_REST } from '../model/tablet';
@@ -528,9 +529,9 @@ export class HubbHomeScreen extends HubbScreen {
                         </button>`,
                     )}
               </div>`}
-              ${house.scenes.length
+              ${house.homeScenes.length
                 ? html`<h2>${S.scenes}</h2>
-                    <div class="scenes">${house.scenes.slice(0, 4).map((s) => html`<hubb-scene-button variant="tile" .scene=${s}></hubb-scene-button>`)}</div>`
+                    <div class="scenes">${house.homeScenes.map((s) => html`<hubb-scene-button variant="tile" .scene=${s} .on=${sceneIsOn(hass, s)}></hubb-scene-button>`)}</div>`
                 : nothing}
               ${floor === null
                 ? html`<h2>${S.rooms}</h2>`

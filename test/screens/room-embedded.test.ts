@@ -91,7 +91,7 @@ describe('a room page drawn inside the wide home', () => {
     inner.hass = h;
     home.shadowRoot!.appendChild(inner);
     await inner.updateComplete;
-    const chip = inner.shadowRoot!.querySelector('.actions hubb-scene-button') as HTMLElement & { updateComplete: Promise<unknown> };
+    const chip = inner.shadowRoot!.querySelector('.scene-strip hubb-scene-button') as HTMLElement & { updateComplete: Promise<unknown> };
     await chip.updateComplete;
     (chip.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
     expect(h.calls.filter((c) => c.domain === 'scene').length).toBe(1);

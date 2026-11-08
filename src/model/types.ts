@@ -171,6 +171,8 @@ export interface SceneItem {
   description: string | null;
   /** The `mdi:*` icon Home Assistant gives it; missing on dashboards frozen before 21/10. */
   icon?: string | null;
+  /** The light or switch its button follows (`entities.<id>.follows`); missing on dashboards frozen before 11/2026. */
+  follows?: string | null;
 }
 
 export interface Room {
@@ -228,6 +230,8 @@ export interface House {
   /** Rooms hidden with rooms.<area>.hidden, for the editor to show again. */
   hiddenRooms: { areaId: string; name: string }[];
   scenes: SceneItem[];
+  /** The scenes of the home screen: the pinned ones, else the first four of `scenes`; four at most. */
+  homeScenes: SceneItem[];
   weatherEntityId: string | null;
   alerts: AlertItem[];
   security: Security;
@@ -271,8 +275,13 @@ export interface EntityConfig {
   shown_as?: string;
   name?: string;
   icon?: string;
+  /** An area id; a scene or script also takes `none` (no room, only on Cenas). */
   area?: string;
   hide?: string[];
+  /** A scene or script: the `light` or `switch` it follows; its button lights up while that one is on. */
+  follows?: string;
+  /** A scene or script on the home screen. */
+  pinned?: boolean;
   remaining?: string;
   progress?: string;
   /** The power and energy sensors of an outlet or equipment, when the panel cannot match them. */

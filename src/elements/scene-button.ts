@@ -2,6 +2,7 @@ import { LitElement, css, html, nothing } from 'lit';
 import { haptic } from '../actions/haptic';
 import { sceneIconPath } from '../model/scene-icon';
 import type { SceneItem } from '../model/types';
+import { S } from '../strings';
 import { define } from './define';
 import { icon } from './icon';
 
@@ -9,15 +10,19 @@ export class HubbSceneButton extends LitElement {
   static properties = {
     scene: { attribute: false },
     variant: { reflect: true },
+    on: { type: Boolean, reflect: true },
   };
 
   declare scene: SceneItem | undefined;
   declare variant: 'tile' | 'row' | 'chip';
+  /** The light or switch the scene follows is on (model/scene-state.ts). */
+  declare on: boolean;
 
   constructor() {
     super();
     this.scene = undefined;
     this.variant = 'tile';
+    this.on = false;
   }
 
   #run = (): void => {
@@ -35,6 +40,7 @@ export class HubbSceneButton extends LitElement {
       <span class="label"><span class="name">${scene.name}</span>${this.variant === 'row' && scene.description
           ? html`<span class="desc">${scene.description}</span>`
           : nothing}</span>
+      ${this.on ? html`<span class="said">${S.sceneOn}</span>` : nothing}
     </button>`;
   }
 
@@ -44,6 +50,8 @@ export class HubbSceneButton extends LitElement {
     }
     button {
       all: unset;
+      /* Holds the hidden word of a lit scene: past the edge of the strip it would widen the page. */
+      position: relative;
       box-sizing: border-box;
       display: flex;
       gap: 8px;
@@ -57,6 +65,25 @@ export class HubbSceneButton extends LitElement {
     button:focus-visible {
       outline: 2px solid var(--hubb-focus);
       outline-offset: 2px;
+    }
+    /* On: the light it follows is on. The amber tint lies over the card, the text keeps its colour. */
+    :host([on]) button {
+      background: linear-gradient(var(--hubb-amber-tint), var(--hubb-amber-tint)), var(--hubb-surface);
+      box-shadow: inset 0 0 0 1.5px var(--hubb-amber);
+    }
+    /* The grey of the description falls under 4.5:1 on the dark tint (2.6:1). */
+    :host([on]) .desc {
+      color: var(--hubb-text);
+    }
+    /* Said, not shown: the amber is what the eye reads. */
+    .said {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
     }
     svg {
       width: 18px;

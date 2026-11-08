@@ -149,10 +149,14 @@ function climateExtras(hass: HomeAssistant, entityId: string, ctx: ClassifyConte
     .sort((a, b) => order[a.kind] - order[b.kind] || byName(a, b));
 }
 
+/** A room shows when it has something to control; its scenes count (spec Cenas no cômodo, 07/11). */
 const hasContent = (r: Room): boolean =>
   r.lights.length + r.outlets.length + r.equipment.length + r.appliances.length + r.actions.length +
-    r.climate.length + r.covers.length + r.media.length + r.access.length >
+    r.climate.length + r.covers.length + r.media.length + r.access.length + r.scenes.length >
   0;
+
+/** The scenes of the home: the pinned ones in the order of Cenas, else the first ones; four at most. */
+export const HOME_SCENES = 4;
 
 export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House {
   const cfg = readConfig(hass, config);
@@ -220,7 +224,10 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
         areaId: placed.areaId,
         description: sceneDescription(hass, entityId, hiddenHere),
         icon: typeof sceneIcon === 'string' && sceneIcon.startsWith('mdi:') ? sceneIcon : null,
+        follows: s?.follows ?? null,
       });
+      // Its room shows even with nothing else in it; a room hidden for everyone keeps it on Cenas only.
+      roomFor(placed.areaId);
       continue;
     }
     if (placed.block === 'alert' || placed.block === 'opening' || placed.block === 'camera' || placed.block === 'alarm') {
@@ -319,6 +326,12 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     return i === -1 ? LAST : i;
   };
   scenes.sort((a, b) => rank(a.entityId) - rank(b.entityId) || byName(a, b));
+  // Pinning is the installer's choice for everyone: whoever cannot see the pinned scenes gets fewer,
+  // never the first four in their place. Only a pinned entity that is a scene of Cenas counts.
+  const everyone = viewerHidden.size ? classifyContext(hass, cfg, config.hide_entities) : ctx;
+  const pinning = Object.keys(cfg.entities).some((id) => cfg.entities[id]?.pinned && classify(hass, id, everyone).block === 'scene');
+  const homeScenes = (pinning ? scenes.filter((sc) => cfg.entities[sc.entityId]?.pinned) : scenes).slice(0, HOME_SCENES);
+  for (const room of rooms.values()) room.scenes = scenes.filter((sc) => sc.areaId === room.areaId);
 
   const shown = [...rooms.values()].filter(hasContent);
   // A room with nothing to control keeps its page while it has a sensor, or an item hidden there: the
@@ -356,7 +369,6 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     room.access.sort(byOrder);
     room.sensors.sort(byOrder);
     room.hidden.sort(byName);
-    room.scenes = scenes.filter((s) => s.areaId === room.areaId);
   }
   shown.sort((a, b) => (overrides[a.areaId]?.order ?? LAST) - (overrides[b.areaId]?.order ?? LAST) || byName(a, b));
   // Room by room, the roomless at the end; by name inside a room.
@@ -394,6 +406,7 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
       .map((areaId) => ({ areaId, name: hass.areas[areaId]!.name }))
       .sort(byName),
     scenes,
+    homeScenes,
     weatherEntityId,
     alerts: alerts.sort((a, b) => a.entityId.localeCompare(b.entityId)),
     security,
@@ -458,6 +471,7 @@ export function normalizeHouse(house: House): House {
     floors: list(house.floors),
     hiddenRooms: list(house.hiddenRooms),
     rooms: house.rooms.map(normalizeRoom),
+    homeScenes: Array.isArray(house.homeScenes) ? house.homeScenes : house.scenes.slice(0, HOME_SCENES),
     alerts: list(house.alerts),
     security: {
       alarms: list(house.security?.alarms),

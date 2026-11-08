@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { HubbDimmerPanel } from '../src/elements/dimmer-panel';
 import { HubbLightTile } from '../src/elements/light-tile';
 import { HubbRoomCard } from '../src/elements/room-card';
+import { HubbSceneButton } from '../src/elements/scene-button';
 import { HubbToast } from '../src/elements/toast';
 import { HubbHomeScreen } from '../src/screens/home-screen';
 import { tokens } from '../src/theme/tokens';
@@ -113,5 +114,27 @@ describe('contrast of text on its background, both themes (AA, 4.5:1)', () => {
       expect(contrast(off, '#ffffff'), `off white ${theme}`).toBeGreaterThanOrEqual(3);
       expect(contrast(off, token('--hubb-surface-2', theme)), `off surface-2 ${theme}`).toBeGreaterThanOrEqual(3);
     }
+  });
+});
+
+describe('a lit scene button', () => {
+  // The amber tint over the card (spec Cenas no cômodo, 07/11): its words stay readable in both themes.
+  const tint = (theme: 'dark' | 'light'): string => {
+    const css = tokens.cssText;
+    const lightAt = css.indexOf(":host([theme='light'])");
+    const block = theme === 'dark' ? css.slice(0, lightAt) : css.slice(lightAt);
+    const [r, g, b, a] = block.match(/--hubb-amber-tint:\s*rgba\(([^)]*)\)/)![1]!.split(',').map(Number) as [number, number, number, number];
+    const surface = token('--hubb-surface', theme);
+    const mix = [r, g, b].map((c, i) => Math.round(parseInt(surface.slice(1 + i * 2, 3 + i * 2), 16) * (1 - a) + c * a));
+    return `#${mix.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+  };
+
+  it('keeps its name and its description at 4.5:1', () => {
+    for (const theme of ['dark', 'light'] as const) {
+      expect(contrast(token('--hubb-text', theme), tint(theme))).toBeGreaterThanOrEqual(4.5);
+    }
+    const css = cssOf(HubbSceneButton.styles);
+    expect(css).toMatch(/:host\(\[on\]\) button\s*\{[^}]*var\(--hubb-amber-tint\)[^}]*var\(--hubb-surface\)/);
+    expect(css).toMatch(/:host\(\[on\]\) \.desc\s*\{[^}]*color: var\(--hubb-text\)/);
   });
 });

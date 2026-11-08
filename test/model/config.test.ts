@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { readConfig, roleFits } from '../../src/model/config';
+import { NO_ROOM, readConfig, roleFits } from '../../src/model/config';
+import { CFG } from '../../src/strings';
 import { area, device, floor, makeHass } from '../helpers/fake-hass';
 
 function hass() {
@@ -107,5 +108,68 @@ describe('readConfig', () => {
     const cfg = readConfig(hass(), { entities: { 'light.sofa': { order: 2 }, 'switch.bomba': { order: 'primeiro' as never } } });
     expect(cfg.entities['light.sofa']).toEqual({ order: 2, hide: [] });
     expect(cfg.problems.map((p) => [p.key, p.message])).toEqual([['entities.switch.bomba.order', 'order de switch.bomba precisa ser um número.']]);
+  });
+});
+
+describe('scene settings', () => {
+  // Scenes in a room, the light a scene follows and the four of the home (spec Cenas no cômodo, 07/11).
+  function scenes() {
+    return makeHass({
+      areas: [area('consultorio_1', 'Consultório 1')],
+      entities: [
+        { entity_id: 'scene.atendimento', state: 'unknown' },
+        { entity_id: 'script.limpeza', state: 'off' },
+        { entity_id: 'light.teto', area_id: 'consultorio_1', state: 'off' },
+        { entity_id: 'switch.spot', area_id: 'consultorio_1', state: 'off' },
+        { entity_id: 'sensor.temp', area_id: 'consultorio_1', state: '24' },
+      ],
+    });
+  }
+  const problems = (cfg: ReturnType<typeof readConfig>) => cfg.problems.map((p) => [p.key, p.message]);
+
+  it('keeps the light or the switch a scene follows', () => {
+    const cfg = readConfig(scenes(), { entities: { 'scene.atendimento': { follows: 'light.teto' }, 'script.limpeza': { follows: 'switch.spot' } } });
+    expect(cfg.entities['scene.atendimento']!.follows).toBe('light.teto');
+    expect(cfg.entities['script.limpeza']!.follows).toBe('switch.spot');
+    expect(cfg.problems).toEqual([]);
+  });
+
+  it('refuses follows off a scene, on a missing entity and on what is not a light or a switch', () => {
+    const cfg = readConfig(scenes(), {
+      entities: {
+        'light.teto': { follows: 'switch.spot' },
+        'scene.atendimento': { follows: 'light.nao_existe' },
+        'script.limpeza': { follows: 'sensor.temp' },
+      },
+    });
+    expect(problems(cfg)).toEqual([
+      ['entities.light.teto.follows', CFG.sceneOnly('follows')],
+      ['entities.scene.atendimento.follows', CFG.missingEntity('light.nao_existe')],
+      ['entities.script.limpeza.follows', CFG.notALightToFollow('sensor.temp')],
+    ]);
+    expect(Object.values(cfg.entities).some((s) => s.follows !== undefined)).toBe(false);
+  });
+
+  it('keeps pinned on a scene, and refuses it elsewhere or when it is not true or false', () => {
+    const cfg = readConfig(scenes(), {
+      entities: {
+        'script.limpeza': { pinned: true },
+        'scene.atendimento': { pinned: 'sim' as never },
+        'light.teto': { pinned: true },
+      },
+    });
+    expect(cfg.entities['script.limpeza']!.pinned).toBe(true);
+    expect(cfg.entities['scene.atendimento']!.pinned).toBeUndefined();
+    expect(problems(cfg)).toEqual([
+      ['entities.scene.atendimento.pinned', CFG.badPinned],
+      ['entities.light.teto.pinned', CFG.sceneOnly('pinned')],
+    ]);
+  });
+
+  it('takes area none on a scene only', () => {
+    const cfg = readConfig(scenes(), { entities: { 'scene.atendimento': { area: 'none' }, 'light.teto': { area: 'none' } } });
+    expect(cfg.entities['scene.atendimento']!.area).toBe(NO_ROOM);
+    expect(cfg.entities['light.teto']!.area).toBeUndefined();
+    expect(problems(cfg)).toEqual([['entities.light.teto.area', CFG.unknownArea('none')]]);
   });
 });

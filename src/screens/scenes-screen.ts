@@ -7,7 +7,14 @@ import { icon } from '../elements/icon';
 import '../elements/nav-bar';
 import '../elements/people-picker';
 import '../elements/scene-button';
-import type { HubbConfig, SceneCandidate, SceneItem, Shared } from '../model/types';
+import { unlisted } from '../elements/unlisted';
+import type { HomeAssistant } from '../ha/types';
+import { HOME_SCENES } from '../model/build-house';
+import { areaOf } from '../model/classify';
+import { NO_ROOM } from '../model/config';
+import { displayName } from '../model/names';
+import { sceneIsOn } from '../model/scene-state';
+import type { EntityConfig, HubbConfig, SceneCandidate, SceneItem, Shared } from '../model/types';
 import { sizeOf, sizesFor, type Size } from '../model/sizes';
 import { hiddenForList } from '../model/visibility';
 import { EDIT, ROLE_LABELS, S, SIZE_LABELS } from '../strings';
@@ -28,6 +35,17 @@ export interface ScenesScreenConfig {
   /** Scenes and scripts not in Cenas yet, for "Adicionar cena" (administrators only). */
   candidates?: SceneCandidate[];
 }
+
+/** What the settings of a scene offer in the edit mode, worked out once for the whole list. */
+interface SceneChoices {
+  areas: { areaId: string; name: string }[];
+  /** `label` adds the room to the name, for the list. */
+  lights: { entityId: string; name: string; label: string }[];
+  /** How many scenes of Cenas are pinned to the home. */
+  pinned: number;
+}
+
+const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
 
 export class HubbScenesScreen extends HubbScreen {
   static properties = { config: { attribute: false } };
@@ -50,6 +68,40 @@ export class HubbScenesScreen extends HubbScreen {
     return this.config?.lightIds ?? [];
   }
 
+  /** One setting of a scene saved in the dashboard, with Desfazer. */
+  #saveScene(scene: SceneItem, patch: Partial<EntityConfig>, message: string): void {
+    void this.saveChange(message, async (hass, urlPath) => {
+      const before = await setEntity(hass, urlPath, scene.entityId, patch);
+      return (h) => putBack(h, urlPath, before);
+    });
+  }
+
+  /** The room of a scene: '' for the one of Home Assistant, `none` for only on Cenas, or an area. */
+  #moveScene(scene: SceneItem, value: string): void {
+    const hass = this.hass;
+    if (!hass) return;
+    if (!value) return this.#saveScene(scene, { area: undefined }, EDIT.sceneRoomBack(scene.name));
+    if (value === NO_ROOM) return this.#saveScene(scene, { area: NO_ROOM }, EDIT.sceneRoomOff(scene.name));
+    const room = hass.areas[value]?.name ?? value;
+    // A room hidden for someone takes its scenes from them too (build-house.ts): the installer is told.
+    const hiddenFor = hiddenForList(this.config?.options?.rooms?.[value]?.hidden_for);
+    const message = hiddenFor.length ? `${EDIT.movedTo(scene.name, room)} ${EDIT.sceneRoomHiddenFor(room)}` : EDIT.movedTo(scene.name, room);
+    this.#saveScene(scene, { area: value }, message);
+  }
+
+  /** The light or switch a scene's button follows; '' for none. */
+  #follow(scene: SceneItem, value: string): void {
+    const hass = this.hass;
+    if (!hass) return;
+    if (!value) return this.#saveScene(scene, { follows: undefined }, EDIT.followsCleared(scene.name));
+    this.#saveScene(scene, { follows: value }, EDIT.followsSaved(scene.name, this.#lightName(hass, value)));
+  }
+
+  /** A light as the panel names it: the name given in the editor, else the one of Home Assistant. */
+  #lightName(hass: HomeAssistant, entityId: string): string {
+    return this.config?.options?.entities?.[entityId]?.name ?? displayName(hass, entityId, null);
+  }
+
   /** Puts a scene or a script in Cenas (the `scene` role), with Desfazer. */
   #add(candidate: SceneCandidate): void {
     void this.saveChange(EDIT.sceneAdded(candidate.name), async (hass, urlPath) => {
@@ -69,8 +121,74 @@ export class HubbScenesScreen extends HubbScreen {
     });
   }
 
+  /**
+   * Its room, the light it follows and the home (spec Cenas no cômodo): two lists and a toggle. The
+   * home takes four; a fifth waits until one of them leaves.
+   */
+  #sceneSettings(scene: SceneItem, choices: SceneChoices) {
+    const entry = this.config?.options?.entities?.[scene.entityId];
+    const room = entry?.area ?? '';
+    const follows = entry?.follows ?? '';
+    const pinned = entry?.pinned === true;
+    const full = !pinned && choices.pinned >= HOME_SCENES;
+    const roomId = `room-${scene.entityId}`;
+    const followsId = `follows-${scene.entityId}`;
+    return html`<div class="scene-settings">
+      <div class="field">
+        <label for=${roomId}>${EDIT.room}</label>
+        <select id=${roomId} class="scene-room" @change=${(e: Event) => this.#moveScene(scene, (e.target as HTMLSelectElement).value)}>
+          ${unlisted(room, ['', NO_ROOM, ...choices.areas.map((a) => a.areaId)], (x) => x)}
+          <option value="" ?selected=${room === ''}>${EDIT.sceneRoomHa}</option>
+          <option value=${NO_ROOM} ?selected=${room === NO_ROOM}>${EDIT.sceneRoomNone}</option>
+          ${choices.areas.map((a) => html`<option value=${a.areaId} ?selected=${room === a.areaId}>${a.name}</option>`)}
+        </select>
+      </div>
+      <div class="field">
+        <label for=${followsId}>${EDIT.follows}</label>
+        <select id=${followsId} class="scene-follows" @change=${(e: Event) => this.#follow(scene, (e.target as HTMLSelectElement).value)}>
+          ${unlisted(follows, ['', ...choices.lights.map((l) => l.entityId)], (x) => x)}
+          <option value="" ?selected=${follows === ''}>${EDIT.followsNone}</option>
+          ${choices.lights.map((l) => html`<option value=${l.entityId} ?selected=${follows === l.entityId}>${l.label}</option>`)}
+        </select>
+      </div>
+      <div class="tools">
+        <button
+          class="tool pin"
+          aria-pressed=${pinned ? 'true' : 'false'}
+          ?disabled=${full}
+          @click=${() => this.#saveScene(scene, { pinned: pinned ? undefined : true }, pinned ? EDIT.pinnedOff(scene.name) : EDIT.pinnedOn(scene.name))}
+        >
+          ${EDIT.pin}
+        </button>
+        ${full ? html`<span class="pin-full">${EDIT.pinFull}</span>` : nothing}
+      </div>
+    </div>`;
+  }
+
+  /** What the settings of every scene offer: the rooms and the lights by name, and how many are pinned. */
+  #sceneChoices(hass: HomeAssistant, scenes: SceneItem[]): SceneChoices {
+    const byName = (a: { name: string }, b: { name: string }): number => collator.compare(a.name, b.name);
+    const entities = this.config?.options?.entities ?? {};
+    return {
+      areas: Object.values(hass.areas)
+        .map((a) => ({ areaId: a.area_id, name: a.name }))
+        .sort(byName),
+      // A light or a switch the panel can show: not hidden in Home Assistant, not a setting of a device.
+      // A house of many rooms repeats "Spot" and "Teto": each line says its room too.
+      lights: Object.values(hass.entities)
+        .filter((e) => /^(light|switch)\./.test(e.entity_id) && !e.hidden && !e.entity_category)
+        .map((e) => {
+          const name = this.#lightName(hass, e.entity_id);
+          const room = hass.areas[areaOf(hass, e.entity_id, entities[e.entity_id]?.area) ?? '']?.name;
+          return { entityId: e.entity_id, name, label: room ? `${name} · ${room}` : name };
+        })
+        .sort((a, b) => collator.compare(a.label, b.label)),
+      pinned: scenes.filter((s) => entities[s.entityId]?.pinned === true).length,
+    };
+  }
+
   /** A scene in the edit mode: its name, what it is, Quem vê, Não mostrar and who it is hidden for. */
-  #sceneInEdit(scene: SceneItem, twin: boolean) {
+  #sceneInEdit(scene: SceneItem, twin: boolean, choices: SceneChoices) {
     const options = this.config?.options;
     const kind = scene.entityId.startsWith('scene.') ? EDIT.fromScene : EDIT.fromScript;
     // A scene and a script often share a name ("Desligar Kitnet"): the sheet says which one.
@@ -107,13 +225,14 @@ export class HubbScenesScreen extends HubbScreen {
             </button>`,
         )}
       </div>
+      ${this.#sceneSettings(scene, choices)}
     </div>`;
   }
 
   /** A scene off the edit mode: a tile when small (like the home), a row otherwise. */
   #scene(scene: SceneItem) {
     const size = sizeOf(this.config?.options, scene.entityId, 'scene', this.screenLayout);
-    return html`<hubb-scene-button class="size-${size}" variant=${size === 'small' ? 'tile' : 'row'} .scene=${scene}></hubb-scene-button>`;
+    return html`<hubb-scene-button class="size-${size}" variant=${size === 'small' ? 'tile' : 'row'} .scene=${scene} .on=${!!this.hass && sceneIsOn(this.hass, scene)}></hubb-scene-button>`;
   }
 
   render() {
@@ -124,6 +243,7 @@ export class HubbScenesScreen extends HubbScreen {
     const editable = this.canEdit(options);
     const editing = editable && isEditing();
     const candidates = editing ? (this.config?.candidates ?? []) : [];
+    const choices = editing ? this.#sceneChoices(hass, scenes) : null;
     return html`${this.strips(this.config?.shared)}<main>
         <div class="title">
           <h1>${S.scenes}</h1>
@@ -145,8 +265,8 @@ export class HubbScenesScreen extends HubbScreen {
         ${scenes.length
           ? html`<div class="list">
               ${scenes.map((s) =>
-                editing
-                  ? this.#sceneInEdit(s, scenes.filter((o) => o.name === s.name).length > 1)
+                choices
+                  ? this.#sceneInEdit(s, scenes.filter((o) => o.name === s.name).length > 1, choices)
                   : this.#scene(s),
               )}
             </div>`
@@ -234,6 +354,48 @@ export class HubbScenesScreen extends HubbScreen {
       }
       .scene-edit .kind {
         font-size: 11px;
+        font-weight: 600;
+        color: var(--hubb-text-2);
+      }
+      /* Room, light and home of a scene: the same fields as the editor of an item. */
+      .scene-settings {
+        display: grid;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .scene-settings .field {
+        display: grid;
+        gap: 4px;
+      }
+      .scene-settings label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--hubb-text-2);
+      }
+      .scene-settings select {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 48px;
+        padding: 0 12px;
+        border: 1.5px solid color-mix(in srgb, var(--hubb-text-2) 35%, transparent);
+        border-radius: 12px;
+        background: var(--hubb-surface);
+        color: var(--hubb-text);
+        font-family: var(--hubb-font);
+        font-size: 16px;
+      }
+      .scene-settings select:focus-visible {
+        outline: 2px solid var(--hubb-focus);
+        outline-offset: 1px;
+      }
+      .pin[aria-pressed='true'] {
+        background: var(--hubb-primary-bg);
+        color: var(--hubb-primary-ink);
+      }
+      .pin-full {
+        font-size: 12px;
         font-weight: 600;
         color: var(--hubb-text-2);
       }

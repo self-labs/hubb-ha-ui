@@ -32,6 +32,7 @@ import '../elements/sensor-tile';
 import '../elements/scene-button';
 import '../elements/sheet';
 import { isEditing, setEditing } from '../editing';
+import { sceneIsOn } from '../model/scene-state';
 import { normalizeRoom } from '../model/build-house';
 import { gateSensorCandidates } from '../model/gate-sensor';
 import { hiddenForList } from '../model/visibility';
@@ -248,23 +249,28 @@ export class HubbRoomScreen extends HubbScreen {
     const own = !this.embedded;
     // Wide, the air conditioner and the player sit side by side when the room has both.
     const pairUp = this.screenLayout === 'wide' && room.climate.length > 0 && room.media.length > 0;
-    const actions =
-      !editing && (room.lights.length || room.scenes.length)
-        ? html`<div class="actions">
-            ${room.lights.length
-              ? html`<!-- Always rendered when the room has lights: hiding it would push them down the moment one turns on. -->
-                  <button
-                    class="primary ${onIds.length ? '' : 'idle'}"
-                    ?disabled=${onIds.length === 0}
-                    aria-hidden=${onIds.length ? 'false' : 'true'}
-                    @click=${() => this.#turnOff(room, onIds)}
-                  >
-                    ${S.turnRoomOff}
-                  </button>`
-              : nothing}
-            ${room.scenes.map((s) => html`<hubb-scene-button variant="chip" .scene=${s}></hubb-scene-button>`)}
-          </div>`
-        : nothing;
+    // Apagar tudo, then the scenes in one strip that scrolls sideways: many scenes never push the
+    // lights down (spec Cenas no cômodo, opção C, 07/11).
+    const actions = editing
+      ? nothing
+      : html`${room.lights.length
+            ? html`<div class="actions">
+                <!-- Always rendered when the room has lights: hiding it would push them down the moment one turns on. -->
+                <button
+                  class="primary ${onIds.length ? '' : 'idle'}"
+                  ?disabled=${onIds.length === 0}
+                  aria-hidden=${onIds.length ? 'false' : 'true'}
+                  @click=${() => this.#turnOff(room, onIds)}
+                >
+                  ${S.turnRoomOff}
+                </button>
+              </div>`
+            : nothing}
+          ${room.scenes.length
+            ? html`<div class="scene-strip">
+                ${room.scenes.map((s) => html`<hubb-scene-button variant="chip" .scene=${s} .on=${sceneIsOn(hass, s)}></hubb-scene-button>`)}
+              </div>`
+            : nothing}`;
     // Wide, they sit in the header beside the drawing, which is tall anyway: under it they left a
     // hole between the name of the room and its first block (the iPad Mini 5, 21/10).
     const actionsInHero = this.screenLayout === 'wide';
@@ -520,6 +526,23 @@ export class HubbRoomScreen extends HubbScreen {
       }
       .primary.idle {
         visibility: hidden;
+      }
+      /* One line, swiped sideways; the swipe never moves the page. */
+      .scene-strip {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+        margin-top: 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        overscroll-behavior-x: contain;
+      }
+      .scene-strip::-webkit-scrollbar {
+        display: none;
+      }
+      .scene-strip > hubb-scene-button {
+        flex: none;
       }
       /* Six columns: a card takes a third (small), half (medium) or the whole row (large), as the
          installer picks (entities.<id>.size). Cards with buttons or a slide are never small. */

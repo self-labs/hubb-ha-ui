@@ -49,6 +49,10 @@ export interface EntitySettings {
   area?: string;
   /** Appliance only: entities of the device left out of the panel. */
   hide: string[];
+  /** A scene or script: the `light` or `switch` whose state lights its button. */
+  follows?: string;
+  /** A scene or script: one of the four of the home screen. */
+  pinned?: boolean;
   remaining?: string;
   progress?: string;
   /** The power and energy sensors of an outlet or equipment, when the panel cannot match them. */
@@ -86,6 +90,14 @@ export interface PanelConfig {
 }
 
 const domainOf = (entityId: string): string => entityId.slice(0, entityId.indexOf('.'));
+
+/** `entities.<id>.area` of a scene or script that stays in no room: only on Cenas (and the home). */
+export const NO_ROOM = 'none';
+
+/** What a scene's button can follow: a light, or a switch with the light role or not. */
+const FOLLOW_DOMAINS: ReadonlySet<string> = new Set(['light', 'switch']);
+
+const isSceneId = (entityId: string): boolean => entityId.startsWith('scene.') || entityId.startsWith('script.');
 const isRole = (v: unknown): v is Role => typeof v === 'string' && (ROLES as readonly string[]).includes(v);
 
 /** Whether `role` can be given to `entityId`. */
@@ -152,9 +164,23 @@ export function readConfig(hass: HomeAssistant, config: HubbConfig): PanelConfig
       if (ma === '' || (typeof ma === 'string' && ma.startsWith('media_player.') && hass.entities[ma]?.platform === 'music_assistant')) s.musicAssistant = ma;
       else add(`${at}.music_assistant`, entityId, CFG.notMusicAssistant(String(ma)));
     }
+    // A scene or a script: the room, the light it follows and the home are settings of its own.
+    const scene = isSceneId(entityId);
     if (v.area !== undefined) {
-      if (typeof v.area === 'string' && hass.areas[v.area]) s.area = v.area;
+      if (typeof v.area === 'string' && (hass.areas[v.area] || (scene && v.area === NO_ROOM))) s.area = v.area;
       else add(`${at}.area`, entityId, CFG.unknownArea(String(v.area)));
+    }
+    if (v.follows !== undefined) {
+      const ref = v.follows;
+      if (!scene) add(`${at}.follows`, entityId, CFG.sceneOnly('follows'));
+      else if (typeof ref !== 'string' || !hass.states[ref]) add(`${at}.follows`, entityId, CFG.missingEntity(String(ref)));
+      else if (!FOLLOW_DOMAINS.has(domainOf(ref))) add(`${at}.follows`, entityId, CFG.notALightToFollow(ref));
+      else s.follows = ref;
+    }
+    if (v.pinned !== undefined) {
+      if (!scene) add(`${at}.pinned`, entityId, CFG.sceneOnly('pinned'));
+      else if (typeof v.pinned !== 'boolean') add(`${at}.pinned`, entityId, CFG.badPinned);
+      else if (v.pinned) s.pinned = true;
     }
     // hide, remaining and progress tune an appliance; on any other role they would do nothing.
     const appliance = v.role === 'appliance';

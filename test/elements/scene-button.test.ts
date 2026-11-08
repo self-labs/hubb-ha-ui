@@ -30,4 +30,32 @@ describe('hubb-scene-button', () => {
     document.body.replaceChildren();
     expect((await mount('tile')).shadowRoot!.querySelector('.desc')).toBeNull();
   });
+
+  it('says it is on, to the eye and to screen readers, while its light is on', async () => {
+    const el = await mount('chip');
+    el.on = true;
+    await el.updateComplete;
+    expect(el.hasAttribute('on')).toBe(true);
+    expect(el.shadowRoot!.querySelector('button .said')?.textContent?.trim()).toBe('Ligada');
+    el.on = false;
+    await el.updateComplete;
+    expect(el.hasAttribute('on')).toBe(false);
+    expect(el.shadowRoot!.querySelector('.said')).toBeNull();
+  });
+
+  it('hides the word from the eye, never from screen readers', () => {
+    const css = ([] as unknown[]).concat((customElements.get('hubb-scene-button') as unknown as { styles: unknown }).styles)
+      .map((x) => (x as { cssText: string }).cssText)
+      .join('\n');
+    const said = css.match(/\.said\s*\{[^}]*\}/)![0];
+    expect(said).toContain('clip: rect(0 0 0 0)');
+    expect(said).not.toContain('display: none');
+  });
+
+  it('keeps the hidden word inside its button, so a lit chip past the edge never widens the page', () => {
+    const css = ([] as unknown[]).concat((customElements.get('hubb-scene-button') as unknown as { styles: unknown }).styles)
+      .map((x) => (x as { cssText: string }).cssText)
+      .join('\n');
+    expect(css.match(/\n\s*button\s*\{[^}]*\}/)![0]).toContain('position: relative');
+  });
 });
