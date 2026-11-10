@@ -235,7 +235,18 @@ operation.
 - The blocks of a room page and the list of Cenas are six-column grids: a card takes 2 (small), 3
   (medium) or all 6 (large) columns through a `size-*` class from `sizeOf` (`src/model/sizes.ts`).
   On a tablet (`roomy`, `wide`) they are twelve columns, 3, 6 or 12 (`gridSpans`, `src/theme/layout.ts`),
-  so a small card is a quarter of the row; a scene with no size is small there. Cards with buttons or a slide only take the whole row. The span rules name the size class
+  so a small card is a quarter of the row; a scene with no size is small there. Cards with buttons or a slide only take the whole row.
+  On a phone, `defaultSize` (same file) also looks at the name: a card with no size chosen whose name is
+  past `LONG_NAME` (22 characters, what two lines of a third of a row hold) is `medium`, and only that
+  card; the others keep `small` and match its height. A row of mixed widths left a hole at its end, so
+  `rowSpans` (same file) fills it on a phone: in a row of two or more cards that is not the last of its
+  grid, the last card takes the columns the row had left (`span-3` / `span-4` in `room-screen`, which
+  builds the classes of one whole grid with `#classes`); the last row, a row of one card and the order
+  of the cards stay as they are (Gustavo, 10/11). A size in `entities.<id>.size` always wins and a
+  tablet is untouched. `room-screen` hands the editor the size a card takes by itself
+  (`EditItem.autoSize`), so Pequeno on a card that went half a row is saved as a choice instead of
+  dropped as the default. The name of a toggle tile, a curtain and a sensor (`tileName` in
+  `src/theme/layout.ts`) runs over two lines and the tile fills its cell (`height: 100%`). The span rules name the size class
   (`.grid > .size-small`): an edit tile resets its own styles with `all: unset`, which would undo a
   rule as weak as `.grid > *`.
 - happy-dom miscounts the options Lit renders in a `<select>` (`selectedIndex` lands on the wrong

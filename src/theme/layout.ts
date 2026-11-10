@@ -54,3 +54,18 @@ export const gridSpans = css`
     grid-column: 1 / -1;
   }
 `;
+
+/**
+ * The name of a tile: two lines before it is cut, where it ran on one and lost its end on a phone, which
+ * holds about 11 characters a line in a third of a row. A word longer than the line breaks instead of
+ * widening the tile. The tile is the height of its row (`height: 100%`), so a short name beside a long
+ * one is not a smaller card.
+ */
+export const tileName = css`
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+`;

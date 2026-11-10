@@ -5,6 +5,7 @@ import { haptic } from '../actions/haptic';
 import type { HassEntityState, HomeAssistant } from '../ha/types';
 import type { CoverItem } from '../model/types';
 import { COVER, S } from '../strings';
+import { tileName } from '../theme/layout';
 import { define } from './define';
 import { icon } from './icon';
 
@@ -147,6 +148,7 @@ export class HubbCoverTile extends LitElement {
       justify-content: space-between;
       gap: 10px;
       width: 100%;
+      height: 100%;
       min-height: 96px;
       padding: 12px;
       border-radius: var(--hubb-radius, 16px);
@@ -178,12 +180,10 @@ export class HubbCoverTile extends LitElement {
       fill: currentColor;
     }
     .name {
-      display: block;
       font-weight: 700;
       font-size: 13px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      line-height: 1.25;
+      ${tileName}
     }
     .state {
       display: block;

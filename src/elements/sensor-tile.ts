@@ -18,6 +18,7 @@ import { haptic } from '../actions/haptic';
 import type { HomeAssistant } from '../ha/types';
 import type { DangerKind, SensorItem, SensorKind } from '../model/types';
 import { S, SENSE, STRIP } from '../strings';
+import { tileName } from '../theme/layout';
 import { define } from './define';
 import { icon } from './icon';
 
@@ -109,6 +110,7 @@ export class HubbSensorTile extends LitElement {
       justify-content: space-between;
       gap: 8px;
       width: 100%;
+      height: 100%;
       min-height: 80px;
       padding: 10px 12px;
       border-radius: var(--hubb-radius, 16px);
@@ -138,12 +140,10 @@ export class HubbSensorTile extends LitElement {
       fill: currentColor;
     }
     .name {
-      display: block;
       font-weight: 700;
       font-size: 12px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      line-height: 1.25;
+      ${tileName}
     }
     .state {
       display: block;

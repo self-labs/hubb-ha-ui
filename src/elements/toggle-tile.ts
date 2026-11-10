@@ -4,6 +4,7 @@ import { haptic } from '../actions/haptic';
 import { PendingTracker, type PendingStatus } from '../actions/pending';
 import type { HassEntityState, HomeAssistant } from '../ha/types';
 import { noResponseSince, S } from '../strings';
+import { tileName } from '../theme/layout';
 import { icon } from './icon';
 
 const LONG_PRESS_MS = 500;
@@ -253,6 +254,7 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
       justify-content: space-between;
       gap: 10px;
       width: 100%;
+      height: 100%;
       min-height: 96px;
       padding: 12px;
       border-radius: var(--hubb-radius, 16px);
@@ -288,13 +290,10 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
       --mdc-icon-size: 18px;
     }
     .name {
-      display: block;
       font-weight: 700;
       font-size: 13px;
       line-height: 1.25;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      ${tileName}
     }
     .state {
       display: block;

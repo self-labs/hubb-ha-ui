@@ -45,7 +45,17 @@ import { applianceSubheading, roomClimate, roomHeroStatus } from '../summary';
 import { gridSpans, layoutStyles } from '../theme/layout';
 import { tokens } from '../theme/tokens';
 import { HubbScreen } from './base';
-import { sizeOf, type SizedKind } from '../model/sizes';
+import { defaultSize, rowSpans, sizeOf, spanOf, type SizedKind } from '../model/sizes';
+
+/** What sets the width of a card of a grid: which entity it is, what it is and the name it shows. */
+interface Card {
+  entityId: string;
+  kind: SizedKind;
+  name: string;
+}
+
+const cardsOf = <T extends { entityId: string; name: string }>(items: readonly T[], kindOf: SizedKind | ((item: T) => SizedKind)): Card[] =>
+  items.map((i) => ({ entityId: i.entityId, name: i.name, kind: typeof kindOf === 'function' ? kindOf(i) : kindOf }));
 
 export interface RoomScreenConfig {
   type: string;
@@ -61,6 +71,7 @@ export interface RoomScreenConfig {
 
 /** The sheets of a device (M3, and the consumption of M4), each named after the event that opens it (`hubb-open-climate`...). */
 const DEVICE_SHEETS = ['climate', 'cover', 'media', 'power'] as const;
+
 type DeviceSheet = (typeof DEVICE_SHEETS)[number];
 
 export class HubbRoomScreen extends HubbScreen {
@@ -152,9 +163,19 @@ export class HubbRoomScreen extends HubbScreen {
     return this.config?.lightIds ?? [];
   }
 
-  /** The class that sets how wide a card is: `entities.<id>.size`, or today's look. */
-  #size(entityId: string, kind: SizedKind): string {
-    return `size-${sizeOf(this.config?.options, entityId, kind)}`;
+  /** The class that sets how wide a card is: `entities.<id>.size`, else today's look; on a phone, half a row for a long name. */
+  #size(entityId: string, kind: SizedKind, name: string): string {
+    return `size-${sizeOf(this.config?.options, entityId, kind, this.screenLayout, name)}`;
+  }
+
+  /**
+   * The width classes of the cards of one grid, in order: the size of each and, on a phone, the span that fills
+   * its row when the card is the last of a row that is not the last of the grid (see `rowSpans`).
+   */
+  #classes(cards: readonly Card[]): string[] {
+    const sizes = cards.map((c) => sizeOf(this.config?.options, c.entityId, c.kind, this.screenLayout, c.name));
+    const spans = this.screenLayout === 'phone' ? rowSpans(sizes) : null;
+    return sizes.map((size, n) => (spans && spans[n] !== spanOf(size) ? `size-${size} span-${spans[n]}` : `size-${size}`));
   }
 
   #turnOff(room: Room, onIds: string[]): void {
@@ -164,14 +185,17 @@ export class HubbRoomScreen extends HubbScreen {
   }
 
   /** In the edit mode an item is a button that opens its editor; nothing switches by accident. */
-  #editTiles<T extends { entityId: string; name: string }>(items: readonly T[], kindOf: ItemKind | ((item: T) => ItemKind)) {
+  #editTiles<T extends { entityId: string; name: string }>(items: readonly T[], kindOf: ItemKind | ((item: T) => ItemKind), classes: readonly string[]) {
     const siblings = items.map((i) => i.entityId);
-    return items.map((i) => {
+    return items.map((i, n) => {
       const kind = typeof kindOf === 'function' ? kindOf(i) : kindOf;
       // Where it comes from, so two items with one name can be told apart (Gustavo, 14/10).
       const origin = this.hass ? originOf(this.hass, i.entityId) : null;
       // As wide as its card will be, so the installer sees the room as the residents will.
-      return html`<button class="edit-tile ${this.#size(i.entityId, kind)}" @click=${() => (this.editingItem = { entityId: i.entityId, name: i.name, kind, siblings })}>
+      return html`<button
+        class="edit-tile ${classes[n]}"
+        @click=${() => (this.editingItem = { entityId: i.entityId, name: i.name, kind, siblings, autoSize: defaultSize(kind, this.screenLayout, i.name) })}
+      >
         <span class="icon">${icon(mdiPencilOutline)}</span>
         <span class="text"
           ><span class="name">${i.name}</span><span class="kind">${KIND_LABELS[kind]}</span>${origin
@@ -188,14 +212,15 @@ export class HubbRoomScreen extends HubbScreen {
   #climateBlock(room: Room, editing: boolean) {
     const hass = this.hass;
     if (!room.climate.length) return nothing;
+    const classes = this.#classes(cardsOf(room.climate, (c) => c.kind));
     return html`<h2>${CLIMATE.title}</h2>
       <div class="grid">
         ${editing
-          ? this.#editTiles(room.climate, (c) => c.kind)
-          : room.climate.map((c) =>
+          ? this.#editTiles(room.climate, (c) => c.kind, classes)
+          : room.climate.map((c, n) =>
               c.kind === 'fan'
-                ? html`<hubb-fan-tile class=${this.#size(c.entityId, 'fan')} .hass=${hass} .item=${c}></hubb-fan-tile>`
-                : html`<hubb-climate-card class=${this.#size(c.entityId, 'climate')} .hass=${hass} .item=${c}></hubb-climate-card>`,
+                ? html`<hubb-fan-tile class=${classes[n]} .hass=${hass} .item=${c}></hubb-fan-tile>`
+                : html`<hubb-climate-card class=${classes[n]} .hass=${hass} .item=${c}></hubb-climate-card>`,
             )}
       </div>`;
   }
@@ -203,11 +228,12 @@ export class HubbRoomScreen extends HubbScreen {
   #coversBlock(room: Room, editing: boolean) {
     const hass = this.hass;
     if (!room.covers.length) return nothing;
+    const classes = this.#classes(cardsOf(room.covers, 'cover'));
     return html`<h2>${COVER.title}</h2>
       <div class="grid">
         ${editing
-          ? this.#editTiles(room.covers, 'cover')
-          : room.covers.map((c) => html`<hubb-cover-tile class=${this.#size(c.entityId, 'cover')} .hass=${hass} .item=${c}></hubb-cover-tile>`)}
+          ? this.#editTiles(room.covers, 'cover', classes)
+          : room.covers.map((c, n) => html`<hubb-cover-tile class=${classes[n]} .hass=${hass} .item=${c}></hubb-cover-tile>`)}
       </div>`;
   }
 
@@ -217,8 +243,8 @@ export class HubbRoomScreen extends HubbScreen {
     return html`<h2>${MEDIA.title}</h2>
       <div class="grid">
         ${editing
-          ? this.#editTiles(room.media, 'media')
-          : room.media.map((m) => html`<hubb-media-card class=${this.#size(m.entityId, 'media')} .hass=${hass} .item=${m} .pairs=${this.config?.shared?.mediaPairs ?? {}}></hubb-media-card>`)}
+          ? this.#editTiles(room.media, 'media', room.media.map((m) => this.#size(m.entityId, 'media', m.name)))
+          : room.media.map((m) => html`<hubb-media-card class=${this.#size(m.entityId, 'media', m.name)} .hass=${hass} .item=${m} .pairs=${this.config?.shared?.mediaPairs ?? {}}></hubb-media-card>`)}
       </div>`;
   }
 
@@ -240,6 +266,11 @@ export class HubbRoomScreen extends HubbScreen {
     const editing = editable && isEditing();
     // The contact of a gate speaks through its card; the edit mode still reaches it.
     const sensors = editing ? room.sensors : room.sensors.filter((s) => !s.pairedWith);
+    // One list of classes per grid, in the order its cards are drawn: a row fills over the cards next to it.
+    const lightClasses = this.#classes(cardsOf(room.lights, 'light'));
+    const plugClasses = this.#classes([...cardsOf(room.outlets, 'outlet'), ...cardsOf(room.equipment, 'equipment')]);
+    const actionClasses = this.#classes(cardsOf(room.actions, 'action'));
+    const sensorClasses = this.#classes(cardsOf(sensors, (i) => i.kind));
     const onIds = room.lights.filter((l) => hass.states[l.entityId]?.state === 'on').map((l) => l.entityId);
     const status = roomHeroStatus(room, hass);
     const open = this.appliance ? (room.appliances.find((a) => a.deviceId === this.appliance) ?? null) : null;
@@ -299,9 +330,13 @@ export class HubbRoomScreen extends HubbScreen {
           ? html`<h2>${ACCESS.title}</h2>
               <div class="grid">
                 ${editing
-                  ? this.#editTiles(room.access, (a) => (a.kind === 'lock' ? 'lock' : 'gate'))
+                  ? this.#editTiles(
+                      room.access,
+                      (a) => (a.kind === 'lock' ? 'lock' : 'gate'),
+                      room.access.map((a) => this.#size(a.entityId, a.kind === 'lock' ? 'lock' : 'gate', a.name)),
+                    )
                   : room.access.map(
-                      (a) => html`<hubb-access-tile class=${this.#size(a.entityId, a.kind === 'lock' ? 'lock' : 'gate')} .hass=${hass} .item=${a}></hubb-access-tile>`,
+                      (a) => html`<hubb-access-tile class=${this.#size(a.entityId, a.kind === 'lock' ? 'lock' : 'gate', a.name)} .hass=${hass} .item=${a}></hubb-access-tile>`,
                     )}
               </div>`
           : nothing}
@@ -309,8 +344,8 @@ export class HubbRoomScreen extends HubbScreen {
           ? html`<h2>${S.lights}</h2>
               <div class="grid">
                 ${editing
-                  ? this.#editTiles(room.lights, 'light')
-                  : room.lights.map((l) => html`<hubb-light-tile class=${this.#size(l.entityId, 'light')} .hass=${hass} .item=${l}></hubb-light-tile>`)}
+                  ? this.#editTiles(room.lights, 'light', lightClasses)
+                  : room.lights.map((l, n) => html`<hubb-light-tile class=${lightClasses[n]} .hass=${hass} .item=${l}></hubb-light-tile>`)}
               </div>`
           : nothing}
         ${pairUp
@@ -321,11 +356,14 @@ export class HubbRoomScreen extends HubbScreen {
           ? html`<h2>${S.outlets}</h2>
               <div class="grid">
                 ${editing
-                  ? [this.#editTiles(room.outlets, 'outlet'), this.#editTiles(room.equipment, 'equipment')]
+                  ? [
+                      this.#editTiles(room.outlets, 'outlet', plugClasses.slice(0, room.outlets.length)),
+                      this.#editTiles(room.equipment, 'equipment', plugClasses.slice(room.outlets.length)),
+                    ]
                   : [
-                      room.outlets.map((o) => html`<hubb-outlet-tile class=${this.#size(o.entityId, 'outlet')} .hass=${hass} .item=${o}></hubb-outlet-tile>`),
+                      room.outlets.map((o, n) => html`<hubb-outlet-tile class=${plugClasses[n]} .hass=${hass} .item=${o}></hubb-outlet-tile>`),
                       room.equipment.map(
-                        (q) => html`<hubb-equipment-tile class=${this.#size(q.entityId, 'equipment')} .hass=${hass} .item=${q}></hubb-equipment-tile>`,
+                        (q, n) => html`<hubb-equipment-tile class=${plugClasses[room.outlets.length + n]} .hass=${hass} .item=${q}></hubb-equipment-tile>`,
                       ),
                     ]}
               </div>`
@@ -334,9 +372,9 @@ export class HubbRoomScreen extends HubbScreen {
           ? html`<h2>${S.appliances}</h2>
               <div class="grid">
                 ${editing
-                  ? this.#editTiles(room.appliances, 'appliance')
+                  ? this.#editTiles(room.appliances, 'appliance', room.appliances.map((a) => this.#size(a.entityId, 'appliance', a.name)))
                   : room.appliances.map(
-                      (a) => html`<hubb-appliance-card class=${this.#size(a.entityId, 'appliance')} .hass=${hass} .item=${a}></hubb-appliance-card>`,
+                      (a) => html`<hubb-appliance-card class=${this.#size(a.entityId, 'appliance', a.name)} .hass=${hass} .item=${a}></hubb-appliance-card>`,
                     )}
               </div>`
           : nothing}
@@ -344,16 +382,16 @@ export class HubbRoomScreen extends HubbScreen {
           ? html`<h2>${S.actions}</h2>
               <div class="grid">
                 ${editing
-                  ? this.#editTiles(room.actions, 'action')
-                  : room.actions.map((a) => html`<hubb-action-button class=${this.#size(a.entityId, 'action')} .hass=${hass} .item=${a}></hubb-action-button>`)}
+                  ? this.#editTiles(room.actions, 'action', actionClasses)
+                  : room.actions.map((a, n) => html`<hubb-action-button class=${actionClasses[n]} .hass=${hass} .item=${a}></hubb-action-button>`)}
               </div>`
           : nothing}
         ${sensors.length
           ? html`<h2>${SENSE.title}</h2>
               <div class="grid">
                 ${editing
-                  ? this.#editTiles(sensors, (i) => i.kind)
-                  : sensors.map((i) => html`<hubb-sensor-tile class=${this.#size(i.entityId, i.kind)} .hass=${hass} .item=${i}></hubb-sensor-tile>`)}
+                  ? this.#editTiles(sensors, (i) => i.kind, sensorClasses)
+                  : sensors.map((i, n) => html`<hubb-sensor-tile class=${sensorClasses[n]} .hass=${hass} .item=${i}></hubb-sensor-tile>`)}
               </div>`
           : nothing}
         ${editing && room.hidden.length
@@ -560,6 +598,14 @@ export class HubbRoomScreen extends HubbScreen {
       }
       .grid > .size-large {
         grid-column: 1 / -1;
+      }
+      /* On a phone the last card of a row that is not the last of its grid takes what the row had left
+         (rowSpans): a third beside half a row leaves a sixth, a pair of thirds before half a row two. */
+      .grid > .span-3 {
+        grid-column: span 3;
+      }
+      .grid > .span-4 {
+        grid-column: span 4;
       }
       /* Wide: a tall header with the drawing large, the name, the status and the actions at its top,
          aligned with the clock card of the column; the air conditioner beside the player. */

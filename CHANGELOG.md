@@ -8,6 +8,22 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.11.3] - 2026-11-10
+
+### 🔧 Changed
+
+- On a phone, the name of a light, an outlet, a piece of equipment, a fan, a curtain or a sensor runs
+  over two lines before it is cut, and these tiles fill the height of their row, so a card with a short
+  name beside a long one is not a smaller card.
+- On a phone, a card with a name longer than 22 characters (a light, outlet, equipment, fan, curtain,
+  sensor or action) takes half a row, and only that card: the others keep a third of the row and match
+  its height. A size chosen in the editor always wins, and a tablet keeps three or four to a row. In
+  the editor of such a card **Médio** is marked, and **Pequeno** is saved as a choice.
+- On a phone, a row that is not the last of its block has no hole at its end: its last card takes the
+  columns the row had left. A third after half a row grows to half, half a row after a third grows to
+  two thirds, and the second of two thirds, when the next card does not fit, grows to two thirds. The
+  last row of a block, a row of one card and the order of the cards stay as they are.
+
 ## [2026.11.2] - 2026-11-08
 
 ### ✨ Added
@@ -790,7 +806,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.2...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.3...HEAD
+[2026.11.3]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.2...v2026.11.3
 [2026.11.2]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.1...v2026.11.2
 [2026.11.1]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.27...v2026.11.1
 [2026.10.27]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.26...v2026.10.27

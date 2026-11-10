@@ -8,7 +8,7 @@ import type { GateSensor } from '../model/gate-sensor';
 import { originOf } from '../model/origin';
 import type { Place } from '../model/profiles';
 import type { ClimateExtra, EntityConfig } from '../model/types';
-import { defaultSize, sizeOf, sizesFor, type Size } from '../model/sizes';
+import { chosenSize, defaultSize, sizesFor, type Size } from '../model/sizes';
 import { hiddenForList } from '../model/visibility';
 import { CLIMATE, EDIT, KIND_LABELS, REVIEW, SIZE_LABELS } from '../strings';
 import { define } from './define';
@@ -24,6 +24,8 @@ export interface EditItem {
   kind: ItemKind;
   /** The items of its block, in their order, to move it among them. */
   siblings: string[];
+  /** The size it takes with no choice made: not the default of its kind when a long name lined its block up. */
+  autoSize?: Size;
 }
 
 /** What the editor asks the screen to save; the screen saves it and offers Desfazer. */
@@ -175,8 +177,8 @@ export class HubbItemEditor extends LitElement {
   #size(size: Size): void {
     const item = this.item;
     if (!item) return;
-    // The default writes nothing: the YAML only keeps a size someone chose against it.
-    this.#ask({ patch: { size: size === defaultSize(item.kind) ? undefined : size }, message: EDIT.sizeSaved(item.name, SIZE_LABELS[size]) });
+    // The size it takes by itself writes nothing: the YAML only keeps a size someone chose against it.
+    this.#ask({ patch: { size: size === (item.autoSize ?? defaultSize(item.kind)) ? undefined : size }, message: EDIT.sizeSaved(item.name, SIZE_LABELS[size]) });
   }
 
   /** The sensor of a pulse gate: Nenhum, or a door contact or gate of its room. */
@@ -326,7 +328,7 @@ export class HubbItemEditor extends LitElement {
             <span class="label">${EDIT.size}</span>
             <div class="row">
               ${sizesFor(item.kind).map((size) => {
-                const on = size === sizeOf({ entities: { [item.entityId]: this.settings ?? {} } }, item.entityId, item.kind);
+                const on = size === (chosenSize({ entities: { [item.entityId]: this.settings ?? {} } }, item.entityId, item.kind) ?? item.autoSize ?? defaultSize(item.kind));
                 return html`<button class="size ${on ? 'current' : ''}" aria-pressed=${on ? 'true' : 'false'} ?disabled=${on} @click=${() => this.#size(size)}>
                   ${SIZE_LABELS[size]}
                 </button>`;
