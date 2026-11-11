@@ -16,6 +16,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   already installed as `hubb-casa` keeps working. Home Assistant cannot edit the URL of an existing
   dashboard: moving one means creating the new one with the same configuration and setting it as the
   default.
+- **The description in the "Community dashboards" picker says "áreas do local", not "áreas da casa"**,
+  for the same reason: the panel also serves clinics and restaurants.
 
 ## [2026.11.3] - 2026-11-10
 

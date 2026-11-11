@@ -30,7 +30,7 @@ if (!window.customStrategies.some((s) => s.type === 'hubb')) {
     type: 'hubb',
     strategyType: 'dashboard',
     name: 'Hubb',
-    description: 'Painel da Hubb, montado a partir das áreas da casa.',
+    description: 'Painel da Hubb, montado a partir das áreas do local.',
     documentationURL: 'https://github.com/self-labs/hubb-ha-ui',
   });
 }
