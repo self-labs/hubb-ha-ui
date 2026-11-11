@@ -35,7 +35,7 @@ const cssOf = (styles: unknown): string =>
   ([] as unknown[]).concat(styles).map((s) => (s as { cssText: string }).cssText).join('\n');
 
 describe('the scene strip of a room', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/consultorio'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/consultorio'));
   afterEach(() => {
     setEditing(false);
     resetLayoutForTests();

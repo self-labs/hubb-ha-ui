@@ -31,7 +31,7 @@ describe('a wall tablet rests and wakes up', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(Date.parse('2026-10-21T12:00:00Z'));
-    history.replaceState(null, '', '/hubb-casa/cozinha');
+    history.replaceState(null, '', '/hubb-ui/cozinha');
     // A screen of the panel on the page: the rest only happens over the panel.
     gone = screenShown();
   });
@@ -50,7 +50,7 @@ describe('a wall tablet rests and wakes up', () => {
     expect(isResting()).toBe(false);
     vi.advanceTimersByTime(2000);
     expect(isResting()).toBe(true);
-    expect(location.pathname).toBe('/hubb-casa/home');
+    expect(location.pathname).toBe('/hubb-ui/home');
     expect(notifies(h)).toEqual([['mobile_app_ipad_da_lia', { message: 'kiosk_set_brightness', data: { level: 5 } }]]);
   });
 

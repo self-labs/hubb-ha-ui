@@ -51,14 +51,14 @@ describe('hubb-status-strips', () => {
   });
 
   it('leads to the room, or to the security tab when there is no room', async () => {
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
     const el = await mount(hass('on'));
     (el.shadowRoot!.querySelector('.alert') as HTMLButtonElement).click();
-    expect(location.pathname).toBe('/hubb-casa/cozinha');
+    expect(location.pathname).toBe('/hubb-ui/cozinha');
     document.body.replaceChildren();
     const leak = await mount(hass('off', 'on'));
     (leak.shadowRoot!.querySelector('.alert') as HTMLButtonElement).click();
-    expect(location.pathname).toBe('/hubb-casa/seguranca');
+    expect(location.pathname).toBe('/hubb-ui/seguranca');
   });
 
   it('vibrates once for a new alert, not on every screen', async () => {

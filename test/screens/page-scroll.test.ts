@@ -35,7 +35,7 @@ async function room(areaId = 'sala'): Promise<Screen> {
 
 describe('the screen is the scroller', () => {
   beforeEach(() => {
-    history.replaceState(null, '', '/hubb-casa/sala');
+    history.replaceState(null, '', '/hubb-ui/sala');
     // Whatever the last test did, this one starts as if a tap had opened the page.
     window.dispatchEvent(new CustomEvent('location-changed', { detail: { replace: false } }));
   });
@@ -92,7 +92,7 @@ describe('the screen is the scroller', () => {
   });
 
   it('wide, both columns keep their place through a rebuild', async () => {
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
     reportArea({ left: 0, top: 0, width: 1280, height: 800 }, 800);
     const mount = async (): Promise<Screen> => {
       const { h, house: b } = house();
@@ -150,7 +150,7 @@ describe('the screen is the scroller', () => {
     el.remove();
     el.scrollTop = 0;
     vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 120_000);
-    navigate('/hubb-casa/tapped', { back: true });
+    navigate('/hubb-ui/tapped', { back: true });
     document.body.appendChild(el);
     await el.updateComplete;
     expect(el.scrollTop).toBe(0);
@@ -163,7 +163,7 @@ describe('the screen is the scroller', () => {
     el.remove();
     el.scrollTop = 0;
     window.dispatchEvent(new Event('popstate'));
-    navigate('/hubb-casa/quick', { back: true });
+    navigate('/hubb-ui/quick', { back: true });
     document.body.appendChild(el);
     await el.updateComplete;
     expect(el.scrollTop).toBe(0);

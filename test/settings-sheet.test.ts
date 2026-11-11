@@ -34,7 +34,7 @@ async function mount(h: FakeHass): Promise<Screen> {
 }
 
 describe('Ajustes: the settings of the panel, in the edit mode', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/home'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/home'));
   afterEach(() => {
     setEditing(false);
     for (const el of document.querySelectorAll('hubb-home-screen')) (el.shadowRoot?.querySelector('hubb-toast') as HubbToast | null)?.hide();

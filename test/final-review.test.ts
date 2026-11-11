@@ -45,7 +45,7 @@ describe('the undo on a phone', () => {
 
 describe('the wide home on a house with two floors', () => {
   beforeEach(() => {
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
     reportArea({ left: 0, top: 0, width: 1280, height: 800 }, 800);
   });
 
@@ -102,7 +102,7 @@ describe('the security pill', () => {
 describe('a scene size picked on a tablet', () => {
   it('is saved even when it is the size of the phone', async () => {
     reportArea({ left: 0, top: 0, width: 768, height: 1024 }, 1024);
-    history.replaceState(null, '', '/hubb-casa/cenas');
+    history.replaceState(null, '', '/hubb-ui/cenas');
     const h = admin(makeHass({ areas: [], entities: [{ entity_id: 'scene.jantar', area_id: null, name: 'Jantar', state: 'scening' }] }));
     const saves = withDashboard(h, { strategy: { type: 'custom:hubb' } });
     setEditing(true);
@@ -157,7 +157,7 @@ describe('the wide home is the height of the screen, strips included', () => {
 
 describe('turning the tablet with a sheet of the room open', () => {
   beforeEach(() => {
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
     reportArea({ left: 0, top: 0, width: 1280, height: 800 }, 800);
   });
 
@@ -178,7 +178,7 @@ describe('turning the tablet with a sheet of the room open', () => {
     await room.updateComplete;
     reportArea({ left: 0, top: 0, width: 768, height: 1024 }, 1024);
     await el.updateComplete;
-    expect(location.pathname).toBe('/hubb-casa/sala');
+    expect(location.pathname).toBe('/hubb-ui/sala');
   });
 
   it('with no sheet open, stays on the home', async () => {
@@ -192,7 +192,7 @@ describe('turning the tablet with a sheet of the room open', () => {
     await el.updateComplete;
     reportArea({ left: 0, top: 0, width: 768, height: 1024 }, 1024);
     await el.updateComplete;
-    expect(location.pathname).toBe('/hubb-casa/home');
+    expect(location.pathname).toBe('/hubb-ui/home');
   });
 });
 
@@ -248,9 +248,9 @@ describe('the selects of the wall tablet and of Ajustes', () => {
     const h = admin(makeHass({ areas: [area('sala', 'Sala')], entities: [] }));
     const saves = withDashboard(h, { strategy: { type: 'custom:hubb', tablets: { u_lia: { room: 'sala' } } } });
     const { setTablets } = await import('../src/actions/dashboard-config');
-    await Promise.all([setTablets(h, 'hubb-casa', { u_lia: { rest_after: 2 } }), setTablets(h, 'hubb-casa', { u_lia: { notify: 'mobile_app_ipad' } })]);
+    await Promise.all([setTablets(h, 'hubb-ui', { u_lia: { rest_after: 2 } }), setTablets(h, 'hubb-ui', { u_lia: { notify: 'mobile_app_ipad' } })]);
     expect((saves.at(-1)!.tablets as Record<string, unknown>).u_lia).toEqual({ room: 'sala', rest_after: 2, notify: 'mobile_app_ipad' });
-    await setTablets(h, 'hubb-casa', { u_lia: { notify: undefined } });
+    await setTablets(h, 'hubb-ui', { u_lia: { notify: undefined } });
     expect((saves.at(-1)!.tablets as Record<string, unknown>).u_lia).toEqual({ room: 'sala', rest_after: 2 });
   });
 });
@@ -309,7 +309,7 @@ describe('the forecast after Home Assistant restarts', () => {
 describe('the edit mode of the wide home', () => {
   it('a tap on a room picks it for the right side: no room page, no extra step back', async () => {
     reportArea({ left: 0, top: 0, width: 1280, height: 800 }, 800);
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
     const h = admin(
       makeHass({
         areas: [area('quarto', 'Quarto'), area('sala', 'Sala')],
@@ -332,7 +332,7 @@ describe('the edit mode of the wide home', () => {
     await card.updateComplete;
     (card.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
     await el.updateComplete;
-    expect(location.pathname).toBe('/hubb-casa/home');
+    expect(location.pathname).toBe('/hubb-ui/home');
     expect(history.length).toBe(steps);
     const pane = el.shadowRoot!.querySelector('section.pane hubb-room-screen[embedded]') as HTMLElement & { config: { room: { areaId: string } } };
     expect(pane.config.room.areaId).toBe('quarto');

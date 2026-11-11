@@ -15,29 +15,29 @@ describe('haptic and navigation', () => {
   });
 
   it('takes the dashboard base path from the URL', () => {
-    expect(basePath('/hubb-casa/sala')).toBe('/hubb-casa');
-    expect(basePath('/hubb-casa')).toBe('/hubb-casa');
+    expect(basePath('/hubb-ui/sala')).toBe('/hubb-ui');
+    expect(basePath('/hubb-ui')).toBe('/hubb-ui');
     expect(basePath('/')).toBe('');
   });
 
   it('can replace the current entry instead of stacking one', () => {
     const push = vi.spyOn(history, 'pushState');
-    navigate('/hubb-casa/scenes', { replace: true });
-    expect(location.pathname).toBe('/hubb-casa/scenes');
+    navigate('/hubb-ui/scenes', { replace: true });
+    expect(location.pathname).toBe('/hubb-ui/scenes');
     expect(push).not.toHaveBeenCalled();
     push.mockRestore();
   });
 
   it('goes back through history when the previous screen was ours, else replaces with home', () => {
-    navigate('/hubb-casa/sala', { back: true });
+    navigate('/hubb-ui/sala', { back: true });
     expect(history.state).toEqual({ hubbBack: true });
     const back = vi.spyOn(history, 'back').mockImplementation(() => undefined);
-    goBack('/hubb-casa');
+    goBack('/hubb-ui');
     expect(back).toHaveBeenCalledOnce();
-    history.replaceState(null, '', '/hubb-casa/sala');
-    goBack('/hubb-casa');
+    history.replaceState(null, '', '/hubb-ui/sala');
+    goBack('/hubb-ui');
     expect(back).toHaveBeenCalledOnce();
-    expect(location.pathname).toBe('/hubb-casa/home');
+    expect(location.pathname).toBe('/hubb-ui/home');
     back.mockRestore();
   });
 
@@ -45,9 +45,9 @@ describe('haptic and navigation', () => {
     let changed = 0;
     const listener = () => { changed += 1; };
     window.addEventListener('location-changed', listener);
-    navigate('/hubb-casa/sala');
+    navigate('/hubb-ui/sala');
     window.removeEventListener('location-changed', listener);
-    expect(location.pathname).toBe('/hubb-casa/sala');
+    expect(location.pathname).toBe('/hubb-ui/sala');
     expect(changed).toBe(1);
   });
 });

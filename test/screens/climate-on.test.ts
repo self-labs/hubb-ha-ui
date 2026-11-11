@@ -32,7 +32,7 @@ async function mount(h: FakeHass): Promise<Screen> {
 }
 
 describe('the air conditioners on, on the home', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/home'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/home'));
   afterEach(() => {
     resetLayoutForTests();
     resetSelectionForTests();

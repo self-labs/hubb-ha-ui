@@ -24,7 +24,7 @@ describe('the review key on the home', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 9, 12, 15, 0, 0));
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -37,7 +37,7 @@ describe('the review key on the home', () => {
     expect(key.querySelector('.badge')!.textContent).toBe('1');
     expect(key.getAttribute('aria-label')).toBe('Revisar o painel: 1 pendência');
     key.click();
-    expect(location.pathname).toBe('/hubb-casa/revisar');
+    expect(location.pathname).toBe('/hubb-ui/revisar');
   });
 
   it('shows the key with no number when there is nothing to review', async () => {

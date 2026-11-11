@@ -40,7 +40,7 @@ const embeddedArea = (el: HubbScreen) =>
 
 describe('the tablet reaches the screens of its user', () => {
   beforeEach(() => {
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
     reportArea({ left: 0, top: 0, width: 1280, height: 800 }, 800);
   });
   afterEach(() => {

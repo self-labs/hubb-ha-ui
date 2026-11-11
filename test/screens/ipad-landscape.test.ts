@@ -45,7 +45,7 @@ async function mountHome(h: FakeHass): Promise<Screen> {
 
 describe('the wide home on an iPad Mini 5 lying down (1024 x 768)', () => {
   beforeEach(() => {
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
     reportArea({ left: 0, top: 0, width: 1024, height: 768 }, 768);
   });
   afterEach(() => {

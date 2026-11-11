@@ -8,6 +8,15 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### 🔧 Changed
+
+- **The example dashboard URL is `hubb-ui`, not `hubb-casa`.** The README, the contributor notes, the
+  dev preview, the code comments and the tests use it: a clinic or a restaurant is not a "casa". Nothing
+  in the panel changes, it never hardcoded the name and reads it from the address, so a dashboard that is
+  already installed as `hubb-casa` keeps working. Home Assistant cannot edit the URL of an existing
+  dashboard: moving one means creating the new one with the same configuration and setting it as the
+  default.
+
 ## [2026.11.3] - 2026-11-10
 
 ### 🔧 Changed

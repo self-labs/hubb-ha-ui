@@ -298,13 +298,13 @@ describe('the minors of M4 left for later (14/10)', () => {
   it('does not stack a second history entry when the strip leads to the page it is on', async () => {
     const alerts: AlertItem[] = [{ entityId: 'binary_sensor.fumaca', kind: 'smoke', roomName: null, path: null }];
     const h = makeHass({ entities: [{ entity_id: 'binary_sensor.fumaca', state: 'on' }] });
-    history.replaceState(null, '', '/hubb-casa/seguranca');
+    history.replaceState(null, '', '/hubb-ui/seguranca');
     const push = vi.spyOn(history, 'pushState');
     const el = await mount<Mounted>('hubb-status-strips', { hass: h, alerts });
     ($(el, '.alert') as HTMLButtonElement).click();
     expect(push).not.toHaveBeenCalled();
-    expect(location.pathname).toBe('/hubb-casa/seguranca');
-    history.replaceState(null, '', '/hubb-casa/home');
+    expect(location.pathname).toBe('/hubb-ui/seguranca');
+    history.replaceState(null, '', '/hubb-ui/home');
     ($(el, '.alert') as HTMLButtonElement).click();
     expect(push).toHaveBeenCalledOnce();
     push.mockRestore();

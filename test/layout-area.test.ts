@@ -26,7 +26,7 @@ async function mount(tag: string, config: Record<string, unknown>, embedded = fa
 }
 
 describe('a screen knows the area it has', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/home'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/home'));
   afterEach(() => {
     resetLayoutForTests();
     vi.restoreAllMocks();

@@ -20,8 +20,8 @@
   const { hass, config } = mockHouse(q);
   const strategy = customElements.get('ll-strategy-dashboard-hubb');
   const dashboard = await strategy.generate(config, hass);
-  // Screens read their base path from the first segment of the address, like /hubb-casa/home.
-  history.replaceState(null, '', `/hubb-casa/${q.get('view') ?? 'home'}${location.search}`);
+  // Screens read their base path from the first segment of the address, like /hubb-ui/home.
+  history.replaceState(null, '', `/hubb-ui/${q.get('view') ?? 'home'}${location.search}`);
   const draw = async (path) => {
     const view = dashboard.views.find((v) => v.path === path) ?? dashboard.views[0];
     const card = view.cards[0];

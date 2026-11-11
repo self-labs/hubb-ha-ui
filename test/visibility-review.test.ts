@@ -50,11 +50,11 @@ describe('the final review of who sees what', () => {
   });
 
   it('sends a resident who lands on a room that is gone for them back home', async () => {
-    history.replaceState(null, '', '/hubb-casa/vazio-1');
+    history.replaceState(null, '', '/hubb-ui/vazio-1');
     const card = document.createElement('hubb-redirect-card') as HTMLElement & { setConfig(c: unknown): void };
     card.setConfig({ type: 'custom:hubb-redirect-card' });
     document.body.appendChild(card);
-    expect(location.pathname).toBe('/hubb-casa/home');
+    expect(location.pathname).toBe('/hubb-ui/home');
   });
 
   it('never takes a relay or an outlet of a board that also drives an air conditioner as one of its functions', () => {
@@ -170,7 +170,7 @@ describe('the final review of who sees what', () => {
   });
 
   it('closes the people of a room when the save fails, so the notice can be read', async () => {
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
     const h = admin(sampleHouseHass());
     withDashboard(h, { strategy: { type: 'custom:hubb' } }, true);
     withUsers(h, USERS);

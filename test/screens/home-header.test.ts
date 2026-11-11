@@ -11,7 +11,7 @@ describe('the header of the home', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 9, 13, 15, 0, 0));
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
   });
   afterEach(() => {
     vi.useRealTimers();

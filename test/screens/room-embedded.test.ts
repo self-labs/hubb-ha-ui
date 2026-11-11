@@ -41,7 +41,7 @@ async function room(embedded: boolean, withMedia = true): Promise<{ el: Screen; 
 }
 
 describe('a room page drawn inside the wide home', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/home'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/home'));
   afterEach(() => {
     resetLayoutForTests();
     resetSelectionForTests();
@@ -99,9 +99,9 @@ describe('a room page drawn inside the wide home', () => {
 
   it('opened by a link on a wide screen, the room shows on the right of the home', async () => {
     reportArea({ left: 0, top: 0, width: 1280, height: 800 }, 800);
-    history.replaceState(null, '', '/hubb-casa/sala');
+    history.replaceState(null, '', '/hubb-ui/sala');
     await room(false);
-    expect(location.pathname).toBe('/hubb-casa/home');
+    expect(location.pathname).toBe('/hubb-ui/home');
     expect(selectedRoom()).toBe('sala');
   });
 

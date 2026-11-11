@@ -16,8 +16,8 @@ const port = Number(process.env.PORT ?? 4173);
 
 createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://localhost');
-  // The preview rewrites its address to /hubb-casa/...; anything there is the preview page itself.
-  const wanted = url.pathname.startsWith('/hubb-casa/') ? '/dev/preview.html' : url.pathname === '/' ? '/dev/preview.html' : url.pathname;
+  // The preview rewrites its address to /hubb-ui/...; anything there is the preview page itself.
+  const wanted = url.pathname.startsWith('/hubb-ui/') ? '/dev/preview.html' : url.pathname === '/' ? '/dev/preview.html' : url.pathname;
   const path = normalize(join(root, decodeURIComponent(wanted)));
   if (!path.startsWith(root.endsWith(sep) ? root : root + sep)) {
     res.writeHead(403).end();

@@ -31,7 +31,7 @@ async function room(embedded = false): Promise<Screen> {
 }
 
 describe('the header of a room', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/sala'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/sala'));
   afterEach(() => {
     resetLayoutForTests();
     document.body.replaceChildren();

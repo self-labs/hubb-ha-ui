@@ -29,7 +29,7 @@ async function row(selected = false): Promise<HubbRoomCard> {
 }
 
 describe('a room as a row of the wide home', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/home'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/home'));
   afterEach(() => {
     resetSelectionForTests();
     document.body.replaceChildren();
@@ -41,7 +41,7 @@ describe('a room as a row of the wide home', () => {
     el.addEventListener('hubb-select-room', (e) => (picked = (e as CustomEvent<{ areaId: string }>).detail.areaId));
     (el.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
     expect(picked).toBe('sala');
-    expect(location.pathname).toBe('/hubb-casa/home');
+    expect(location.pathname).toBe('/hubb-ui/home');
   });
 
   it('shows the temperature of the room and whether it is the one open', async () => {

@@ -37,7 +37,7 @@ const embeddedRoom = (el: Screen) =>
 
 describe('the wide home: the house on the left, a room on the right', () => {
   beforeEach(() => {
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
     reportArea({ left: 0, top: 0, width: 1280, height: 800 }, 800);
   });
   afterEach(() => {
@@ -66,7 +66,7 @@ describe('the wide home: the house on the left, a room on the right', () => {
     (row.shadowRoot!.querySelector('button') as HTMLButtonElement).click();
     await el.updateComplete;
     expect(embeddedRoom(el)?.config.room.areaId).toBe('cozinha');
-    expect(location.pathname).toBe('/hubb-casa/home');
+    expect(location.pathname).toBe('/hubb-ui/home');
     el.remove();
     el = await mount(h);
     expect(embeddedRoom(el)?.config.room.areaId).toBe('cozinha');

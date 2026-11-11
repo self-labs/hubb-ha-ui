@@ -46,7 +46,7 @@ const blink = (h: FakeHass, state: string, temperature: number | null) => {
 };
 
 describe('what was left for later', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/home'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/home'));
   afterEach(() => {
     setEditing(false);
     vi.useRealTimers();

@@ -36,7 +36,7 @@ async function mount(h: FakeHass) {
 const group = (el: HTMLElement) => [...el.shadowRoot!.querySelectorAll('h2')].find((h2) => h2.textContent!.startsWith('Pessoas que não existem mais'));
 
 describe('people who no longer exist', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/revisar'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/revisar'));
   afterEach(() => {
     (document.querySelector('hubb-review-screen')?.shadowRoot?.querySelector('hubb-toast') as HubbToast | null)?.hide();
     document.body.replaceChildren();

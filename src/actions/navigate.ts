@@ -1,4 +1,4 @@
-/** "/hubb-casa/sala" -> "/hubb-casa". Dashboards need a hyphen in their URL, so we never hardcode it. */
+/** "/hubb-ui/sala" -> "/hubb-ui". Dashboards need a hyphen in their URL, so we never hardcode it. */
 export function basePath(pathname: string = window.location.pathname): string {
   const first = pathname.split('/').filter(Boolean)[0];
   return first ? `/${first}` : '';

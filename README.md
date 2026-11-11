@@ -346,7 +346,9 @@ in the Companion app: set up notifications and location on their phone before.
 
 1. **Add dashboard** and pick **Hubb** under _Community dashboards_. Home Assistant asks the kind of
    place first (a home, a clinic, a restaurant, ...) and, optionally, its name.
-2. Give it a URL with a hyphen, for example `hubb-casa` (Home Assistant requires the hyphen).
+2. Give it a URL with a hyphen, for example `hubb-ui` (Home Assistant requires the hyphen). The panel
+   reads its own address, so any name works, and the name says nothing about the place: a clinic
+   or a restaurant is not a "casa".
 3. Make it everyone's default: back on **Settings → Dashboards**, the three-dot menu on its row →
    **Set as default**. Every user then opens Home Assistant on the panel, in the Companion app and
    in any browser, which matters once kiosk-mode hides the sidebar. Home Assistant keeps this on the

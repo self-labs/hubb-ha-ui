@@ -60,7 +60,7 @@ const settle = async (el: Screen) => {
 };
 
 describe('the review of the tabs and the scenes', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/scenes'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/scenes'));
   afterEach(() => {
     setEditing(false);
     for (const el of document.querySelectorAll('hubb-scenes-screen, hubb-security-screen')) (el.shadowRoot?.querySelector('hubb-toast') as HubbToast | null)?.hide();
@@ -117,7 +117,7 @@ describe('the review of the tabs and the scenes', () => {
   });
 
   it('switches nothing on Segurança in edit mode: the alarm becomes a row with its tools, and the lists step aside', async () => {
-    history.replaceState(null, '', '/hubb-casa/seguranca');
+    history.replaceState(null, '', '/hubb-ui/seguranca');
     setEditing(true);
     const { el } = await screen('hubb-security-screen', {});
     expect(el.shadowRoot!.querySelector('hubb-alarm-card')).toBeNull();
@@ -134,7 +134,7 @@ describe('the strip, the stale tabs, the candidates and the editor', () => {
   afterEach(() => document.body.replaceChildren());
 
   it('leads a resident without Segurança to the room of an alert that has one, even with the alarm going off', async () => {
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
     const h = casa(false);
     h.states['alarm_control_panel.alarme'] = { ...h.states['alarm_control_panel.alarme']!, state: 'triggered' };
     const strips = document.createElement('hubb-status-strips') as HTMLElement & { hass: FakeHass; alerts: unknown; security: boolean; updateComplete: Promise<unknown> };
@@ -147,7 +147,7 @@ describe('the strip, the stale tabs, the candidates and the editor', () => {
     document.body.appendChild(strips);
     await strips.updateComplete;
     (strips.shadowRoot!.querySelector('button.alert') as HTMLButtonElement).click();
-    expect(location.pathname).toBe('/hubb-casa/sala');
+    expect(location.pathname).toBe('/hubb-ui/sala');
   });
 
   it('reads only scenes and security as tabs of people who no longer exist', () => {

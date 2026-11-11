@@ -72,7 +72,7 @@ describe('the review of the card sizes', () => {
   });
 
   it('labels the sizes of a scene on Cenas, and disables the one it has', async () => {
-    history.replaceState(null, '', '/hubb-casa/scenes');
+    history.replaceState(null, '', '/hubb-ui/scenes');
     const h = sala();
     withDashboard(h, { strategy: { type: 'custom:hubb' } });
     withUsers(h, USERS);

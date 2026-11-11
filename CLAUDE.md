@@ -86,7 +86,7 @@ test/                  Vitest + happy-dom; helpers/fake-hass.ts; fixtures: sampl
   "Mostrar interruptores sem cômodo" only. Every move rebuilds the dashboard and the review screen with it, so
   what the installer is in the middle of (the list open, the rooms chosen, the place in the list)
   lives in module state keyed by `hass.callService` (`kept` in `screens/review-screen.ts`).
-- Dashboard URLs need a hyphen in Home Assistant (`hubb-casa`), so screens derive their base path
+- Dashboard URLs need a hyphen in Home Assistant (`hubb-ui`), so screens derive their base path
   from `location.pathname`.
 - The `h.` glyph never appears in the panel.
 

@@ -47,7 +47,7 @@ const cssOf = (styles: unknown): string =>
   ([] as unknown[]).concat(styles).map((s) => (s as { cssText: string }).cssText).join('\n');
 
 describe('hubb-room-card', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/home'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/home'));
   afterEach(() => { document.body.replaceChildren(); });
 
   it('says Apagado when every light is off', async () => {
@@ -71,7 +71,7 @@ describe('hubb-room-card', () => {
   it('opens the room page, marking the entry so the room can go back to it', async () => {
     const el = await mount(makeHass());
     btn(el).click();
-    expect(location.pathname).toBe('/hubb-casa/sala_de_estar');
+    expect(location.pathname).toBe('/hubb-ui/sala_de_estar');
     expect(history.state).toEqual({ hubbBack: true });
   });
 

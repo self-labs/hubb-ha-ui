@@ -43,7 +43,7 @@ async function openEditor(el: HubbRoomScreen, name: string): Promise<void> {
 
 describe('editing a room', () => {
   beforeEach(() => {
-    history.replaceState(null, '', '/hubb-casa/escritorio');
+    history.replaceState(null, '', '/hubb-ui/escritorio');
   });
   afterEach(() => {
     setEditing(false);

@@ -57,7 +57,7 @@ async function cenas(h: FakeHass, options: HubbConfig): Promise<Screen> {
 const sizeClass = (el: Element | null | undefined) => [...(el?.classList ?? [])].find((c) => c.startsWith('size-'));
 
 describe('the size of each card', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/sala'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/sala'));
   afterEach(() => {
     setEditing(false);
     for (const el of document.querySelectorAll('hubb-room-screen, hubb-scenes-screen')) (el.shadowRoot?.querySelector('hubb-toast') as HubbToast | null)?.hide();

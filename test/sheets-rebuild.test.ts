@@ -73,7 +73,7 @@ const openSheets = (el: Screen) => [...el.shadowRoot!.querySelectorAll('hubb-she
 
 describe('a sheet stays open across the rebuild Home Assistant does', () => {
   beforeEach(() => {
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(Date.parse('2026-10-20T12:00:00Z'));
   });

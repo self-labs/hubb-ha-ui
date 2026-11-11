@@ -89,7 +89,7 @@ async function move(el: HubbReviewScreen, name: string, value: string): Promise<
 }
 
 describe('choosing the room of an entity in Revisar o painel', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/revisar'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/revisar'));
   afterEach(() => {
     vi.useRealTimers();
     for (const el of document.querySelectorAll('hubb-review-screen')) (el.shadowRoot?.querySelector('hubb-toast') as HubbToast | null)?.hide();
@@ -209,7 +209,7 @@ describe('choosing the room of an entity in Revisar o painel', () => {
 });
 
 describe('the switches with no room, in Revisar o painel', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/revisar'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/revisar'));
   afterEach(() => {
     for (const el of document.querySelectorAll('hubb-review-screen')) (el.shadowRoot?.querySelector('hubb-toast') as HubbToast | null)?.hide();
     document.body.replaceChildren();
@@ -259,7 +259,7 @@ describe('the switches with no room, in Revisar o painel', () => {
 });
 
 describe('Revisar o painel across the rebuild after each move', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/revisar'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/revisar'));
   afterEach(() => {
     vi.restoreAllMocks();
     for (const el of document.querySelectorAll('hubb-review-screen')) (el.shadowRoot?.querySelector('hubb-toast') as HubbToast | null)?.hide();

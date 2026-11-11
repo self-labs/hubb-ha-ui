@@ -22,7 +22,7 @@ describe('hubb-home-screen', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 9, 9, 20, 0, 0));
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
   });
   afterEach(() => {
     vi.useRealTimers();

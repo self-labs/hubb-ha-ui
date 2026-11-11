@@ -55,7 +55,7 @@ describe('hubb-review-screen', () => {
   let writeText: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    history.replaceState(null, '', '/hubb-casa/revisar');
+    history.replaceState(null, '', '/hubb-ui/revisar');
     writeText = vi.fn(() => Promise.resolve());
     Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });

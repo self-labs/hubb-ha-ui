@@ -23,7 +23,7 @@ const roomEdit = (el: HubbHomeScreen, name: string) =>
   [...el.shadowRoot!.querySelectorAll('.room-edit')].find((r) => r.getAttribute('data-name') === name)!;
 
 describe('who sees a room', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/home'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/home'));
   afterEach(() => {
     setEditing(false);
     (document.querySelector('hubb-home-screen')?.shadowRoot?.querySelector('hubb-toast') as HubbToast | null)?.hide();

@@ -44,7 +44,7 @@ async function tapPerson(el: Screen, person: number): Promise<void> {
 const sheetOpen = (el: Screen, sel: string) => el.shadowRoot!.querySelector(sel)!.hasAttribute('open');
 
 describe('the Quem vê sheet stays open while the installer taps one person after another', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/home'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/home'));
   afterEach(() => {
     setEditing(false);
     for (const el of document.querySelectorAll('hubb-home-screen, hubb-room-screen, hubb-scenes-screen')) {

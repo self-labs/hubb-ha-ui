@@ -47,7 +47,7 @@ async function mount(h: FakeHass): Promise<HubbRoomScreen> {
 const $ = (el: HubbRoomScreen, sel: string) => el.shadowRoot!.querySelector(sel);
 
 describe('hubb-room-screen', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/sala'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/sala'));
   afterEach(() => {
     vi.useRealTimers();
     document.body.replaceChildren();
@@ -124,13 +124,13 @@ describe('hubb-room-screen', () => {
     const el = await mount(hass());
     const push = vi.spyOn(history, 'pushState');
     ($(el, '.back') as HTMLButtonElement).click();
-    expect(location.pathname).toBe('/hubb-casa/home');
+    expect(location.pathname).toBe('/hubb-ui/home');
     expect(push).not.toHaveBeenCalled();
     push.mockRestore();
   });
 
   it('goes back through history when the home screen opened the room', async () => {
-    history.replaceState({ hubbBack: true }, '', '/hubb-casa/sala');
+    history.replaceState({ hubbBack: true }, '', '/hubb-ui/sala');
     const el = await mount(hass());
     const back = vi.spyOn(history, 'back').mockImplementation(() => undefined);
     ($(el, '.back') as HTMLButtonElement).click();

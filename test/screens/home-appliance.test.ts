@@ -30,7 +30,7 @@ describe('the appliance on the home', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 9, 12, 15, 0, 0));
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
   });
   afterEach(() => {
     vi.useRealTimers();

@@ -128,7 +128,7 @@ describe('the bar and the strip of a resident without a tab', () => {
 });
 
 describe('the installer chooses who sees the tabs and what is in them', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/scenes'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/scenes'));
   afterEach(() => {
     setEditing(false);
     for (const el of document.querySelectorAll('hubb-scenes-screen, hubb-security-screen')) (el.shadowRoot?.querySelector('hubb-toast') as HubbToast | null)?.hide();
@@ -198,7 +198,7 @@ describe('the installer chooses who sees the tabs and what is in them', () => {
   });
 
   it('names a tab with people who no longer exist on the review', async () => {
-    history.replaceState(null, '', '/hubb-casa/revisar');
+    history.replaceState(null, '', '/hubb-ui/revisar');
     const h = admin(installer());
     const options: HubbConfig = { type: 'custom:hubb', tabs: { scenes: { hidden_for: ['u_saiu'] } } };
     withDashboard(h, { strategy: options });

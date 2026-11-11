@@ -24,7 +24,7 @@ function house(salaState = 'playing', quartoState = 'playing'): FakeHass {
 }
 
 describe('the music playing, at the foot of the column of the wide home', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/home'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/home'));
   afterEach(() => {
     resetLayoutForTests();
     resetSelectionForTests();

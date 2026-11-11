@@ -14,7 +14,7 @@ describe('the rest screen', () => {
     vi.useFakeTimers();
     // Local time, so the test reads the same in any time zone (CI runs in UTC).
     vi.setSystemTime(new Date(2026, 9, 21, 14, 27));
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
     const h = makeHass();
     // A screen of the panel on the page: the rest only happens over the panel.
     screenShown();

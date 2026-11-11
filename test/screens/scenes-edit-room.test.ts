@@ -65,7 +65,7 @@ const toastText = async (el: Screen): Promise<string> => {
 
 describe('a scene in the edit mode of Cenas', () => {
   beforeEach(() => {
-    history.replaceState(null, '', '/hubb-casa/scenes');
+    history.replaceState(null, '', '/hubb-ui/scenes');
     setEditing(true);
   });
   afterEach(() => {

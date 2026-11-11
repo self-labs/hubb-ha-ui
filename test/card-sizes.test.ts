@@ -136,7 +136,7 @@ const sizesByName = (el: Element, selector: string): Record<string, string | und
   Object.fromEntries([...el.shadowRoot!.querySelectorAll(selector)].map((t) => [(t as unknown as { item: { name: string } }).item.name, sizeClass(t)]));
 
 describe('the room screen on a phone', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/sala'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/sala'));
   afterEach(() => {
     setEditing(false);
     resetLayoutForTests();

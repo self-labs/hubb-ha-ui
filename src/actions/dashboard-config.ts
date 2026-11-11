@@ -16,7 +16,7 @@ interface SavedDashboard {
   [key: string]: unknown;
 }
 
-/** The dashboard of the page: "/hubb-casa/revisar" gives "hubb-casa"; the default dashboard has none. */
+/** The dashboard of the page: "/hubb-ui/revisar" gives "hubb-ui"; the default dashboard has none. */
 export function dashboardPath(pathname: string = window.location.pathname): string | null {
   const first = pathname.split('/').filter(Boolean)[0];
   return !first || first === 'lovelace' ? null : first;

@@ -369,7 +369,7 @@ describe('choosing the sensor of a pulse gate', () => {
   });
 
   it('hands the editor of the gate the sensors of its room, on the room page', async () => {
-    history.replaceState(null, '', '/hubb-casa/garagem');
+    history.replaceState(null, '', '/hubb-ui/garagem');
     const h = admin(garage());
     const options: HubbConfig = { entities: { 'switch.portao': { role: 'gate' } } };
     const house = buildHouse(h, options);
@@ -567,7 +567,7 @@ describe('the review of the gate sensor', () => {
   });
 
   it('marks the contact of the gate in its room, and shows it in Sensores only in the edit mode', async () => {
-    history.replaceState(null, '', '/hubb-casa/garagem');
+    history.replaceState(null, '', '/hubb-ui/garagem');
     const h = admin(garage());
     const house = buildHouse(h, PAIRED);
     const room = house.rooms.find((r) => r.areaId === 'garagem')!;

@@ -13,7 +13,7 @@ async function mount(current: 'home' | 'scenes' | 'seguranca', security = true):
 const buttons = (el: HubbNavBar) => [...el.shadowRoot!.querySelectorAll('button')];
 
 describe('hubb-nav-bar', () => {
-  beforeEach(() => history.replaceState(null, '', '/hubb-casa/home'));
+  beforeEach(() => history.replaceState(null, '', '/hubb-ui/home'));
   afterEach(() => { document.body.replaceChildren(); });
 
   it('has Casa, Cenas and Segurança, and marks the current page', async () => {
@@ -24,7 +24,7 @@ describe('hubb-nav-bar', () => {
   });
 
   it('in a room opened from the home, the home tab goes back, so the home is where it was', async () => {
-    history.replaceState({ hubbBack: true }, '', '/hubb-casa/sala');
+    history.replaceState({ hubbBack: true }, '', '/hubb-ui/sala');
     const el = await mount('home');
     const back = vi.spyOn(history, 'back').mockImplementation(() => undefined);
     buttons(el)[0]!.click();
@@ -33,22 +33,22 @@ describe('hubb-nav-bar', () => {
   });
 
   it('in a room opened by a link, the home tab swaps the entry for the home, with nothing to go back to', async () => {
-    history.replaceState(null, '', '/hubb-casa/sala');
+    history.replaceState(null, '', '/hubb-ui/sala');
     const el = await mount('home');
     const back = vi.spyOn(history, 'back').mockImplementation(() => undefined);
     buttons(el)[0]!.click();
     expect(back).not.toHaveBeenCalled();
-    expect(location.pathname).toBe('/hubb-casa/home');
+    expect(location.pathname).toBe('/hubb-ui/home');
     back.mockRestore();
   });
 
   it('on another tab, the home tab never goes back through history', async () => {
-    history.replaceState({ hubbBack: true }, '', '/hubb-casa/scenes');
+    history.replaceState({ hubbBack: true }, '', '/hubb-ui/scenes');
     const el = await mount('scenes');
     const back = vi.spyOn(history, 'back').mockImplementation(() => undefined);
     buttons(el)[0]!.click();
     expect(back).not.toHaveBeenCalled();
-    expect(location.pathname).toBe('/hubb-casa/home');
+    expect(location.pathname).toBe('/hubb-ui/home');
     back.mockRestore();
   });
 
@@ -56,7 +56,7 @@ describe('hubb-nav-bar', () => {
     const el = await mount('home');
     const push = vi.spyOn(history, 'pushState');
     buttons(el)[1]!.click();
-    expect(location.pathname).toBe('/hubb-casa/scenes');
+    expect(location.pathname).toBe('/hubb-ui/scenes');
     expect(push).not.toHaveBeenCalled();
     push.mockRestore();
   });
@@ -64,7 +64,7 @@ describe('hubb-nav-bar', () => {
   it('goes to the security tab of the same dashboard', async () => {
     const el = await mount('home');
     buttons(el)[2]!.click();
-    expect(location.pathname).toBe('/hubb-casa/seguranca');
+    expect(location.pathname).toBe('/hubb-ui/seguranca');
   });
 
   it('names the first tab with the label it is given', async () => {

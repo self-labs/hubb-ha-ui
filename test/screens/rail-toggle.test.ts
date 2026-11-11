@@ -45,7 +45,7 @@ async function tap(el: Screen, selector: string): Promise<void> {
 
 describe('putting the rail away', () => {
   beforeEach(() => {
-    history.replaceState(null, '', '/hubb-casa/home');
+    history.replaceState(null, '', '/hubb-ui/home');
     reportArea({ left: 0, top: 0, width: 1024, height: 768 }, 768);
   });
   afterEach(() => {
@@ -81,7 +81,7 @@ describe('putting the rail away', () => {
     el.remove();
     el = await home();
     expect((await nav(el)).shadowRoot!.querySelector('nav')).toBeNull();
-    expect(window.localStorage.getItem('hubb-rail:/hubb-casa')).toBe('hidden');
+    expect(window.localStorage.getItem('hubb-rail:/hubb-ui')).toBe('hidden');
     const scenes = document.createElement('hubb-scenes-screen') as Screen;
     scenes.setConfig({ type: 'custom:hubb-scenes-screen', scenes: [], lightIds: [] });
     scenes.hass = makeHass({ areas: [], entities: [] });
