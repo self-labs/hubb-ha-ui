@@ -45,6 +45,9 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 - **Fonte lists each source once.** While Line In played, the WiiM integration (pywiim) listed it twice,
   once for each spelling the device gave it, and the select showed two "Line In".
+- **A speaker's card stays inside the screen on the Mídia tab.** A long song ("Be Someone - Extended
+  Mix · KVSH") pushed the card past the right edge of a phone and cut the power button in half; in the
+  room the same card already fit.
 
 ## [2026.11.3] - 2026-11-10
 

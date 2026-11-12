@@ -135,6 +135,13 @@ describe('appliances fit on a phone', () => {
     expect(cssOf(HubbAppliancePanel.styles)).toMatch(/\.options\s*\{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
   });
 
+  it('keeps the cards of the Mídia tab inside the screen, however long the song', async () => {
+    // An implicit grid column took the width of a title that does not wrap: a speaker playing
+    // "Be Someone - Extended Mix · KVSH" ran 13 px past a 390 px phone (seen 11/11/2026).
+    const { HubbMediaScreen } = await import('../src/screens/media-screen');
+    expect(cssOf(HubbMediaScreen.styles)).toMatch(/\.list\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\)/);
+  });
+
   it('fits the arrows and Esconder under a half-width room card in the edit mode', async () => {
     const { HubbHomeScreen: Home } = await import('../src/screens/home-screen');
     expect(cssOf(Home.styles)).toMatch(/\.room-tools\s*\{[^}]*grid-template-columns: 40px 40px minmax\(0, 1fr\)/);

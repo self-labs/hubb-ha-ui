@@ -184,8 +184,11 @@ export class HubbMediaScreen extends HubbScreen {
         text-transform: uppercase;
         color: var(--hubb-text-2);
       }
+      /* One column the width of the screen: an implicit grid column grows to its widest card, and a
+         card's title does not wrap, so a long song pushed the card past the right edge of a phone. */
       .list {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         gap: 8px;
       }
     `,
