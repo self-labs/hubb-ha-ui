@@ -55,12 +55,16 @@ async function mount(h: FakeHass): Promise<HubbMediaScreen> {
 describe('the Mídia tab', () => {
   afterEach(() => document.body.replaceChildren());
 
-  it('offers the Mídia tab with two or more speakers the viewer sees', async () => {
+  it('offers the Mídia tab with one speaker or more that the viewer sees', async () => {
     expect(sharedOf(house()).mediaTab).toBe(true);
     expect(viewOf(house()).cards[0]!.type).toBe('custom:hubb-media-screen');
+    // One speaker is enough (a restaurant with a single streamer).
     const lone = makeHass({ areas: [area('sala', 'Sala')], entities: [{ entity_id: CAIXA, area_id: 'sala', platform: 'wiim', state: 'idle' }] });
-    expect(sharedOf(lone).mediaTab).toBe(false);
-    expect(viewOf(lone).cards[0]!.type).toBe('custom:hubb-redirect-card');
+    expect(sharedOf(lone).mediaTab).toBe(true);
+    expect(viewOf(lone).cards[0]!.type).toBe('custom:hubb-media-screen');
+    const none = makeHass({ areas: [area('sala', 'Sala')], entities: [{ entity_id: 'light.sala', area_id: 'sala', state: 'off' }] });
+    expect(sharedOf(none).mediaTab).toBe(false);
+    expect(viewOf(none).cards[0]!.type).toBe('custom:hubb-redirect-card');
     const lia = house({}, { id: LIA, name: 'Lia', is_admin: false });
     expect(sharedOf(lia, { tabs: { media: { hidden_for: [LIA] } } }).mediaTab).toBe(false);
     const nav = document.createElement('hubb-nav-bar') as HubbNavBar;

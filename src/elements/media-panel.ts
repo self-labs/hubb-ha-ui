@@ -20,7 +20,8 @@ import { has } from '../actions/climate';
 import { haptic } from '../actions/haptic';
 import { MEDIA_FEATURE, channelWord, mediaLine } from '../actions/media';
 import { stepVolume, volumeTarget } from '../actions/volume';
-import { channelSelect, commandTarget, groupingEntity, speakerMusic, type MediaView } from '../model/media';
+import { commandTarget, groupingEntity, ownChannelSelect, speakerMusic, uniqueSources, type MediaView } from '../model/media';
+import { canBrowseNative } from '../model/native-library';
 import { isInfrared } from '../ha/infrared';
 import type { HassEntityState, HomeAssistant } from '../ha/types';
 import { MEDIA, S } from '../strings';
@@ -29,6 +30,7 @@ import { icon } from './icon';
 import './media-browse';
 import type { HubbMediaBrowse } from './media-browse';
 import './media-group';
+import './media-native';
 import './media-progress';
 import { unlisted } from './unlisted';
 
@@ -172,7 +174,7 @@ export class HubbMediaPanel extends LitElement {
     const shown = canSet ? volumeTarget(hass, this.entityId).shown(level) : level;
     const muted = a.is_volume_muted === true;
     const ma = this.#ma(hass);
-    const own = has(st, MEDIA_FEATURE.source) && Array.isArray(a.source_list) ? a.source_list.filter((s): s is string => typeof s === 'string') : [];
+    const own = uniqueSources(has(st, MEDIA_FEATURE.source) && Array.isArray(a.source_list) ? a.source_list.filter((s): s is string => typeof s === 'string') : []);
     // With Music Assistant, one "Spotify" leads the list and the device's own leaves it: two would be
     // two different things under one name.
     const sources = ma ? own.filter((s) => !OWN_SPOTIFY.test(s)) : own;
@@ -183,7 +185,7 @@ export class HubbMediaPanel extends LitElement {
     // the last pick while the speaker had moved on.
     const fonteValue = typeof fonte === 'string' && choices.includes(fonte) ? fonte : '';
     const modes = Array.isArray(a.sound_mode_list) ? a.sound_mode_list.filter((s): s is string => typeof s === 'string') : [];
-    const channel = channelSelect(hass, this.entityId);
+    const channel = ownChannelSelect(hass, this.entityId);
     // A member shows the leader's play state, since its play button commands the leader.
     const playing = (member ? view.state : (hass.states[source] ?? st).state) === 'playing';
     const repeat = view.repeat ?? 'off';
@@ -293,6 +295,10 @@ export class HubbMediaPanel extends LitElement {
       ${ma && !member
         ? // Tocar algo is Spotify's: out of sight on any other source, its lists loaded for when it is asked.
           html`<hubb-media-browse ?hidden=${fonte !== MA_SOURCE} .hass=${hass} .ma=${ma}></hubb-media-browse>`
+        : nothing}
+      ${!ma && !member && canBrowseNative(st)
+        ? // Without Music Assistant the speaker lists what it has itself: always in sight, there is no Spotify in Fonte to open it.
+          html`<hubb-media-native .hass=${hass} .entityId=${this.entityId}></hubb-media-native>`
         : nothing}
       ${has(hass.states[groupingEntity(hass, this.entityId, this.pairs)] ?? st, MEDIA_FEATURE.grouping)
         ? html`<hubb-media-group .hass=${hass} .entityId=${this.entityId} .visible=${this.visible} .pairs=${this.pairs}></hubb-media-group>`

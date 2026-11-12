@@ -157,7 +157,7 @@ operation.
   sensor does not answer, the card falls back to the slide ("Deslize para acionar").
 - View order is fixed: `home`, `scenes`, `seguranca`, `midia`, then `revisar` (admin), then one per
   HA area by id. `seguranca` and `midia` are always generated (the bar hides the tab when the house has
-  nothing for it; `midia` needs two or more speakers for whoever looks, `Shared.mediaTab`);
+  nothing for it; `midia` needs one speaker or more for whoever looks, `Shared.mediaTab`);
   an area with a fixed id gets `area-<id>` (`src/model/paths.ts`).
 - Every screen gets `shared` (alerts and whether the security tab exists) from the strategy and
   draws `hubb-status-strips` through `HubbScreen.strips()`. The buzz of a new alert is module state,
@@ -262,7 +262,10 @@ operation.
 - A Spotify `media_player` is never a card (classify drops it): it shows through the speaker whose
   name is its `source`. `Shared.media` carries the players the resident sees, so Tocar junto never
   offers a speaker hidden for them. The channel select is found by `channelSelect` (`translation_key
-  === 'output_channel'` on the speaker's device), never by entity id. WiiM's "Group Master" player
+  === 'output_channel'` on the speaker's device), never by entity id; a speaker's own sheet uses
+  `ownChannelSelect`, which gives none to a speaker alone (pywiim creates the select but refuses
+  every pick until its standalone channel mode is probed, which an AudioCast never answers). A
+  speaker's `source_list` goes through `uniqueSources`: pywiim repeats the active source. WiiM's "Group Master" player
   (attributes `group_leader` and `group_status`) is dropped by classify: WiiM unhides it whenever a
   group forms. A member's sheet reads and commands the leader (`group_role: master`), whose copy on
   the member goes stale. A paused Spotify only fills a
@@ -280,6 +283,20 @@ operation.
   following its `selected`. `groupingEntity` makes Tocar junto join through Music Assistant when the
   speaker has a player there. Tocar algo (`model/ma-library.ts`) gets the integration's entry from
   `config_entries/get` (no administrator needed) and calls the actions with `return_response`.
+- Without Music Assistant, a speaker that has `playMedia` and `browseMedia` (and is not a TV) gets
+  Tocar algo from itself: `model/native-library.ts` (`canBrowseNative`, `browseRoot`, `browseFolder`,
+  `playNative`, `signedImage`) and `elements/media-native.ts` (`hubb-media-native`), shown by the
+  sheet when it has no Music Assistant pair and is not a member. The root keeps the player's own
+  entries and only the `media-source://` ones in `AUDIO_SOURCES`; a `presets` folder is opened once to
+  see whether it holds anything but "Preset N" (the WiiM integration lists twenty such slots whatever
+  the device holds, and an AudioCast, which answers `unknown command` to `getPresetInfo`, never names
+  them). Play sends the item's own `media_content_id` and `media_content_type`, never one built here.
+  Paths under `/api` answer 403 until `auth/sign_path` signs them. The list loads when the speaker
+  changes, never on a state. A folder shows `PAGE` (30) rows and "Mostrar mais" adds as many: Radio
+  Browser has 225 countries and 604 languages. Radio Browser names its first four folders in English
+  and answers every folder of its own titled "Radio Browser": `RADIO_FOLDERS` translates the four by
+  id, and an open folder takes the title of the row tapped, the answer's only as a fallback.
+  `elements/media-list-styles.ts` is the look shared with `hubb-media-browse`.
 - `cachedStaticReview` keys on the identity of `hass.entities`, `hass.devices`, `hass.areas`,
   `hass.floors` and the configuration object: the frontend keeps those objects across state
   changes, so the home can count the review on every update.

@@ -1,6 +1,22 @@
 // A fictional house for the preview: every name, room and value is made up. Nothing here comes from a
 // client. It feeds dev/preview.html, which draws the real bundle (dist/hubb-ha-ui.js) for screenshots.
 
+const entry = (title, id, extra = {}) => ({ title, media_class: 'directory', media_content_type: 'app', media_content_id: id, can_play: false, can_expand: true, thumbnail: null, ...extra });
+const station = (title, id) => ({ title, media_class: 'music', media_content_type: 'audio/mpeg', media_content_id: id, can_play: true, can_expand: false, thumbnail: null });
+/** What a speaker lists for native=1: one library of radios with a folder inside, and presets with a name. */
+function browse(msg) {
+  const id = msg.media_content_id ?? '';
+  if (msg.media_content_type === 'presets')
+    return { title: 'Presets', children: ['Jazz da Noite', 'Rádio Aurora'].map((title, i) => ({ ...station(title, String(i + 1)), media_content_type: 'preset' })) };
+  if (id === 'media-source://radio_browser')
+    return { title: 'Rádios', children: [entry('Por país', 'media-source://radio_browser/countries'), station('Rádio Aurora', 'r1'), station('Rádio Horizonte, ao vivo, com um nome muito longo para a linha', 'r2'), entry('Coleção da casa', 'media-source://radio_browser/mix', { can_play: true })] };
+  if (id.startsWith('media-source://radio_browser/')) return { title: 'Brasil', children: [station('Rádio do Brasil', 'r3')] };
+  return {
+    title: 'Caixa',
+    children: [entry('Presets', '', { media_content_type: 'presets' }), entry('Radio Browser', 'media-source://radio_browser'), entry('Text-to-speech', 'media-source://tts')],
+  };
+}
+
 /** Washer states the Electrolux integration leaves in English, read the way Home Assistant would. */
 const PT = {
   normal: 'Normal',
@@ -113,7 +129,8 @@ export function mockHouse(q) {
     shuffle: false,
     repeat: 'off',
     group_members: group,
-    supported_features: 1 | 2 | 4 | 8 | 16 | 32 | 128 | 256 | 16384 | 32768 | 262144 | 524288,
+    // native=1: the speakers also list and play media, which opens Tocar algo from the speaker itself.
+    supported_features: 1 | 2 | 4 | 8 | 16 | 32 | 128 | 256 | 16384 | 32768 | 262144 | 524288 | (q.get('native') === '1' ? 512 | 131072 : 0),
   };
   add('media_player.varanda_caixa', 'Caixa', at('varanda'), 'playing', { ...song, volume_level: 0.4, is_volume_muted: false }, { platform: 'wiim' });
   add('media_player.cozinha_caixa', 'Caixa', at('cozinha'), 'playing', { ...song, volume_level: 0.25, is_volume_muted: false }, { platform: 'wiim' });
@@ -217,6 +234,7 @@ export function mockHouse(q) {
       if (msg.type === 'recorder/statistic_during_period') return { change: 1.4 };
       if (msg.type === 'lovelace/config') return { strategy: { type: 'custom:hubb' } };
       if (msg.type === 'config/auth/list') return users;
+      if (msg.type === 'media_player/browse_media') return browse(msg);
       return {};
     },
     formatEntityState: (st, s) => PT[s ?? st.state] ?? s ?? st.state,

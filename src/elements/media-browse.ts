@@ -6,6 +6,7 @@ import { library, maEntryId, playItem, search, type LibraryItem } from '../model
 import { MEDIA } from '../strings';
 import { define } from './define';
 import { icon } from './icon';
+import { listStyles } from './media-list-styles';
 
 /** How long the search waits for the last key. */
 const SEARCH_MS = 400;
@@ -161,24 +162,9 @@ export class HubbMediaBrowse extends LitElement {
           ${this.playlists.length ? html`<p class="section">${MEDIA.playlists}</p>${this.#list(this.playlists)}` : nothing}`}`;
   }
 
-  static styles = css`
-    :host {
-      display: block;
-      font-family: var(--hubb-font);
-      color: var(--hubb-text);
-    }
-    .label,
-    .section {
-      margin: 16px 2px 8px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--hubb-text-2);
-    }
-    .section {
-      margin-top: 12px;
-    }
+  static styles = [
+    listStyles,
+    css`
     .search {
       box-sizing: border-box;
       width: 100%;
@@ -191,53 +177,6 @@ export class HubbMediaBrowse extends LitElement {
       font-family: var(--hubb-font);
       font-size: 16px;
     }
-    .item {
-      all: unset;
-      box-sizing: border-box;
-      width: 100%;
-      min-height: 52px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 4px 2px;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .art {
-      flex: none;
-      width: 44px;
-      height: 44px;
-      border-radius: 8px;
-      object-fit: cover;
-    }
-    .note {
-      display: grid;
-      place-items: center;
-      background: var(--hubb-surface-2);
-    }
-    .note svg {
-      width: 20px;
-      height: 20px;
-      fill: var(--hubb-text-2);
-    }
-    .words {
-      min-width: 0;
-      display: grid;
-    }
-    .name,
-    .sub {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .name {
-      font-size: 14px;
-      font-weight: 700;
-    }
-    .sub {
-      font-size: 12px;
-      color: var(--hubb-text-2);
-    }
     .searching {
       margin: 10px 2px 0;
       font-size: 12px;
@@ -247,17 +186,12 @@ export class HubbMediaBrowse extends LitElement {
       opacity: 0.5;
       transition: opacity var(--hubb-motion, 200ms) ease;
     }
-    .none {
-      margin: 12px 2px;
-      font-size: 13px;
-      color: var(--hubb-text-2);
-    }
-    .search:focus-visible,
-    .item:focus-visible {
+    .search:focus-visible {
       outline: 2px solid var(--hubb-focus);
       outline-offset: 2px;
     }
-  `;
+  `,
+  ];
 }
 
 define('hubb-media-browse', HubbMediaBrowse);

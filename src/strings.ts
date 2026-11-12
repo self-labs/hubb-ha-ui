@@ -710,6 +710,17 @@ export const MEDIA = {
   playlists: 'Playlists',
   nothingFound: 'Nada encontrado',
   searching: 'Buscando…',
+  /** The way back out of a folder of Tocar algo, and the button that plays a whole folder. */
+  up: 'Voltar',
+  playAll: 'Tocar tudo',
+  /** The button under a long folder: "Mostrar mais (570)". */
+  showMore: (n: number): string => `Mostrar mais (${n})`,
+  cannotOpen: 'Não foi possível abrir',
+  /** The four folders Radio Browser opens with, which it names in English whatever the house speaks. */
+  radioPopular: 'Populares',
+  radioByCategory: 'Por categoria',
+  radioByLanguage: 'Por idioma',
+  radioLocal: 'Emissoras locais',
   pauseAll: 'Pausar tudo',
   nothingPlaying: 'Nada tocando',
   /** The line of the Mídia tab: "1 tocando", "3 tocando". */

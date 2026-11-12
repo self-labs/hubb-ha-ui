@@ -155,7 +155,9 @@ never rests.
   the artist, the time of the song (drag it when the player can seek), repeat, previous, play, next
   and shuffle in five fixed places, the volume (quick taps add up and leave as one command) with a
   bar, the source, the sound mode, the **Canal** (stereo, left or right) when the speaker's
-  integration has a select for it, and **Tocar junto**.
+  integration has a select for it and the speaker is in a group (alone it is left out: the WiiM
+  select fails every pick until its standalone mode is probed, and an AudioCast never answers), and
+  **Tocar junto**.
 - **Spotify** is never a card of its own: while it plays on a speaker of the panel (its source has
   the speaker's name), that speaker's card and sheet show the music and send play, pause and the
   tracks to it.
@@ -179,9 +181,27 @@ never rests.
   Assistant stays out of it. **Tocar junto** goes through
   Music Assistant too, so a speaker plays together with any brand (a TV, a receiver). Groups of Music
   Assistant (a fixed sync group) are not cards.
+- **Without Music Assistant** the card is already the speaker's own, and the sheet adds **Tocar algo**
+  from what the speaker itself lists (`media_player/browse_media`), for a speaker that plays and lists
+  media (not a TV, which lists its apps): whatever it keeps itself (a WiiM, its named presets; checked
+  only there), and the audio libraries of Home Assistant that are set up, **DLNA Servers** and **Radio
+  Browser** (the internet radios). A
+  folder opens in place with **Voltar**, a station or a song plays on this speaker with a tap, and a
+  folder that plays has **Tocar tudo** beside it. A long folder (Radio Browser lists hundreds of
+  countries and languages) shows thirty rows at a time, with **Mostrar mais**. The four folders Radio
+  Browser opens with read in Portuguese (Populares, Por categoria, Por idioma, Emissoras locais), and an
+  open folder carries the name of the row tapped; its countries and languages stay as the radio
+  directory names them, in English. The part is silent when
+  the speaker lists nothing. A station that streams as HLS or as a bare file reaches the card with the
+  file's name as its title ("index.m3u8", "stream"): that is what the speaker reports.
+  Presets the integration only numbers ("Preset 7") are left out, and a folder of presets with no
+  name in it does not show: an AudioCast never says its names, so it has no presets here. To give such
+  a speaker something to play, set up **Radio Browser** in Home Assistant. The other sources Home
+  Assistant adds to every player (text-to-speech, camera, images, the local folder) are not music and
+  stay out; a new audio library is one more line in `AUDIO_SOURCES` (`model/native-library.ts`).
 - **Echos** are the microphone of the house, not speakers of it: they stay off the panel. The role
   `media` brings one back.
-- **Mídia** in the bar, with two or more speakers: every room with sound in one place, how many play,
+- **Mídia** in the bar, with one speaker or more: every room with sound in one place, how many play,
   **Pausar tudo**, and each sheet opening right there. `tabs.media.hidden_for` keeps it from someone.
 
 ### Access and security

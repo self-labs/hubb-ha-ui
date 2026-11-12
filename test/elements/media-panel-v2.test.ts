@@ -179,6 +179,13 @@ describe('the media sheet', () => {
     expect(calls(steps).map((c) => c[0])).toEqual(['media_player.volume_up', 'media_player.volume_up']);
   });
 
+  it('lists each source once when the integration repeats the active one', async () => {
+    const el = await mount(speaker({ supported_features: BASIC | F.source, source: 'Line In', source_list: ['Bluetooth', 'Line In', 'Optical In', 'RCA', 'Line In', 'Network'] }));
+    const select = $(el, 'select.source') as HTMLSelectElement;
+    expect([...select.options].map((o) => o.textContent!.trim())).toEqual(['Bluetooth', 'Line In', 'Optical In', 'RCA', 'Network']);
+    expect(select.value).toBe('Line In');
+  });
+
   it('offers the sound modes only with a choice, and the channel only with its select', async () => {
     const one = await mount(speaker({ supported_features: BASIC | F.soundMode, sound_mode_list: ['Off'], sound_mode: 'Off' }));
     expect($(one, 'select.sound-mode')).toBeNull();
@@ -193,7 +200,16 @@ describe('the media sheet', () => {
       state: 'Left',
       attributes: { options: ['Stereo', 'Left', 'Right'] },
     };
-    const h = speaker({ supported_features: BASIC | F.soundMode, sound_mode_list: ['Pop', 'Jazz'], sound_mode: 'Pop' }, 'playing', [channel]);
+    // Alone, the select exists but fails every pick on an AudioCast ("Standalone output channel support is not yet known"): no Canal.
+    const alone = await mount(speaker({ supported_features: BASIC | F.soundMode, sound_mode_list: ['Pop', 'Jazz'], sound_mode: 'Pop', group_role: 'solo', group_members: null }, 'playing', [channel]));
+    expect($(alone, 'select.sound-mode')).not.toBeNull();
+    expect($(alone, 'select.channel')).toBeNull();
+    document.body.replaceChildren();
+    const h = speaker(
+      { supported_features: BASIC | F.soundMode, sound_mode_list: ['Pop', 'Jazz'], sound_mode: 'Pop', group_members: ['media_player.caixa_sala', 'media_player.caixa_cozinha'] },
+      'playing',
+      [channel],
+    );
     const el = await mount(h);
     const modes = $(el, 'select.sound-mode') as HTMLSelectElement;
     modes.value = 'Jazz';

@@ -192,6 +192,32 @@ export function channelSelect(hass: HomeAssistant, speakerId: string): string | 
 }
 
 /**
+ * The channel select a speaker's own sheet offers: only while the speaker is in a group, where Left and
+ * Right make a pair. Alone, pywiim creates the select as soon as the status carries a channel, yet it
+ * refuses every pick with "Standalone output channel support is not yet known" until the standalone
+ * channel mode is probed, and an AudioCast never answers that probe. Home Assistant
+ * does not say which devices can, so a lone speaker gets no Canal.
+ */
+export function ownChannelSelect(hass: HomeAssistant, speakerId: string): string | null {
+  return groupOf(hass, speakerId).leader === null ? null : channelSelect(hass, speakerId);
+}
+
+/**
+ * The sources of a speaker, each once. pywiim lists the active source a second time when the device
+ * spells it another way than its input list ("Line In" twice while Line In played, 11/11), and a
+ * select with two equal lines is two buttons for one thing.
+ */
+export function uniqueSources(list: readonly string[]): string[] {
+  const seen = new Set<string>();
+  return list.filter((s) => {
+    const key = s.trim().toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/**
  * The player that groups a speaker: its Music Assistant player when it has one that answers and can
  * group (any brand plays together there, spec Multiroom 4.3), else the speaker itself.
  */

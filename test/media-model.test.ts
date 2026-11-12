@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MEDIA_FEATURE, mediaLine } from '../src/actions/media';
 import { classify, classifyContext } from '../src/model/classify';
 import { readConfig } from '../src/model/config';
-import { channelSelect, commandTarget, groupCandidates, groupOf, linkedSpotify, mediaView, musicEntity, resumable } from '../src/model/media';
+import { channelSelect, commandTarget, groupCandidates, groupOf, linkedSpotify, mediaView, musicEntity, ownChannelSelect, resumable, uniqueSources } from '../src/model/media';
 import { area, device, makeHass, type FakeEntity, type FakeHass } from './helpers/fake-hass';
 
 const SPEAKER = MEDIA_FEATURE.pause | MEDIA_FEATURE.play | MEDIA_FEATURE.volumeSet | MEDIA_FEATURE.grouping;
@@ -130,6 +130,23 @@ describe('the group of a speaker', () => {
     const other: FakeEntity = { entity_id: 'select.caixa_sala_eq', device_id: 'd_sala', platform: 'wiim', translation_key: 'equalizer', state: 'Pop', attributes: {} };
     expect(channelSelect(house({}, [channel, other]), 'media_player.caixa_sala')).toBe('select.qualquer_nome');
     expect(channelSelect(house({}, [channel]), 'media_player.caixa_cozinha')).toBeNull();
+  });
+
+  it('offers the Canal on the sheet of a speaker only while it is in a group', () => {
+    const channel: FakeEntity = { entity_id: 'select.caixa_sala_canal', device_id: 'd_sala', platform: 'wiim', translation_key: 'output_channel', state: 'Stereo', attributes: { options: ['Stereo', 'Left', 'Right'] } };
+    // Alone the select exists but every pick fails ("Standalone output channel support is not yet known").
+    expect(ownChannelSelect(house({ sala: { group_role: 'solo', group_members: null } }, [channel]), 'media_player.caixa_sala')).toBeNull();
+    expect(ownChannelSelect(house({}, [channel]), 'media_player.caixa_sala')).toBeNull();
+    const both = ['media_player.caixa_sala', 'media_player.caixa_cozinha'];
+    const grouped = house({ sala: { group_members: both, group_role: 'master' }, cozinha: { group_members: both, group_role: 'slave' } }, [channel]);
+    expect(ownChannelSelect(grouped, 'media_player.caixa_sala')).toBe('select.caixa_sala_canal');
+  });
+
+  it('lists each source of a speaker once, whatever the spelling pywiim gave the active one', () => {
+    expect(uniqueSources(['Bluetooth', 'Line In', 'Optical In', 'RCA', 'Line In', 'Network'])).toEqual(['Bluetooth', 'Line In', 'Optical In', 'RCA', 'Network']);
+    expect(uniqueSources(['Line In', ' line in', 'LINE IN '])).toEqual(['Line In']);
+    expect(uniqueSources(['Line In', 'Line In 2'])).toEqual(['Line In', 'Line In 2']);
+    expect(uniqueSources([])).toEqual([]);
   });
 
   it('offers the visible speakers of the same integration that can group', () => {

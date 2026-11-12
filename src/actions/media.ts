@@ -14,9 +14,11 @@ export const MEDIA_FEATURE = {
   turnOff: 256,
   volumeStep: 1024,
   source: 2048,
+  playMedia: 512,
   play: 16384,
   shuffle: 32768,
   soundMode: 65536,
+  browseMedia: 131072,
   repeat: 262144,
   grouping: 524288,
 } as const;

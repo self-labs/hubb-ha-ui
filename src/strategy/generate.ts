@@ -55,8 +55,9 @@ export function generateDashboard(config: HubbConfig, hass: HomeAssistant): Love
       scenes: viewer === null || house.scenes.length > 0,
       media: house.rooms.flatMap((r) => r.media.map((m) => m.entityId)),
       mediaPairs: Object.fromEntries(house.rooms.flatMap((r) => r.media.flatMap((m) => (m.ma ? [[m.entityId, m.ma]] : [])))),
-      // Mídia gathers the speakers when there are two or more to keep track of (Gustavo, 22/10).
-      mediaTab: house.rooms.reduce((n, r) => n + r.media.length, 0) >= 2 && !tabHiddenFor(config, 'media', viewer),
+      // Mídia gathers the speakers: one is enough for the tab. It asked for two or more on 22/10 and a
+      // restaurant with a single streamer had no Mídia.
+      mediaTab: house.rooms.reduce((n, r) => n + r.media.length, 0) >= 1 && !tabHiddenFor(config, 'media', viewer),
       // The strategy runs for the user who sees the panel: only their own tablet comes along.
       tablet: resolveTablet(hass, config, house.rooms, hass.user?.id),
       place: PROFILES[house.profile].place,

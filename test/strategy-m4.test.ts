@@ -40,6 +40,19 @@ describe('the security view', () => {
     expect(views[2]!.cards[0]).toMatchObject({ type: 'custom:hubb-security-screen' });
   });
 
+  it('opens the Mídia tab with a single speaker, and not with none', () => {
+    const speakers = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({ entity_id: `media_player.caixa_${i}`, area_id: 'sala', platform: 'wiim', name: `Caixa ${i}`, state: 'idle', attributes: { supported_features: 16384 | 1 } }));
+    const tab = (n: number, config = {}) => {
+      const hass = makeHass({ areas: [area('sala', 'Sala')], entities: [{ entity_id: 'light.sala', area_id: 'sala', state: 'off' }, ...speakers(n)] });
+      const shared = generateDashboard(config, hass).views.map((v) => (v.cards[0] as { shared?: { mediaTab: boolean } }).shared).find((s) => s !== undefined);
+      return shared!.mediaTab;
+    };
+    expect(tab(0)).toBe(false);
+    expect(tab(1)).toBe(true);
+    expect(tab(2)).toBe(true);
+  });
+
   it('shows the security tab only when the house has something for it', async () => {
     const nav = document.createElement('hubb-nav-bar') as HubbNavBar;
     document.body.appendChild(nav);

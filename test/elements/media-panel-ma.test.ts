@@ -79,7 +79,8 @@ describe('the sheet of a speaker with Music Assistant', () => {
   afterEach(() => document.body.replaceChildren());
 
   it('commands the song on Music Assistant and the device on the speaker', async () => {
-    const h = house();
+    // In a group: Canal is the pair's Left and Right, and a lone speaker gets none (ownChannelSelect).
+    const h = house({}, { group_members: [SPEAKER, 'media_player.caixa_cozinha'] });
     const el = await mount(h);
     click(el, '.next');
     click(el, '.shuffle');

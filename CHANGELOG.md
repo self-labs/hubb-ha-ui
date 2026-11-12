@@ -8,6 +8,20 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### ✨ Added
+
+- **Tocar algo without Music Assistant.** The sheet of a speaker that plays and lists media (and is not
+  a TV) shows what the speaker lists itself (`media_player/browse_media`) and the audio libraries of Home
+  Assistant that are set up, **DLNA Servers** and **Radio Browser**. A folder opens in place with a way
+  back, a tap on a station or a song plays it on that speaker, and a folder that plays has **Tocar tudo**
+  beside it. A long folder shows thirty rows at a time, with **Mostrar mais**. The four folders Radio
+  Browser opens with read in Portuguese (Populares, Por categoria, Por idioma, Emissoras locais), and an
+  open folder is named after the row tapped. Presets the integration only numbers ("Preset 7") are left out, and a folder of presets with
+  nothing but those does not show: the WiiM integration lists twenty slots whatever the device holds, and
+  an AudioCast never says their names. The other sources Home Assistant adds to every player
+  (text-to-speech, camera, images, the local folder) stay out. The part is silent when the speaker lists
+  nothing, and Music Assistant keeps its own Tocar algo where there is one.
+
 ### 🔧 Changed
 
 - **The example dashboard URL is `hubb-ui`, not `hubb-casa`.** The README, the contributor notes, the
@@ -18,6 +32,19 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
   default.
 - **The description in the "Community dashboards" picker says "áreas do local", not "áreas da casa"**,
   for the same reason: the panel also serves clinics and restaurants.
+- **The Mídia tab shows with a single speaker, not only with two or more.** A restaurant with one
+  streamer had no Mídia while a house with two speakers had it. `tabs.media.hidden_for` still keeps it
+  from someone.
+- **The Canal of a speaker's sheet shows only while the speaker is in a group.** Alone, the WiiM
+  integration creates the channel select as soon as the status carries a channel, yet refuses every pick
+  with "Standalone output channel support is not yet known" until its standalone channel mode is probed,
+  and an AudioCast never answers that probe. Home Assistant does not say which devices
+  can, so a lone speaker gets no Canal; in a group it is the pair's Left and Right, as before.
+
+### 🐛 Fixed
+
+- **Fonte lists each source once.** While Line In played, the WiiM integration (pywiim) listed it twice,
+  once for each spelling the device gave it, and the select showed two "Line In".
 
 ## [2026.11.3] - 2026-11-10
 
