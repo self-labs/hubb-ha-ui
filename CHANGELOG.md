@@ -10,10 +10,13 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ### 🐛 Fixed
 
-- **The DLNA library shows in Tocar algo on a dark theme.** Home Assistant hands each library the wide
-  logo of its brand: the row cut DLNA's to "dl", in black letters nearly invisible on the dark sheet. A
-  library now shows the square icon of its brand, in the variant drawn for the theme, as Home
-  Assistant's own media browser does, and changes with the theme.
+- **The DLNA and Radio Browser libraries show in Tocar algo on a dark theme.** Home Assistant hands
+  each library the wide logo of its brand: the row cut DLNA's to "dl", in black letters nearly
+  invisible on the dark sheet, and Radio Browser's black headphones vanished there too. A library now
+  shows the square icon of its brand on a white tile, in either theme.
+- **The countries of Radio Browser are named in Portuguese**, by their code, and listed in Portuguese
+  alphabetical order ("Alemanha" before "Áustria" and "Brasil"). Its languages have no code and stay as
+  the radio directory names them.
 
 ## [2026.11.4] - 2026-11-12
 

@@ -295,10 +295,14 @@ operation.
   changes, never on a state. A folder shows `PAGE` (30) rows and "Mostrar mais" adds as many: Radio
   Browser has 225 countries and 604 languages. Radio Browser names its first four folders in English
   and answers every folder of its own titled "Radio Browser": `RADIO_FOLDERS` translates the four by
-  id, and an open folder takes the title of the row tapped, the answer's only as a fallback. A library
-  comes with the wide `logo.png` of its brand (`/api/brands/integration/<domain>/`): `brandImage` asks
-  for the square `icon.png`, `dark_icon.png` on a dark theme, as the frontend's media browser does (the
-  brands API falls back to the light one), and the sheet signs the icons again when the theme changes.
+  id, and an open folder takes the title of the row tapped, the answer's only as a fallback. Its
+  countries come after the four as `country/XX` (ISO-2, plus `ZZ`): `parseFolder` names them with
+  `Intl.DisplayNames` in pt-BR and sorts them again in their own slots; its languages are free text
+  with no code and stay in English. A library comes with the wide `logo.png` of its brand
+  (`/api/brands/integration/<domain>/`): `brandImage` asks for the square `icon.png`, drawn for a light
+  background, and the row puts it on a fixed white tile (`.art.brand`) in either theme. Not the
+  `dark_icon.png` the frontend uses: DLNA and Radio Browser have none, the API answers the light one, and
+  Radio Browser's black headphones vanished on the dark sheet (12/11).
   `elements/media-list-styles.ts` is the look shared with `hubb-media-browse`.
 - `cachedStaticReview` keys on the identity of `hass.entities`, `hass.devices`, `hass.areas`,
   `hass.floors` and the configuration object: the frontend keeps those objects across state

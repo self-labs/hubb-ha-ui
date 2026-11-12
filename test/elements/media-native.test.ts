@@ -76,21 +76,27 @@ describe('Tocar algo from the speaker itself', () => {
     expect(el.shadowRoot!.querySelector('.label')!.textContent!.trim()).toBe('Tocar algo');
     expect(names(el)).toEqual(['Presets', 'Radio Browser']);
     expect(el.shadowRoot!.querySelector('.back')).toBeNull();
-    // A folder carries the way in; the icon of a library, for the dark theme, is signed before it shows.
+    // A folder carries the way in; the icon of a library is signed before it shows.
     expect(row(el, 'Radio Browser').querySelector('.chevron')).not.toBeNull();
-    expect(row(el, 'Radio Browser').querySelector('img.art')!.getAttribute('src')).toBe('/api/brands/integration/radio_browser/dark_icon.png?authSig=ok');
+    expect(row(el, 'Radio Browser').querySelector('img.art')!.getAttribute('src')).toBe('/api/brands/integration/radio_browser/icon.png?authSig=ok');
     expect(row(el, 'Presets').querySelector('.note')).not.toBeNull();
   });
 
-  it('shows the icon of a library for the theme, and the other one when the theme changes', async () => {
-    const h = house();
+  it('shows the icon of a library on a light tile in either theme, and a cover as it is', async () => {
+    const withCover = { ...ROOT, children: [...ROOT.children, station('Jazz FM', 'jazz', { thumbnail: 'https://cdn.example/jazz.png' })] };
+    const h = house({ '': withCover, presets: PRESETS });
     h.themes = { darkMode: false };
     const el = await mount(h);
-    const src = () => row(el, 'Radio Browser').querySelector('img.art')?.getAttribute('src');
-    expect(src()).toBe('/api/brands/integration/radio_browser/icon.png?authSig=ok');
+    const art = (title: string) => row(el, title).querySelector('img.art')!;
+    expect(art('Radio Browser').classList.contains('brand')).toBe(true);
+    expect(art('Jazz FM').classList.contains('brand')).toBe(false);
     el.hass = { ...h, themes: { darkMode: true } } as FakeHass;
     await settle(el);
-    expect(src()).toBe('/api/brands/integration/radio_browser/dark_icon.png?authSig=ok');
+    // The theme asks for nothing new: the same icon, on a tile of a fixed light color, not of the theme.
+    expect(art('Radio Browser').getAttribute('src')).toBe('/api/brands/integration/radio_browser/icon.png?authSig=ok');
+    const styles = ([] as unknown[]).concat((customElements.get('hubb-media-native') as unknown as { styles: unknown }).styles);
+    const brand = /\.art\.brand\s*{([^}]*)}/.exec(styles.map((s) => (s as { cssText: string }).cssText).join('\n'))?.[1] ?? '';
+    expect(brand).toMatch(/background:\s*#fff;/);
   });
 
   it('opens a folder in place, names it, and goes back without asking again', async () => {

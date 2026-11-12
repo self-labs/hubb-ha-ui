@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { MEDIA_FEATURE } from '../src/actions/media';
-import { brandImage, browseFolder, browseRoot, canBrowseNative, parseFolder, playNative, signedImage, type NativeItem } from '../src/model/native-library';
+import { brandImage, browseFolder, browseRoot, canBrowseNative, isBrand, parseFolder, playNative, signedImage, type NativeItem } from '../src/model/native-library';
 import { makeHass, type FakeHass } from './helpers/fake-hass';
 
 const SPEAKER = 'media_player.caixa_sala';
@@ -103,10 +103,22 @@ describe('Tocar algo without Music Assistant', () => {
     // The root of Radio Browser as the homelab answered it (11/11): the four folders, then the countries.
     const folder = (title: string, id: string) => ({ title, media_content_id: `media-source://radio_browser/${id}`, media_content_type: 'music', can_play: false, can_expand: true });
     const root = { title: 'Radio Browser', children: [folder('Popular', 'popular'), folder('By Category', 'tag'), folder('By Language', 'language'), folder('Local stations', 'local'), folder('Brazil', 'country/BR')] };
-    expect(titles(parseFolder(root).items)).toEqual(['Populares', 'Por categoria', 'Por idioma', 'Emissoras locais', 'Brazil']);
+    expect(titles(parseFolder(root).items)).toEqual(['Populares', 'Por categoria', 'Por idioma', 'Emissoras locais', 'Brasil']);
     // The name alone translates nothing: a station called "Popular" stays as it is.
     const song = { title: 'Popular', media_content_id: 'media-source://radio_browser/0b1c', media_content_type: 'audio/mpeg', can_play: true, can_expand: false };
     expect(titles(parseFolder({ children: [song] }).items)).toEqual(['Popular']);
+  });
+
+  it('names the countries of Radio Browser in Portuguese, by their code, in Portuguese order after the folders', () => {
+    const folder = (title: string, id: string) => ({ title, media_content_id: `media-source://radio_browser/${id}`, media_content_type: 'music', can_play: false, can_expand: true });
+    // In English order, as the directory lists them; Germany falls from G to A, Austria from A to Á.
+    const root = {
+      children: [folder('Popular', 'popular'), folder('Local stations', 'local'), folder('Austria', 'country/AT'), folder('Brazil', 'country/BR'), folder('Germany', 'country/DE'), folder('United States', 'country/US')],
+    };
+    expect(titles(parseFolder(root).items)).toEqual(['Populares', 'Emissoras locais', 'Alemanha', 'Áustria', 'Brasil', 'Estados Unidos']);
+    // A language has no code to go by: it stays as the directory names it, and in its place.
+    const languages = { children: [folder('Portuguese', 'language/portuguese'), folder('Brazilian Portuguese', 'language/brazilian portuguese')] };
+    expect(titles(parseFolder(languages).items)).toEqual(['Portuguese', 'Brazilian Portuguese']);
   });
 
   it('opens the root with the libraries of audio and none of the other sources', async () => {
@@ -162,14 +174,17 @@ describe('Tocar algo without Music Assistant', () => {
     expect(await signedImage(h, '/api/brands/x')).toBeNull();
   });
 
-  it('shows a library by the square icon of its brand, drawn for the theme, as the frontend does', () => {
+  it('shows a library by the square icon of its brand, the one drawn for a light background', () => {
     // DLNA's logo is wide with black letters: cropped to a square it read "dl", nearly invisible on a dark sheet.
-    expect(brandImage('/api/brands/integration/dlna_dms/logo.png', true)).toBe('/api/brands/integration/dlna_dms/dark_icon.png');
-    expect(brandImage('/api/brands/integration/dlna_dms/logo.png', false)).toBe('/api/brands/integration/dlna_dms/icon.png');
-    expect(brandImage('/api/brands/integration/radio_browser/dark_logo@2x.png', false)).toBe('/api/brands/integration/radio_browser/icon@2x.png');
-    expect(brandImage('https://brands.home-assistant.io/_/dlna_dms/logo.png', true)).toBe('https://brands.home-assistant.io/_/dlna_dms/dark_icon.png');
+    expect(brandImage('/api/brands/integration/dlna_dms/logo.png')).toBe('/api/brands/integration/dlna_dms/icon.png');
+    expect(brandImage('/api/brands/integration/radio_browser/dark_logo@2x.png')).toBe('/api/brands/integration/radio_browser/icon@2x.png');
+    expect(brandImage('https://brands.home-assistant.io/_/dlna_dms/dark_icon.png')).toBe('https://brands.home-assistant.io/_/dlna_dms/icon.png');
+    expect(isBrand('/api/brands/integration/dlna_dms/icon.png')).toBe(true);
     // A cover of the speaker or of a radio is not a brand: it stays as it came.
-    expect(brandImage('https://cdn.example/logo.png', true)).toBe('https://cdn.example/logo.png');
-    expect(brandImage('/api/media_player_proxy/media_player.sala?token=x', true)).toBe('/api/media_player_proxy/media_player.sala?token=x');
+    expect(brandImage('https://cdn.example/logo.png')).toBe('https://cdn.example/logo.png');
+    expect(brandImage('/api/media_player_proxy/media_player.sala?token=x')).toBe('/api/media_player_proxy/media_player.sala?token=x');
+    expect(isBrand('https://cdn.example/logo.png')).toBe(false);
+    // The folder hands each library its icon already.
+    expect(parseFolder(ROOT).items.find((i) => i.title === 'DLNA Servers')!.image).toBe('/api/brands/integration/dlna_dms/icon.png');
   });
 });

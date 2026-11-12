@@ -37,7 +37,8 @@ const PLACEHOLDER = /^preset\s*\d+$/i;
 
 /**
  * The folders Radio Browser opens with, by their id: it names them in English ("Local stations") and the
- * id stays the same in any language. Its countries and languages come as the radio directory has them.
+ * id stays the same in any language. Its languages come as the radio directory has them: free text with no
+ * code ("brazilian portuguese"), so there is nothing to translate them by.
  */
 const RADIO_FOLDERS: Readonly<Record<string, string>> = {
   'media-source://radio_browser/popular': MEDIA.radioPopular,
@@ -45,6 +46,29 @@ const RADIO_FOLDERS: Readonly<Record<string, string>> = {
   'media-source://radio_browser/language': MEDIA.radioByLanguage,
   'media-source://radio_browser/local': MEDIA.radioLocal,
 };
+
+/** A country Radio Browser lists after its four folders, named in English ("Brazil"); the id carries its code. */
+const COUNTRY = /^media-source:\/\/radio_browser\/country\/([A-Z]{2})$/;
+
+/** The names of countries in Portuguese, or null on a browser that has none: the name then stays in English. */
+let regions: Intl.DisplayNames | null | undefined;
+
+function countryName(id: string): string | null {
+  const code = COUNTRY.exec(id)?.[1];
+  if (!code) return null;
+  if (regions === undefined) {
+    try {
+      regions = new Intl.DisplayNames(['pt-BR'], { type: 'region', fallback: 'none' });
+    } catch {
+      regions = null;
+    }
+  }
+  try {
+    return regions?.of(code) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v : null);
 
@@ -66,17 +90,23 @@ export function parseFolder(raw: unknown): NativeFolder {
     const canExpand = c?.can_expand === true;
     if (!title || (!canPlay && !canExpand)) continue;
     const id = typeof c.media_content_id === 'string' ? c.media_content_id : '';
+    const image = text(c.thumbnail);
     const item: NativeItem = {
       id,
       type: typeof c.media_content_type === 'string' ? c.media_content_type : '',
-      title: RADIO_FOLDERS[id] ?? title,
-      image: text(c.thumbnail),
+      title: RADIO_FOLDERS[id] ?? countryName(id) ?? title,
+      image: image && brandImage(image),
       canPlay,
       canExpand,
     };
     if (item.type === 'preset' && PLACEHOLDER.test(title.trim())) continue;
     items.push(item);
   }
+  // The countries came in the order of their English names: named in Portuguese, they are put in order again,
+  // each in a place a country held, so the four folders stay on top.
+  const slots = items.flatMap((it, i) => (COUNTRY.test(it.id) ? [i] : []));
+  const countries = slots.map((i) => items[i]!).sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));
+  slots.forEach((slot, k) => (items[slot] = countries[k]!));
   return { title: text(r.title) ?? '', items };
 }
 
@@ -112,15 +142,18 @@ export async function playNative(hass: HomeAssistant, entityId: string, item: Na
 /** Where Home Assistant serves the pictures of its integrations: its own path, or the public brands site. */
 const BRAND = /^(?:\/api\/brands\/|https:\/\/brands\.home-assistant\.io\/)/;
 
+/** Whether a picture is the brand of an integration: the sheet shows it on a light tile. */
+export const isBrand = (src: string): boolean => BRAND.test(src);
+
 /**
- * The picture of a library as the frontend's own media browser shows it. Home Assistant hands each one the
- * wide logo of its integration, and the square of the row cut DLNA's to "dl", in black letters nearly
- * invisible on the dark sheet; a brand gets its square icon instead, the one drawn for a dark theme there.
- * Home Assistant answers with the light picture when a brand has no dark one. Any other picture (the cover
- * of a radio, of a song) stays as it came.
+ * The picture of a library: the square icon of its integration, the one drawn for a light background. Home
+ * Assistant hands each one the wide logo, and the square of the row cut DLNA's to "dl", in black letters
+ * nearly invisible on the dark sheet. The dark variant does not help: DLNA and Radio Browser have none, Home
+ * Assistant answers with the light picture, and Radio Browser's black headphones vanished; so the light icon
+ * goes on a light tile in either theme. Any other picture (the cover of a radio, of a song) stays as it came.
  */
-export function brandImage(src: string, dark: boolean): string {
-  return BRAND.test(src) ? src.replace(/\/(?:dark_)?(?:icon|logo)(@2x)?\.png(?=$|[?#])/, `/${dark ? 'dark_' : ''}icon$1.png`) : src;
+export function brandImage(src: string): string {
+  return isBrand(src) ? src.replace(/\/(?:dark_)?(?:icon|logo)(@2x)?\.png(?=$|[?#])/, '/icon$1.png') : src;
 }
 
 /**
