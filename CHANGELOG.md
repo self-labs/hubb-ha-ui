@@ -8,6 +8,13 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### 🐛 Fixed
+
+- **The DLNA library shows in Tocar algo on a dark theme.** Home Assistant hands each library the wide
+  logo of its brand: the row cut DLNA's to "dl", in black letters nearly invisible on the dark sheet. A
+  library now shows the square icon of its brand, in the variant drawn for the theme, as Home
+  Assistant's own media browser does, and changes with the theme.
+
 ## [2026.11.4] - 2026-11-12
 
 ### ✨ Added

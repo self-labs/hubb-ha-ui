@@ -2,7 +2,7 @@ import { mdiChevronLeft, mdiChevronRight, mdiFolderOutline, mdiMusicNote, mdiPla
 import { LitElement, css, html, nothing } from 'lit';
 import { haptic } from '../actions/haptic';
 import type { HomeAssistant } from '../ha/types';
-import { browseFolder, browseRoot, playNative, signedImage, type NativeFolder, type NativeItem } from '../model/native-library';
+import { brandImage, browseFolder, browseRoot, playNative, signedImage, type NativeFolder, type NativeItem } from '../model/native-library';
 import { MEDIA } from '../strings';
 import { define } from './define';
 import { icon } from './icon';
@@ -53,6 +53,8 @@ export class HubbMediaNative extends LitElement {
   #for = '';
   /** Which speaker's list the screen waits for: an answer coming late for the previous one is dropped. */
   #session = 0;
+  /** The theme the pictures are signed for: a library has one icon for each. */
+  #dark = false;
 
   constructor() {
     super();
@@ -67,9 +69,17 @@ export class HubbMediaNative extends LitElement {
   }
 
   protected willUpdate(): void {
-    if (!this.hass || !this.entityId || this.entityId === this.#for) return;
-    this.#for = this.entityId;
-    void this.#start(this.hass, this.entityId, ++this.#session);
+    const hass = this.hass;
+    if (!hass || !this.entityId) return;
+    const dark = hass.themes?.darkMode === true;
+    if (this.entityId !== this.#for) {
+      [this.#for, this.#dark] = [this.entityId, dark];
+      void this.#start(hass, this.entityId, ++this.#session);
+    } else if (dark !== this.#dark) {
+      // The icons of the other theme are signed; each row keeps its note until its own arrives.
+      this.#dark = dark;
+      for (const level of this.levels) this.#sign(hass, level, this.#session);
+    }
   }
 
   async #start(hass: HomeAssistant, speaker: string, session: number): Promise<void> {
@@ -128,7 +138,8 @@ export class HubbMediaNative extends LitElement {
 
   /** The pictures of a folder, one by one as they are signed: the list shows at once, with the note. */
   #sign(hass: HomeAssistant, folder: NativeFolder, session: number): void {
-    for (const { image } of folder.items) {
+    for (const item of folder.items) {
+      const image = item.image ? brandImage(item.image, this.#dark) : null;
       if (!image || this.images.has(image)) continue;
       void signedImage(hass, image).then((src) => {
         if (session === this.#session && src) this.images = new Map(this.images).set(image, src);
@@ -137,7 +148,7 @@ export class HubbMediaNative extends LitElement {
   }
 
   #row(item: NativeItem) {
-    const src = item.image ? this.images.get(item.image) : undefined;
+    const src = item.image ? this.images.get(brandImage(item.image, this.#dark)) : undefined;
     const art =
       src && !this.broken.has(src)
         ? html`<img class="art" src=${src} alt="" @error=${() => (this.broken = new Set([...this.broken, src]))} />`

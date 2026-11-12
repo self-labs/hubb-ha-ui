@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { MEDIA_FEATURE } from '../src/actions/media';
-import { browseFolder, browseRoot, canBrowseNative, parseFolder, playNative, signedImage, type NativeItem } from '../src/model/native-library';
+import { brandImage, browseFolder, browseRoot, canBrowseNative, parseFolder, playNative, signedImage, type NativeItem } from '../src/model/native-library';
 import { makeHass, type FakeHass } from './helpers/fake-hass';
 
 const SPEAKER = 'media_player.caixa_sala';
@@ -160,5 +160,16 @@ describe('Tocar algo without Music Assistant', () => {
     expect(await signedImage(h, 'data:image/png;base64,AAA')).toBeNull();
     h.callWS = vi.fn(() => Promise.reject(new Error('no'))) as FakeHass['callWS'];
     expect(await signedImage(h, '/api/brands/x')).toBeNull();
+  });
+
+  it('shows a library by the square icon of its brand, drawn for the theme, as the frontend does', () => {
+    // DLNA's logo is wide with black letters: cropped to a square it read "dl", nearly invisible on a dark sheet.
+    expect(brandImage('/api/brands/integration/dlna_dms/logo.png', true)).toBe('/api/brands/integration/dlna_dms/dark_icon.png');
+    expect(brandImage('/api/brands/integration/dlna_dms/logo.png', false)).toBe('/api/brands/integration/dlna_dms/icon.png');
+    expect(brandImage('/api/brands/integration/radio_browser/dark_logo@2x.png', false)).toBe('/api/brands/integration/radio_browser/icon@2x.png');
+    expect(brandImage('https://brands.home-assistant.io/_/dlna_dms/logo.png', true)).toBe('https://brands.home-assistant.io/_/dlna_dms/dark_icon.png');
+    // A cover of the speaker or of a radio is not a brand: it stays as it came.
+    expect(brandImage('https://cdn.example/logo.png', true)).toBe('https://cdn.example/logo.png');
+    expect(brandImage('/api/media_player_proxy/media_player.sala?token=x', true)).toBe('/api/media_player_proxy/media_player.sala?token=x');
   });
 });

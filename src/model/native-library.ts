@@ -109,6 +109,20 @@ export async function playNative(hass: HomeAssistant, entityId: string, item: Na
   await hass.callService('media_player', 'play_media', { media_content_id: item.id, media_content_type: item.type }, { entity_id: entityId });
 }
 
+/** Where Home Assistant serves the pictures of its integrations: its own path, or the public brands site. */
+const BRAND = /^(?:\/api\/brands\/|https:\/\/brands\.home-assistant\.io\/)/;
+
+/**
+ * The picture of a library as the frontend's own media browser shows it. Home Assistant hands each one the
+ * wide logo of its integration, and the square of the row cut DLNA's to "dl", in black letters nearly
+ * invisible on the dark sheet; a brand gets its square icon instead, the one drawn for a dark theme there.
+ * Home Assistant answers with the light picture when a brand has no dark one. Any other picture (the cover
+ * of a radio, of a song) stays as it came.
+ */
+export function brandImage(src: string, dark: boolean): string {
+  return BRAND.test(src) ? src.replace(/\/(?:dark_)?(?:icon|logo)(@2x)?\.png(?=$|[?#])/, `/${dark ? 'dark_' : ''}icon$1.png`) : src;
+}
+
 /**
  * An address a picture can load from. Players hand over their own pictures as web addresses, and Home
  * Assistant its logos as paths that answer 403 until they are signed, the way the frontend signs its own
