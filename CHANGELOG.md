@@ -8,6 +8,12 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+### 🔧 Changed
+
+- **The README installs through the Marketplace**, which replaced HACS in Home Assistant 2026.11:
+  **Settings → Marketplace → Add from link** by hand, **Install** on the repository, and the steps of
+  HACS kept for an older Home Assistant. The install button is the same and opens the Marketplace.
+
 ### 🐛 Fixed
 
 - **The DLNA and Radio Browser libraries show in Tocar algo on a dark theme.** Home Assistant hands

@@ -1,8 +1,8 @@
 # Hubb HA UI: Repository Conventions (for AI agents)
 
-A Home Assistant **frontend plugin**, distributed through HACS (category Dashboard): a dashboard
-strategy (`custom:hubb`) plus Lit cards that build the Hubb home screens from the areas, devices and
-entities Home Assistant already knows. One code base for every Hubb client, whatever the hardware
+A Home Assistant **frontend plugin**, distributed through the Marketplace (HACS before Home
+Assistant 2026.11; category Dashboard): a dashboard strategy (`custom:hubb`) plus Lit cards that
+build the Hubb home screens from the areas, devices and entities Home Assistant already knows. One code base for every Hubb client, whatever the hardware
 (ControlArt relay and dimmer, KinCony relay and IR).
 
 Design spec: `homeassistant` repo, `docs/superpowers/specs/2026-10-09-hubb-ha-ui-design.md`; scope
@@ -104,11 +104,12 @@ CalVer `YYYY.M.R`. **A version only when Gustavo orders it**: until then every c
 4. Commit `feat:` or `fix:` with the version in the subject (`... (2026.10.8)`), staging the files by
    name; push `master`; annotated tag `vYYYY.M.R`; push the tag.
 5. Wait for CI and Release (`gh run list`); the Release must carry `hubb-ha-ui.js`, which is what
-   HACS serves. Its notes are the version's section of `CHANGELOG.md`, taken by `release.yml`
-   (HACS shows them in its update dialog): never the commit or the tag message, never
+   the Marketplace serves. Its notes are the version's section of `CHANGELOG.md`, taken by `release.yml`
+   (the Marketplace shows them with the update): never the commit or the tag message, never
    `--notes-from-tag` or `--generate-notes`.
-6. Houses update through HACS (Redownload) only with Gustavo's approval, house by house. Client
-   accounts are not administrators: installer features stay invisible to them.
+6. Houses update through the Marketplace (Settings → Updates, or **Reinstalar** in the menu of
+   the repository) only with Gustavo's approval, house by house. Client accounts are not
+   administrators: installer features stay invisible to them.
 
 Never commit, push, tag or touch a house without Gustavo's explicit approval; one approval covers one
 operation.
@@ -137,8 +138,8 @@ operation.
   phone's own pulse coming back is not read twice (`own`). A bare pulse waits with no direction. A
   wrong wait only takes the tap of Fechar away, a missed one offers it: when in doubt, wait. A pulse
   from the remote control is invisible to both.
-- HACS serves only `hubb-ha-ui.js`, which is why the font is inlined.
-- The header and sidebar of Home Assistant are hidden for residents by kiosk-mode (a separate HACS
+- The Marketplace serves only `hubb-ha-ui.js`, which is why the font is inlined.
+- The header and sidebar of Home Assistant are hidden for residents by kiosk-mode (a separate Marketplace
   plugin), never by this code: the strategy returns `kiosk_mode` (`KIOSK` in `strategy/generate.ts`)
   and Home Assistant keeps whatever a strategy returns as the dashboard config, which kiosk-mode
   reads. Reaching into the DOM of Home Assistant ourselves would break with its releases.

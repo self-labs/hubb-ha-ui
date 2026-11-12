@@ -1,4 +1,4 @@
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5?logo=home-assistant&logoColor=white)](https://hacs.xyz/) [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.5%2B-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/) [![Release](https://img.shields.io/github/v/release/self-labs/hubb-ha-ui?color=293a44)](https://github.com/self-labs/hubb-ha-ui/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/self-labs/hubb-ha-ui/blob/master/LICENSE)
+[![Marketplace Custom](https://img.shields.io/badge/Marketplace-Custom-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/integrations/marketplace) [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.5%2B-41BDF5?logo=home-assistant&logoColor=white)](https://www.home-assistant.io/) [![Release](https://img.shields.io/github/v/release/self-labs/hubb-ha-ui?color=293a44)](https://github.com/self-labs/hubb-ha-ui/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/self-labs/hubb-ha-ui/blob/master/LICENSE)
 
 <!-- Every link on the line above stays absolute. HACS rewrites a relative link by
 prefixing the first "(" of the whole line, which was the first badge's image. -->
@@ -9,7 +9,7 @@ The panel a resident opens on the phone or on the tablet on the wall, built by H
 One dashboard strategy reads the areas, devices and entities of the house and draws every screen: a
 sentence about the house, one card per room, the lights, the air conditioning, the curtains, the TV,
 the gate, the washer, the alarm and the cameras. There is no card YAML per client: the same file runs
-on every house, whatever board drives the relays, and one HACS update reaches them all.
+on every house, whatever board drives the relays, and one Marketplace update reaches them all.
 
 <table>
   <tr>
@@ -41,7 +41,7 @@ A polished Home Assistant dashboard is usually built by hand, and that is where 
 
 This takes a different route. A **dashboard strategy** (`custom:hubb`) reads the areas, devices and
 entities at load time and generates the screens. The cards only receive entity ids, so the house is
-described once, in Home Assistant itself, and one HACS update reaches every client.
+described once, in Home Assistant itself, and one Marketplace update reaches every client.
 
 ## A tour of the panel
 
@@ -321,12 +321,16 @@ never rests.
 
 ## Install
 
-### HACS (recommended)
+### Marketplace (recommended)
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=self-labs&repository=hubb-ha-ui&category=plugin)
+[![Open your Home Assistant instance and open this repository in the Marketplace.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=self-labs&repository=hubb-ha-ui&category=plugin)
 
-The button opens this repository straight in your HACS. Click **Download**. No restart is needed:
-HACS registers the dashboard resource by itself.
+The button opens this repository straight in the Marketplace, which Home Assistant ships under
+**Settings → Marketplace** since 2026.11 (it replaced HACS; on an older Home Assistant the same
+button opens HACS, where the button is **Download**). Click **Install**. The Marketplace registers
+the dashboard resource by itself; when `config/www` did not exist as Home Assistant started, a repair
+asks for a restart first. Adding a repository from a link needs GitHub connected to the Marketplace;
+it asks for that the first time.
 
 It works through [my.home-assistant.io](https://my.home-assistant.io/). The first time, it asks for
 the address of your Home Assistant (for example `http://192.168.1.10:8123`) and keeps it in that
@@ -334,24 +338,27 @@ browser, not in Home Assistant: another browser or computer asks again, and the 
 Home Assistant play no part. To change the saved address, open
 [my.home-assistant.io/redirect/\_change](https://my.home-assistant.io/redirect/_change/).
 
-**For the residents, also install [kiosk-mode](https://github.com/NemesisRE/kiosk-mode)** from HACS
-(Frontend). The panel asks it to hide the header and the sidebar of Home Assistant for every user who
-is not an administrator, so a resident sees the panel alone; administrators keep both, for the pencil
-and the settings. Nothing to configure: without kiosk-mode the panel works the same, with the menus
+**For the residents, also install [kiosk-mode](https://github.com/NemesisRE/kiosk-mode)** from the
+Marketplace (search **Kiosk Mode**). The panel asks it to hide the header and the sidebar of Home
+Assistant for every user who is not an administrator, so a resident sees the panel alone;
+administrators keep both, for the pencil and the settings. Nothing to configure: without kiosk-mode the panel works the same, with the menus
 of Home Assistant around it. A resident then has no "Configurações do aplicativo" or "Notificações"
 in the Companion app: set up notifications and location on their phone before.
 
 <details>
 <summary>Doing it by hand</summary>
 
-1. HACS → three-dot menu → **Custom repositories**.
-2. URL: `https://github.com/self-labs/hubb-ha-ui`, type **Dashboard** → **ADD**.
-3. Open the entry and click **Download**.
+1. **Settings → Marketplace → Add from link** (top right).
+2. **GitHub link**: `https://github.com/self-labs/hubb-ha-ui` → **Add**.
+3. Open the entry and click **Install**.
+
+On Home Assistant older than 2026.11: HACS → three-dot menu → **Custom repositories**, URL
+`https://github.com/self-labs/hubb-ha-ui`, type **Dashboard** → **ADD**, then **Download**.
 
 </details>
 
 <details>
-<summary>Without HACS</summary>
+<summary>Without the Marketplace</summary>
 
 1. Download `hubb-ha-ui.js` from the [latest release](https://github.com/self-labs/hubb-ha-ui/releases/latest)
    into `config/www/`.
