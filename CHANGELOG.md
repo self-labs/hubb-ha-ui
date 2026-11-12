@@ -8,6 +8,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.11.4] - 2026-11-12
+
 ### ✨ Added
 
 - **Tocar algo without Music Assistant.** The sheet of a speaker that plays and lists media (and is not
@@ -847,7 +849,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.3...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.4...HEAD
+[2026.11.4]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.3...v2026.11.4
 [2026.11.3]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.2...v2026.11.3
 [2026.11.2]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.1...v2026.11.2
 [2026.11.1]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.10.27...v2026.11.1
