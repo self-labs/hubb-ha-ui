@@ -242,8 +242,8 @@ never rests.
 
 <table>
   <tr>
-    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/appliance-dark.png" width="200" alt="Washer sheet with the time left, the commands, the program and the options"></td>
-    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/power-light.png" width="200" alt="Consumption sheet of an outlet: power now and energy today"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/appliance-dark.png" width="200" alt="Washer sheet with the time left inside a ring, the commands, the program and the options"></td>
+    <td><img src="https://raw.githubusercontent.com/self-labs/hubb-ha-ui/master/docs/images/power-light.png" width="200" alt="Consumption sheet of an outlet: the round Ligar or Desligar button, the power now and energy today"></td>
   </tr>
   <tr>
     <td align="center">Washer</td>
@@ -252,8 +252,8 @@ never rests.
 </table>
 
 - A **washer, dryer or dishwasher** becomes one card ("Lavando · faltam 40 min") and a timer chip on
-  the home. Its sheet has the time left, the commands that make sense now, the program, the level and
-  the options; it greys the commands out when the appliance is offline or its remote control is off.
+  the home. Its sheet opens on a ring with the time left inside and an arc that fills as the cycle goes,
+  then the commands that make sense now, the program, the level and the options; it greys the commands out when the appliance is offline or its remote control is off.
 - An **outlet with a power sensor** says how much it draws ("Ligada · 120 W"); a tap opens Consumo with
   **Agora**, **Hoje** and Ligar or Desligar, and a hold switches it.
 

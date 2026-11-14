@@ -177,6 +177,7 @@ export function mockHouse(q) {
   w('sensor.lavadora_conexao', 'Connected', 'Conexão', {}, { translation_key: 'connectivity_state', entity_category: 'diagnostic' });
   w('sensor.lavadora_controle', q.get('remote') ?? 'Enabled', 'Controle remoto', {}, { translation_key: 'remote_control' });
   w('sensor.lavadora_tempo', '40', 'Tempo restante', { device_class: 'duration', unit_of_measurement: 'min' }, { entity_category: 'diagnostic' });
+  w('sensor.lavadora_progresso', '60', 'Progresso', { unit_of_measurement: '%' }, { entity_category: 'diagnostic' });
   w('select.lavadora_programa', 'colors', 'Programa', { options: ['normal', 'colors', 'whites', 'quick'] });
   w('select.lavadora_nivel', 'high', 'Nível de roupas', { options: ['low', 'medium', 'high'] });
   w('switch.lavadora_enxague', 'on', 'Enxágue extra');
@@ -248,7 +249,7 @@ export function mockHouse(q) {
     house_power: 'sensor.casa_potencia',
     tablets: { u_tablet: { room: 'sala', rest_after: 5 } },
     entities: {
-      'sensor.lavadora_estado': { role: 'appliance' },
+      'sensor.lavadora_estado': { role: 'appliance', progress: 'sensor.lavadora_progresso' },
       'switch.cozinha_cafeteira': { role: 'equipment', icon: 'mdi:coffee-maker' },
       'cover.sala_flap': { role: 'flap' },
     },

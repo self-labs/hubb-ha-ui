@@ -625,7 +625,12 @@ export class HubbHomeScreen extends HubbScreen {
           ? html`<hubb-media-panel .hass=${hass} .entityId=${this.mediaId} .visible=${this.config?.shared?.media ?? []} .pairs=${this.config?.shared?.mediaPairs ?? {}}></hubb-media-panel>`
           : nothing}
       </hubb-sheet>
-      <hubb-sheet class="climate-on" ?open=${this.climateSheet !== null} heading=${CLIMATE_ON.title} @hubb-close=${() => (this.climateSheet = null)}>
+      <hubb-sheet
+        class="climate-on"
+        ?open=${this.climateSheet !== null}
+        heading=${CLIMATE_ON.title}
+        subheading=${this.climateSheet ? PILLS.climateOn(airs.length) : ''}
+        @hubb-close=${() => (this.climateSheet = null)}>
         ${this.climateSheet ? this.#climateContent(house, hass) : nothing}
       </hubb-sheet>
       <hubb-toast></hubb-toast>
@@ -1042,7 +1047,7 @@ export class HubbHomeScreen extends HubbScreen {
       }
       .wide {
         width: 100%;
-        margin-bottom: 4px;
+        margin-bottom: 12px;
       }
       hubb-floor-tabs {
         margin: 18px 0 10px;

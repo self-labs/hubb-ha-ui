@@ -1,5 +1,5 @@
 import { mdiChevronRight, mdiPause, mdiPlay, mdiPlayCircleOutline, mdiPower, mdiStop } from '@mdi/js';
-import { LitElement, css, html, nothing } from 'lit';
+import { LitElement, css, html, nothing, svg } from 'lit';
 import { onWakeChange, wakeOf, wakeThenStart, type Wake } from '../actions/appliance';
 import { haptic } from '../actions/haptic';
 import { PendingTracker } from '../actions/pending';
@@ -19,7 +19,7 @@ import {
   type Command,
 } from '../model/appliances';
 import { displayName } from '../model/names';
-import { COMMAND_LABELS, minutesToFinish, REACH, S, WAKE_LABELS } from '../strings';
+import { COMMAND_LABELS, minutesToFinish, REACH, RING, S, timeLeftShort, WAKE_LABELS } from '../strings';
 import './action-button';
 import { define } from './define';
 import './equipment-tile';
@@ -34,6 +34,9 @@ const COMMAND_ICONS: Record<Command, string> = {
   stop: mdiStop,
   other: mdiPlayCircleOutline,
 };
+
+/** The ring: a circle of radius 70 on a 160 viewBox, so its arc is this long all the way round. */
+const RING_LENGTH = 2 * Math.PI * 70;
 
 /** The maker's cloud refused the call: the integration lost its login (Electrolux answers 401). */
 const LOST_ACCESS = /\b40[13]\b|unauthori[sz]ed|forbidden/i;
@@ -125,7 +128,7 @@ export class HubbAppliancePanel extends LitElement {
       .catch(() => haptic('failure'));
   }
 
-  #command(hass: HomeAssistant, button: ApplianceButton, disabled: boolean, on: string | null, wake: Wake | null) {
+  #command(hass: HomeAssistant, button: ApplianceButton, disabled: boolean, on: string | null, wake: Wake | null, primary: boolean) {
     const name = button.command === 'other' ? displayName(hass, button.entityId, null) : COMMAND_LABELS[button.command];
     const parts = this.item!.parts;
     const starts = button.command === 'start';
@@ -138,6 +141,8 @@ export class HubbAppliancePanel extends LitElement {
       .disabled=${disabled}
       .run=${run}
       .status=${starts && wake ? WAKE_LABELS[wake] : null}
+      .variant=${'bar'}
+      .primary=${primary}
     ></hubb-action-button>`;
   }
 
@@ -183,10 +188,29 @@ export class HubbAppliancePanel extends LitElement {
     const switches = parts.switches.filter((id) => isShownOption(hass, id));
     const reach = applianceReach(hass, parts);
     const notice = reach === 'offline' ? REACH.offlineHint : reach === 'remote-off' ? REACH.remoteOffHint : null;
+    const left = timed ? timeLeftShort(minutes!) : null;
+    const known = pct !== null;
     return html`<div class="now">
-        <strong>${timed ?? text ?? S.noState}</strong>
-        ${timed && text ? html`<span>${text}</span>` : nothing}
-        ${pct !== null ? html`<span class="bar"><span style="width:${pct}%"></span></span>` : nothing}
+        <div
+          class="ring"
+          role=${known ? 'progressbar' : nothing}
+          aria-valuemin=${known ? '0' : nothing}
+          aria-valuemax=${known ? '100' : nothing}
+          aria-valuenow=${known ? String(pct) : nothing}
+          aria-valuetext=${known && timed ? timed : nothing}
+        >
+          <svg viewBox="0 0 160 160" aria-hidden="true">
+            <circle class="track" cx="80" cy="80" r="70"></circle>
+            ${known
+              ? svg`<circle class="arc" cx="80" cy="80" r="70" transform="rotate(-90 80 80)" stroke-dasharray=${RING_LENGTH} stroke-dashoffset=${RING_LENGTH * (1 - pct / 100)}></circle>`
+              : nothing}
+          </svg>
+          <div class="inside">
+            <strong class=${left ? (left.length > 6 ? 'long' : '') : 'word'}>${left ?? text ?? S.noState}</strong>
+            ${left ? html`<span class="caption">${RING.toFinish}</span>` : nothing}
+          </div>
+        </div>
+        ${left && text ? html`<span class="state">${text}</span>` : nothing}
       </div>
       ${notice ? html`<p class="notice" role="status">${notice}</p>` : nothing}
       ${this.failed
@@ -196,7 +220,7 @@ export class HubbAppliancePanel extends LitElement {
         : nothing}
       ${commands.length
         ? html`<div class="commands" style="grid-template-columns: repeat(${Math.min(commands.length, 3)}, minmax(0, 1fr))">
-            ${commands.map((b) => this.#command(hass, b, reach !== 'ok' || wake !== null, on, wake))}
+            ${commands.map((b, n) => this.#command(hass, b, reach !== 'ok' || wake !== null, on, wake, n === 0 && main.length > 0))}
           </div>`
         : nothing}
       ${selects.length ? html`<div class="choices">${selects.map((id) => this.#choice(hass, id))}</div>` : nothing}
@@ -219,33 +243,69 @@ export class HubbAppliancePanel extends LitElement {
       font-family: var(--hubb-font);
       color: var(--hubb-text);
     }
+    /* The ring: the time left inside it and an arc that fills as the cycle goes. */
     .now {
       display: grid;
-      gap: 4px;
-      margin: 4px 2px 14px;
+      justify-items: center;
+      gap: 10px;
+      margin: 2px 0 18px;
+      text-align: center;
     }
-    .now strong {
-      font-size: 24px;
+    .ring {
+      position: relative;
+      width: 168px;
+      height: 168px;
+    }
+    .ring svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .ring circle {
+      fill: none;
+      stroke-width: 10;
+    }
+    .ring .track {
+      stroke: var(--hubb-surface-2);
+    }
+    .ring .arc {
+      stroke: var(--hubb-amber);
+      stroke-linecap: round;
+      transition: stroke-dashoffset calc(var(--hubb-motion, 200ms) * 3) ease;
+    }
+    .inside {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-content: center;
+      gap: 2px;
+      padding: 0 20px;
+    }
+    .inside strong {
+      font-size: 30px;
       font-weight: 800;
       letter-spacing: -0.02em;
+      line-height: 1.05;
     }
-    .now span {
-      font-size: 13px;
+    .inside strong.long {
+      font-size: 22px;
+    }
+    /* A state with no time ("Ciclo concluído"): words, not a number. */
+    .inside strong.word {
+      font-size: 18px;
+      line-height: 1.2;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+    .caption {
+      font-size: 12px;
       font-weight: 600;
       color: var(--hubb-text-2);
     }
-    .bar {
-      display: block;
-      height: 6px;
-      margin-top: 6px;
-      border-radius: 3px;
-      background: var(--hubb-surface-2);
-      overflow: hidden;
-    }
-    .bar span {
-      display: block;
-      height: 100%;
-      background: var(--hubb-amber);
+    .state {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--hubb-amber-text);
     }
     .commands {
       display: grid;

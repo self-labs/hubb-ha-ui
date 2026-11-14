@@ -108,6 +108,13 @@ export const devicesStatus = (on: number, total: number): string =>
   on === 0 ? S.outletsAllOff : `${on} de ${total} ${total === 1 ? 'ligado' : 'ligados'}`;
 export const minutesLeft = (n: number): string => (n === 1 ? 'falta 1 min' : `faltam ${n} min`);
 export const minutesToFinish = (n: number): string => `${n} min para terminar`;
+/** The time left as the ring of an appliance sheet writes it: "40 min", "1 h 20 min", "2 h". */
+export const timeLeftShort = (n: number): string => {
+  if (n < 60) return `${n} min`;
+  const rest = n % 60;
+  return rest ? `${Math.floor(n / 60)} h ${rest} min` : `${Math.floor(n / 60)} h`;
+};
+export const RING = { toFinish: 'para terminar' } as const;
 export const applianceChip = (name: string, detail: string): string => `${name} · ${detail}`;
 /** The commands of an appliance sheet. */
 export const COMMAND_LABELS = {

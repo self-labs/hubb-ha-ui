@@ -41,8 +41,10 @@ describe('hubb-appliance-panel', () => {
 
   it('shows how long is left in large, the state under it, and the commands that make sense now', async () => {
     const el = await mount(translated('Running', '40'));
-    expect($(el, '.now strong')!.textContent).toBe('40 min para terminar');
-    expect($(el, '.now span')!.textContent).toBe('Lavando');
+    // The time sits inside the ring, with what is left to do under it (test/elements/appliance-ring.test.ts).
+    expect($(el, '.now strong')!.textContent).toBe('40 min');
+    expect($(el, '.now .caption')!.textContent).toBe('para terminar');
+    expect($(el, '.now .state')!.textContent).toBe('Lavando');
     expect(labels(el, '.commands hubb-action-button')).toEqual(['Pausar', 'Desligar', 'Parar']);
   });
 

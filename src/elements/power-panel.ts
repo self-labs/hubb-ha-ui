@@ -75,81 +75,133 @@ export class HubbPowerPanel extends LitElement {
     const now = item.power ? watts(hass, item.power) : null;
     const st = hass.states[item.entityId];
     const { on, pending, failed } = this.#power.view(item.entityId, st);
-    return html`<button
-        class="power ${on ? 'on' : ''} ${pending ? 'busy' : ''}"
-        ?disabled=${!st || st.state === 'unavailable'}
-        @click=${this.#togglePower}
-      >
-        ${icon(mdiPower)}${failed ? S.noResponse : pending ? (on ? S.switchingOn : S.switchingOff) : on ? POWER_BUTTON.switchOff : POWER_BUTTON.switchOn}
-      </button>
-      ${item.power ? html`<p class="now"><span>${POWER.now}</span> <strong>${now ?? '-'}</strong></p>` : nothing}
-    ${this.today !== null ? html`<p class="today"><span>${POWER.today}</span> <strong>${kwh(this.today)}</strong></p>` : nothing}`;
+    const reading = item.power ? now : null;
+    const figures = [item.power ? 'now' : null, this.today !== null ? 'today' : null].filter(Boolean).length;
+    return html`<div class="hero ${on ? 'on' : ''}">
+        <button
+          class="power ${on ? 'on' : ''} ${pending ? 'busy' : ''}"
+          ?disabled=${!st || st.state === 'unavailable'}
+          @click=${this.#togglePower}
+        >
+          <span class="disc">${icon(mdiPower)}</span
+          ><span class="label">${failed ? S.noResponse : pending ? (on ? S.switchingOn : S.switchingOff) : on ? POWER_BUTTON.switchOff : POWER_BUTTON.switchOn}</span>
+        </button>
+      </div>
+      ${figures
+        ? html`<div class="figures ${figures === 1 ? 'one' : 'two'}">
+            ${item.power ? html`<p class="now ${on && reading !== null ? 'live' : ''}"><span>${POWER.now}</span> <strong>${reading ?? '-'}</strong></p>` : nothing}
+            ${this.today !== null ? html`<p class="today"><span>${POWER.today}</span> <strong>${kwh(this.today)}</strong></p>` : nothing}
+          </div>`
+        : nothing}`;
   }
 
   static styles = css`
     :host {
-      display: grid;
-      gap: 8px;
+      display: block;
       font-family: var(--hubb-font);
       color: var(--hubb-text);
+    }
+    /* The button of the sheet: a round disc with the word under it, and a halo of amber while it is on. */
+    .hero {
+      display: grid;
+      place-items: center;
+      padding: 4px 0 14px;
     }
     .power {
       all: unset;
       box-sizing: border-box;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
-      min-height: 44px;
-      padding: 0 20px;
-      border-radius: 22px;
-      background: var(--hubb-surface-2);
+      gap: 14px;
       color: var(--hubb-text);
       font-family: var(--hubb-font);
       font-size: 13px;
       font-weight: 700;
+      text-align: center;
       cursor: pointer;
     }
-    .power.on {
+    .disc {
+      display: grid;
+      place-items: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--hubb-surface-2);
+      transition:
+        background var(--hubb-motion, 200ms) ease,
+        box-shadow var(--hubb-motion, 200ms) ease;
+    }
+    .power.on .disc {
       background: var(--hubb-amber);
       color: var(--hubb-amber-ink);
+      box-shadow: 0 0 0 6px var(--hubb-amber-tint);
     }
-    .power.busy {
-      opacity: 0.7;
+    .power.busy .disc {
+      animation: hubb-wait 1.2s ease-in-out infinite;
     }
     .power:disabled {
       opacity: 0.5;
       cursor: default;
     }
-    .power:focus-visible {
+    .power:focus-visible .disc {
       outline: 2px solid var(--hubb-focus);
-      outline-offset: 2px;
+      outline-offset: 4px;
     }
-    .power svg {
-      width: 20px;
-      height: 20px;
+    .disc svg {
+      width: 30px;
+      height: 30px;
       fill: currentColor;
     }
-    p {
+    @keyframes hubb-wait {
+      50% {
+        opacity: 0.6;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .power.busy .disc {
+        animation: none;
+        opacity: 0.7;
+      }
+    }
+    /* The two numbers, large: what it draws now and what it has used today. */
+    .figures {
+      display: grid;
+      gap: 8px;
+    }
+    .figures.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .figures p {
       box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      min-height: 52px;
+      display: grid;
+      gap: 4px;
+      align-content: center;
+      min-height: 84px;
       margin: 0;
-      padding: 0 14px;
-      border-radius: 14px;
+      padding: 12px 16px;
+      border-radius: 16px;
       background: var(--hubb-surface);
       box-shadow: var(--hubb-card-shadow);
-      font-size: 13px;
-      font-weight: 700;
     }
-    span {
+    /* Drawing power right now: the card lights like a tile that is on. */
+    .figures p.live {
+      background: radial-gradient(110% 90% at 15% 0%, var(--hubb-amber-tint), transparent 65%), var(--hubb-on-bg);
+    }
+    .figures span {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       color: var(--hubb-text-2);
     }
-    strong {
-      font-size: 18px;
+    .figures p.live span {
+      color: var(--hubb-amber-text);
+    }
+    .figures strong {
+      font-size: 28px;
       font-weight: 800;
+      letter-spacing: -0.02em;
     }
   `;
 }

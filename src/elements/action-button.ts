@@ -20,6 +20,8 @@ export class HubbActionButton extends LitElement {
     disabled: { type: Boolean },
     run: { attribute: false },
     status: { attribute: false },
+    variant: { reflect: true },
+    primary: { type: Boolean, reflect: true },
     result: { state: true },
   };
 
@@ -33,6 +35,10 @@ export class HubbActionButton extends LitElement {
   declare run: ((hass: HomeAssistant) => Promise<unknown>) | null;
   /** A word under the name while something is on its way ("Ligando…"); it wins over the result. */
   declare status: string | null;
+  /** `card` is the tall tile of the actions of a room; `bar` is a button of a sheet, icon beside the word. */
+  declare variant: 'card' | 'bar';
+  /** The bar that makes sense now, in amber. */
+  declare primary: boolean;
   declare result: 'done' | 'failed' | null;
 
   #timer: ReturnType<typeof setTimeout> | null = null;
@@ -45,6 +51,8 @@ export class HubbActionButton extends LitElement {
     this.disabled = false;
     this.run = null;
     this.status = null;
+    this.variant = 'card';
+    this.primary = false;
     this.result = null;
   }
 
@@ -163,6 +171,62 @@ export class HubbActionButton extends LitElement {
     }
     .action.na .icon {
       opacity: 0.5;
+    }
+
+    /* A button of a sheet (the appliance commands): icon beside the word, three to a row. */
+    :host([variant='bar']) {
+      height: auto;
+    }
+    :host([variant='bar']) .action {
+      display: grid;
+      grid-template-columns: auto auto;
+      justify-content: center;
+      align-content: center;
+      align-items: center;
+      column-gap: 6px;
+      row-gap: 0;
+      min-height: 60px;
+      padding: 8px 10px;
+      border-radius: 16px;
+      background: var(--hubb-surface-2);
+      box-shadow: none;
+    }
+    /* The icon and the word share row 1, so they sit on one line; "Feito" comes under the word. */
+    :host([variant='bar']) .icon {
+      grid-row: 1;
+      width: 22px;
+      height: 22px;
+      border-radius: 0;
+      background: transparent;
+      color: inherit;
+    }
+    :host([variant='bar']) .icon svg {
+      width: 22px;
+      height: 22px;
+    }
+    :host([variant='bar']) .name {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    :host([variant='bar']) .result {
+      grid-column: 2;
+      grid-row: 2;
+      min-height: 0;
+      color: inherit;
+      opacity: 0.8;
+    }
+    :host([variant='bar']) .result:empty {
+      display: none;
+    }
+    :host([primary]) .action {
+      background: var(--hubb-amber);
+      color: var(--hubb-amber-ink);
+    }
+    :host([primary]) .icon {
+      color: var(--hubb-amber-ink);
+    }
+    :host([variant='bar']) .action.na {
+      background: transparent;
     }
   `;
 }

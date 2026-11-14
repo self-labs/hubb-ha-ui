@@ -8,6 +8,30 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.11.6] - 2026-11-14
+
+### 🔧 Changed
+
+- **The consumption sheet of an outlet or an equipment is redrawn.** Ligar/Desligar is now a round disc
+  with the word under it and a halo of amber while it is on, and under it the two numbers sit in cards of their own:
+  Agora (lit like a tile that is on while the outlet draws power) and Hoje, in large type. With only a
+  power sensor, Agora takes the whole row; with no sensor there are no numbers, only the button.
+- **The appliance sheet opens on a ring.** The time left sits inside a ring whose arc fills as the cycle
+  goes (when the appliance tells how far it is), with "para terminar" under the time and the state
+  ("Lavando") under the ring; long cycles read "1 h 20 min". A state with no time, like "Ciclo
+  concluído", is written in the ring with no arc. The commands, the choices and the options under it are
+  the ones the sheet had, and a ring that knows its progress is a progress bar for a screen reader.
+- **The commands of the appliance sheet are bars, not tiles.** Pausar, Desligar and Parar (or Iniciar,
+  Continuar...) were the same tall cards as the actions of a room, with a small icon in a corner. On the
+  sheet they are 60 px bars, icon beside the word, three to a row, and the first one, the command that
+  makes sense now, is amber. The actions of a room keep their cards (`variant` of `hubb-action-button`).
+- **The README screenshots of the washer sheet and the consumption sheet are retaken** for the new look.
+- **"Clima ligado" says how many are on, and no sheet sits flush under its title.** The home sheet of the
+  air conditioners had its "Desligar todos" button right against the title: it now has the count under it
+  ("1 ar ligado"), like "Luzes acesas", and every sheet with a title and no subheading (the media sheets,
+  Ajustes, the standalone light card) leaves 14 px under the title. The button for all of them leaves
+  12 px before the list it turns off.
+
 ## [2026.11.5] - 2026-11-14
 
 ### ✨ Added
@@ -911,7 +935,8 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 | 🐛 Fixed      | bug fixes                               |
 | 🔐 Security   | vulnerabilities addressed and hardening |
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.5...HEAD
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.6...HEAD
+[2026.11.6]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.5...v2026.11.6
 [2026.11.5]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.4...v2026.11.5
 [2026.11.4]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.3...v2026.11.4
 [2026.11.3]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.2...v2026.11.3

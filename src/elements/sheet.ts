@@ -100,7 +100,7 @@ export class HubbSheet extends LitElement {
           : html`<div class="grab" @pointerdown=${this.#down} @pointermove=${this.#move} @pointerup=${this.#up} @pointercancel=${this.#up}>
               <span></span>
             </div>`}
-        <h2>${this.heading}</h2>
+        <h2 class=${this.subheading ? '' : 'alone'}>${this.heading}</h2>
         ${this.subheading ? html`<p class="sub">${this.subheading}</p>` : nothing}
         <slot></slot>
       </section>`;
@@ -153,6 +153,10 @@ export class HubbSheet extends LitElement {
       margin: 0;
       font-size: 16px;
       font-weight: 800;
+    }
+    /* A title with nothing under it: its content would sit flush against it. */
+    h2.alone {
+      margin-bottom: 14px;
     }
     .sub {
       margin: 2px 0 12px;

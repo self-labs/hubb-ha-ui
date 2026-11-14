@@ -178,6 +178,12 @@ operation.
   consumption sheet Ligar/Desligar (`actions/power-toggle.ts` keeps their 3 s wait). Open sheets are
   module state (`sheets.ts`): a test that opens one leaves the edit mode (`setEditing(true)` then
   `false`) in `afterEach`, or the next page reopens it.
+- **Each sheet has its own look, never one shared look** (Gustavo, 14/11): the media, light and air
+  sheets as they were; the cover and flap sheet is a drawing of how open it is with big buttons that
+  answer in colour and a drag track (`cover-panel.ts`, one position command per drag); the consumption
+  sheet is a big round Ligar/Desligar over two number cards; the appliance sheet is a ring with the time
+  left inside. Tokens only, both themes (a TV is dark in both: `--hubb-amber-ink`), and every pulse or
+  shake is switched off under `prefers-reduced-motion`.
 - `hubb-sheet` closes on its backdrop only when the touch began there: on an iPhone the release of
   the long press that opened it sends a click to the backdrop. A test pins it.
 - Values of climate attributes that neither `CLIMATE.fanWords` nor Home Assistant can name never
