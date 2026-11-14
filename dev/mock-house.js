@@ -103,6 +103,8 @@ export function mockHouse(q) {
   });
   add('fan.varanda', 'Ventilador', at('varanda'), 'on', { percentage: 50, supported_features: 1 | 16 | 32 });
   add('cover.sala_cortina', 'Cortina', at('sala'), 'open', { device_class: 'curtain', current_position: 60, supported_features: 15 });
+  // The flap that hides the TV of the ceiling: a cover shown as Flap.
+  add('cover.sala_flap', 'Flap', at('sala'), 'closed', { supported_features: 11 });
   add('media_player.sala_tv', 'TV', at('sala'), 'playing', {
     device_class: 'tv',
     media_title: 'Jornal da Noite',
@@ -248,6 +250,7 @@ export function mockHouse(q) {
     entities: {
       'sensor.lavadora_estado': { role: 'appliance' },
       'switch.cozinha_cafeteira': { role: 'equipment', icon: 'mdi:coffee-maker' },
+      'cover.sala_flap': { role: 'flap' },
     },
     scenes: ['scene.chegar', 'scene.cinema', 'scene.jantar', 'scene.boa_noite'],
   };

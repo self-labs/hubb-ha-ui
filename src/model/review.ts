@@ -28,6 +28,7 @@ function duplicates(hass: HomeAssistant, config: HubbConfig): ReviewItem[] {
       ...room.lights,
       ...room.climate,
       ...room.covers,
+      ...room.flaps,
       ...room.media,
       ...room.outlets,
       ...room.equipment,

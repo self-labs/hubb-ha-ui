@@ -130,3 +130,67 @@ describe('hubb-dimmer-panel', () => {
     }
   });
 });
+
+// A tap on a light now opens this sheet instead of toggling, so the sheet carries its own Acender and
+// Apagar: a hold is a shortcut, never the only way to switch the light (Gustavo, 14/11).
+describe('the Acender and Apagar button of the light sheet', () => {
+  afterEach(() => {
+    document.body.replaceChildren();
+  });
+  const power = (el: HubbDimmerPanel) => el.shadowRoot!.querySelector<HTMLButtonElement>('button.power')!;
+  const mesa = (state: string) => makeHass({ entities: [{ entity_id: 'light.mesa', state, attributes: { brightness: 153 } }] });
+
+  it('says Apagar on a light that is on, turns it off, and says Apagando… until the answer', async () => {
+    const hass = mesa('on');
+    const el = await mount(hass);
+    expect(power(el).textContent!.trim()).toBe('Apagar');
+    // The label already says what a press does, so the button is not announced as a toggle too.
+    expect(power(el).hasAttribute('aria-pressed')).toBe(false);
+    power(el).click();
+    await el.updateComplete;
+    expect(hass.calls).toEqual([{ domain: 'light', service: 'turn_off', data: undefined, target: { entity_id: 'light.mesa' } }]);
+    expect(power(el).textContent!.trim()).toBe('Apagando…');
+  });
+
+  it('says Acender on a light that is off and turns it on with no brightness, so it comes back as it was', async () => {
+    const hass = mesa('off');
+    const el = await mount(hass);
+    expect(power(el).textContent!.trim()).toBe('Acender');
+    power(el).click();
+    await el.updateComplete;
+    expect(hass.calls).toEqual([{ domain: 'light', service: 'turn_on', data: undefined, target: { entity_id: 'light.mesa' } }]);
+    expect(power(el).textContent!.trim()).toBe('Acendendo…');
+  });
+
+  it('says Sem resposta when Home Assistant never confirms, then goes back to Apagar', async () => {
+    vi.useFakeTimers();
+    try {
+      const hass = mesa('on');
+      const el = await mount(hass);
+      power(el).click();
+      await el.updateComplete;
+      vi.advanceTimersByTime(3200);
+      await el.updateComplete;
+      expect(power(el).textContent!.trim()).toBe('Sem resposta');
+      vi.advanceTimersByTime(4200);
+      await el.updateComplete;
+      expect(power(el).textContent!.trim()).toBe('Apagar');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('follows the confirmed state, and sends nothing for a light that does not answer', async () => {
+    const hass = mesa('on');
+    const el = await mount(hass);
+    power(el).click();
+    el.hass = withState(hass, 'light.mesa', 'off');
+    await el.updateComplete;
+    expect(power(el).textContent!.trim()).toBe('Acender');
+    document.body.replaceChildren();
+    const dead = mesa('unavailable');
+    const el2 = await mount(dead);
+    power(el2).click();
+    expect(dead.calls).toEqual([]);
+  });
+});

@@ -120,9 +120,10 @@ describe('the blocks of M3 on a room page', () => {
       return labels;
     };
     expect(await roles('Ar')).toEqual(['Ar-condicionado', 'Não mostrar']);
-    expect(await roles('Cortina')).toEqual(['Cortina', 'Portão', 'Não mostrar']);
+    expect(await roles('Cortina')).toEqual(['Cortina', 'Flap', 'Portão', 'Não mostrar']);
     expect(await roles('Porta')).toEqual(['Fechadura', 'Não mostrar']);
     expect(await roles('TV')).toEqual(['Mídia', 'Não mostrar']);
+    // A gate by its class is never offered as Cortina or as Flap: a Flap opens on a hold, and a gate only opens with the slide.
     expect(await roles('Portão')).toEqual(['Portão', 'Não mostrar']);
   });
 
@@ -139,7 +140,7 @@ describe('the blocks of M3 on a room page', () => {
     const editor = $(el, 'hubb-item-editor')!;
     await (editor as unknown as { updateComplete: Promise<unknown> }).updateComplete;
     const buttons = [...editor.shadowRoot!.querySelectorAll('button.role')] as HTMLButtonElement[];
-    expect(buttons.map((b) => b.textContent!.trim())).toEqual(['Cortina', 'Portão', 'Não mostrar']);
+    expect(buttons.map((b) => b.textContent!.trim())).toEqual(['Cortina', 'Flap', 'Portão', 'Não mostrar']);
     const asked: unknown[] = [];
     editor.addEventListener('hubb-edit', (e) => asked.push((e as CustomEvent).detail));
     buttons[0]!.click();

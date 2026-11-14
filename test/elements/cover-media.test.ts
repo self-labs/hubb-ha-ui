@@ -25,6 +25,7 @@ const click = (el: Element, sel: string) => (el.shadowRoot!.querySelector(sel) a
 
 describe('curtains', () => {
   afterEach(() => {
+    vi.useRealTimers();
     document.body.replaceChildren();
   });
 
@@ -32,11 +33,19 @@ describe('curtains', () => {
     makeHass({ entities: [{ entity_id: 'cover.cortina', state, attributes: { supported_features: 1 | 2 | 4 | 8, ...attributes } }] });
   const tile = (h: FakeHass) => mount<HubbCoverTile>('hubb-cover-tile', { hass: h, item: { entityId: 'cover.cortina', name: 'Cortina' } });
 
-  it('says how open it is, and a tap opens, closes or stops it', async () => {
+  // A tap opens the sheet; a hold runs the command (Gustavo, 14/11).
+  const hold = (el: Element) => {
+    const b = el.shadowRoot!.querySelector('button')!;
+    b.dispatchEvent(new Event('pointerdown'));
+    vi.advanceTimersByTime(600);
+    b.dispatchEvent(new Event('pointerup'));
+  };
+  it('says how open it is, and a hold opens, closes or stops it', async () => {
+    vi.useFakeTimers();
     const closed = cortina('closed');
     const el = await tile(closed);
     expect(text(el, '.state')).toBe('Fechada');
-    click(el, 'button');
+    hold(el);
     await el.updateComplete;
     expect(text(el, '.state')).toBe('Abrindo…');
     expect(services(closed)).toEqual([['cover.open_cover', undefined]]);
@@ -44,15 +53,15 @@ describe('curtains', () => {
     const half = cortina('open', { current_position: 40 });
     const el2 = await tile(half);
     expect(text(el2, '.state')).toBe('40% aberta');
-    click(el2, 'button');
+    hold(el2);
     expect(services(half)).toEqual([['cover.close_cover', undefined]]);
     document.body.replaceChildren();
     const moving = cortina('opening');
-    click(await tile(moving), 'button');
+    hold(await tile(moving));
     expect(services(moving)).toEqual([['cover.stop_cover', undefined]]);
   });
-
   it('opens its sheet with a right click, where it goes to a position', async () => {
+    vi.useFakeTimers();
     const h = cortina('open', { current_position: 100 });
     const el = await tile(h);
     let asked: string | null = null;
@@ -60,11 +69,14 @@ describe('curtains', () => {
     el.shadowRoot!.querySelector('button')!.dispatchEvent(new Event('contextmenu', { bubbles: true, cancelable: true }));
     expect(asked).toBe('cover.cortina');
     const panel = await mount<HubbCoverPanel>('hubb-cover-panel', { hass: h, entityId: 'cover.cortina' });
-    expect([...panel.shadowRoot!.querySelectorAll('.position')].map((b) => b.textContent!.trim())).toEqual(['0%', '25%', '50%', '75%', '100%']);
-    (panel.shadowRoot!.querySelectorAll('.position')[2] as HTMLButtonElement).click();
+    // The position is a track (test/elements/cover-sheet.test.ts); a key on it goes to the position.
+    const track = panel.shadowRoot!.querySelector('.track') as HTMLElement;
+    expect(track.getAttribute('role')).toBe('slider');
+    track.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+    vi.advanceTimersByTime(300);
     click(panel, '.stop');
     expect(services(h)).toEqual([
-      ['cover.set_cover_position', { position: 50 }],
+      ['cover.set_cover_position', { position: 100 }],
       ['cover.stop_cover', undefined],
     ]);
   });

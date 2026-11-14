@@ -67,6 +67,16 @@ describe('hubb-home-screen', () => {
     expect(toast.shadowRoot!.querySelector('.toast span')!.textContent).toBe('1 luz apagada');
   });
 
+  it('keeps toggling on a tap in the sheet of the lights that are on: there is no dimmer to open there', async () => {
+    const h = sampleHouseHass();
+    const el = await mount(h);
+    ($(el, '.chips .chip') as HTMLButtonElement).click();
+    await el.updateComplete;
+    const tile = $(el, 'hubb-sheet')!.querySelector('hubb-light-tile') as HTMLElement & { updateComplete: Promise<unknown> };
+    await tile.updateComplete;
+    tile.shadowRoot!.querySelector('button')!.click();
+    expect(h.calls.map((c) => c.service)).toEqual(['turn_off']);
+  });
   it('Apagar todas turns off only lights, even with an outlet on in the same room', async () => {
     const h = makeHass({
       areas: [area('cozinha', 'Cozinha')],

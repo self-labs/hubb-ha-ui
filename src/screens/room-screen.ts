@@ -40,7 +40,7 @@ import { hiddenForList } from '../model/visibility';
 import { originOf } from '../model/origin';
 import type { ItemKind } from '../model/config';
 import type { HiddenItem, HubbConfig, Room, Shared } from '../model/types';
-import { ACCESS, CLIMATE, COVER, EDIT, KIND_LABELS, MEDIA, POWER, roomTurnedOff, S, SENSE } from '../strings';
+import { ACCESS, CLIMATE, COVER, EDIT, FLAP, KIND_LABELS, MEDIA, POWER, roomTurnedOff, S, SENSE } from '../strings';
 import { applianceSubheading, roomClimate, roomHeroStatus } from '../summary';
 import { gridSpans, layoutStyles } from '../theme/layout';
 import { tokens } from '../theme/tokens';
@@ -73,6 +73,9 @@ export interface RoomScreenConfig {
 const DEVICE_SHEETS = ['climate', 'cover', 'media', 'power'] as const;
 
 type DeviceSheet = (typeof DEVICE_SHEETS)[number];
+
+/** The cards that take the whole row on a phone and half of it on a tablet. */
+const HALF_ON_TABLET: ReadonlySet<SizedKind> = new Set<SizedKind>(['media', 'gate', 'lock']);
 
 export class HubbRoomScreen extends HubbScreen {
   static properties = {
@@ -163,9 +166,14 @@ export class HubbRoomScreen extends HubbScreen {
     return this.config?.lightIds ?? [];
   }
 
-  /** The class that sets how wide a card is: `entities.<id>.size`, else today's look; on a phone, half a row for a long name. */
+  /**
+   * The class that sets how wide a card is: `entities.<id>.size`, else today's look; on a phone, half a row for a
+   * long name. A gate, a lock or a speaker is the whole row on a phone and half of it on a tablet (`tablet-half`),
+   * where the whole row would put its name and its slide or buttons at the two ends of the pane.
+   */
   #size(entityId: string, kind: SizedKind, name: string): string {
-    return `size-${sizeOf(this.config?.options, entityId, kind, this.screenLayout, name)}`;
+    const size = sizeOf(this.config?.options, entityId, kind, this.screenLayout, name);
+    return size === 'large' && HALF_ON_TABLET.has(kind) ? 'size-large tablet-half' : `size-${size}`;
   }
 
   /**
@@ -237,6 +245,18 @@ export class HubbRoomScreen extends HubbScreen {
       </div>`;
   }
 
+  /** The flap of a ceiling TV: a cover shown as Flap, in its own block after Cortinas. */
+  #flapsBlock(room: Room, editing: boolean) {
+    const hass = this.hass;
+    if (!room.flaps.length) return nothing;
+    const classes = this.#classes(cardsOf(room.flaps, 'flap'));
+    return html`<h2>${FLAP.title}</h2>
+      <div class="grid">
+        ${editing
+          ? this.#editTiles(room.flaps, 'flap', classes)
+          : room.flaps.map((f, n) => html`<hubb-cover-tile class=${classes[n]} .kind=${'flap'} .hass=${hass} .item=${f}></hubb-cover-tile>`)}
+      </div>`;
+  }
   #mediaBlock(room: Room, editing: boolean) {
     const hass = this.hass;
     if (!room.media.length) return nothing;
@@ -250,7 +270,7 @@ export class HubbRoomScreen extends HubbScreen {
 
   /** The name of the device whose sheet is open, as its card shows it. */
   #deviceName(room: Room, entityId: string): string {
-    const item = [...room.climate, ...room.covers, ...room.media, ...room.outlets, ...room.equipment].find((i) => i.entityId === entityId);
+    const item = [...room.climate, ...room.covers, ...room.flaps, ...room.media, ...room.outlets, ...room.equipment].find((i) => i.entityId === entityId);
     return item?.name ?? String(this.hass?.states[entityId]?.attributes.friendly_name ?? entityId);
   }
 
@@ -345,13 +365,13 @@ export class HubbRoomScreen extends HubbScreen {
               <div class="grid">
                 ${editing
                   ? this.#editTiles(room.lights, 'light', lightClasses)
-                  : room.lights.map((l, n) => html`<hubb-light-tile class=${lightClasses[n]} .hass=${hass} .item=${l}></hubb-light-tile>`)}
+                  : room.lights.map((l, n) => html`<hubb-light-tile class=${lightClasses[n]} .sheetOnTap=${true} .hass=${hass} .item=${l}></hubb-light-tile>`)}
               </div>`
           : nothing}
         ${pairUp
           ? html`<div class="pair both"><section>${this.#climateBlock(room, editing)}</section><section>${this.#mediaBlock(room, editing)}</section></div>
-              ${this.#coversBlock(room, editing)}`
-          : html`${this.#climateBlock(room, editing)}${this.#coversBlock(room, editing)}${this.#mediaBlock(room, editing)}`}
+              ${this.#coversBlock(room, editing)}${this.#flapsBlock(room, editing)}`
+          : html`${this.#climateBlock(room, editing)}${this.#coversBlock(room, editing)}${this.#flapsBlock(room, editing)}${this.#mediaBlock(room, editing)}`}
         ${room.outlets.length || room.equipment.length
           ? html`<h2>${S.outlets}</h2>
               <div class="grid">
@@ -361,9 +381,9 @@ export class HubbRoomScreen extends HubbScreen {
                       this.#editTiles(room.equipment, 'equipment', plugClasses.slice(room.outlets.length)),
                     ]
                   : [
-                      room.outlets.map((o, n) => html`<hubb-outlet-tile class=${plugClasses[n]} .hass=${hass} .item=${o}></hubb-outlet-tile>`),
+                      room.outlets.map((o, n) => html`<hubb-outlet-tile class=${plugClasses[n]} .sheetOnTap=${true} .hass=${hass} .item=${o}></hubb-outlet-tile>`),
                       room.equipment.map(
-                        (q, n) => html`<hubb-equipment-tile class=${plugClasses[room.outlets.length + n]} .hass=${hass} .item=${q}></hubb-equipment-tile>`,
+                        (q, n) => html`<hubb-equipment-tile class=${plugClasses[room.outlets.length + n]} .sheetOnTap=${true} .hass=${hass} .item=${q}></hubb-equipment-tile>`,
                       ),
                     ]}
               </div>`
@@ -435,7 +455,9 @@ export class HubbRoomScreen extends HubbScreen {
               .allowed=${room.climate.find((c) => c.entityId === device.entityId) ?? null}
             ></hubb-climate-panel>`
           : nothing}
-        ${device?.sheet === 'cover' ? html`<hubb-cover-panel .hass=${hass} .entityId=${device.entityId}></hubb-cover-panel>` : nothing}
+        ${device?.sheet === 'cover'
+          ? html`<hubb-cover-panel .hass=${hass} .entityId=${device.entityId} .kind=${room.flaps.some((f) => f.entityId === device.entityId) ? 'flap' : 'cover'}></hubb-cover-panel>`
+          : nothing}
         ${device?.sheet === 'media' ? html`<hubb-media-panel .hass=${hass} .entityId=${device.entityId} .visible=${this.config?.shared?.media ?? []} .pairs=${this.config?.shared?.mediaPairs ?? {}}></hubb-media-panel>` : nothing}
         ${device?.sheet === 'power' ? html`<hubb-power-panel .hass=${hass} .item=${[...room.outlets, ...room.equipment].find((i) => i.entityId === device.entityId)}></hubb-power-panel>` : nothing}
       </hubb-sheet>
@@ -623,6 +645,15 @@ export class HubbRoomScreen extends HubbScreen {
       }
       :host([screen-layout='wide']) .hero .art {
         width: 52%;
+      }
+      /* A gate, a lock or a speaker is half a row on a tablet, not a strip across the pane; beside the air
+         conditioner (.pair.both) it is already half of the pane, and fills it. */
+      :host([screen-layout='roomy']) .grid > .size-large.tablet-half,
+      :host([screen-layout='wide']) .grid > .size-large.tablet-half {
+        grid-column: span 6;
+      }
+      :host([screen-layout='wide']) .pair.both .grid > .size-large.tablet-half {
+        grid-column: 1 / -1;
       }
       :host([screen-layout='wide']) .pair.both {
         display: grid;

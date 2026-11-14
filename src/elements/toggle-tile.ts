@@ -5,9 +5,9 @@ import { PendingTracker, type PendingStatus } from '../actions/pending';
 import type { HassEntityState, HomeAssistant } from '../ha/types';
 import { noResponseSince, S } from '../strings';
 import { tileName } from '../theme/layout';
+import { HOLD_MS, HOLD_SHOW_MS, holdFill } from './hold';
 import { icon } from './icon';
 
-const LONG_PRESS_MS = 500;
 const EXPLAIN_MS = 4000;
 const UNAVAILABLE = new Set(['unavailable', 'unknown']);
 
@@ -49,13 +49,24 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
   static properties = {
     hass: { attribute: false },
     item: { attribute: false },
+    sheetOnTap: { attribute: false },
+    holding: { state: true },
   };
 
   declare hass: HomeAssistant | undefined;
   declare item: T | undefined;
+  /**
+   * Set by the room page and the standalone light card: a tap opens the sheet and a hold runs the command,
+   * for an item that has a sheet and answers. Off everywhere else, where a tap toggles and a hold opens the sheet.
+   */
+  declare sheetOnTap: boolean;
+  /** A press that will run the command is filling the tile (only with `sheetOnTap`). */
+  declare holding: boolean;
 
   #tracker = new PendingTracker();
   #pressTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Starts the fill, a moment into the press (HOLD_SHOW_MS). */
+  #showTimer: ReturnType<typeof setTimeout> | null = null;
   /** The next moment the tile changes by time alone (end of the wait, of "Sem resposta", of the explanation). */
   #refresh: ReturnType<typeof setTimeout> | null = null;
   #longPressed = false;
@@ -69,6 +80,8 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
     super();
     this.hass = undefined;
     this.item = undefined;
+    this.sheetOnTap = false;
+    this.holding = false;
   }
 
   protected abstract words(): TileWords;
@@ -103,6 +116,9 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
     if (this.#pressTimer) clearTimeout(this.#pressTimer);
     if (this.#refresh) clearTimeout(this.#refresh);
     this.#refresh = null;
+    // A hold cut short by leaving the page is over.
+    this.#pressTimer = null;
+    this.#hideFill();
     // Whatever happens while away is not news when the tile comes back: no vibration for it.
     this.#lastStatus = 'idle';
   }
@@ -149,6 +165,13 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
     return { on, text, cls: extras.color ? 'on colored' : 'on', ...extras };
   }
 
+  /** Whether a tap opens the sheet now: the room asked for it, the item has one and the entity answers. */
+  #opensOnTap(item: T): boolean {
+    if (!this.sheetOnTap || !this.hasSheet(item)) return false;
+    const st = this.hass?.states[item.entityId];
+    return !!st && !UNAVAILABLE.has(st.state);
+  }
+
   #toggle(): void {
     const { hass, item } = this;
     if (!hass || !item) return;
@@ -171,14 +194,29 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
     this.#touch = e.pointerType === 'touch' || e.pointerType === 'pen';
     // Only the main button: a right click opens the sheet through the context menu.
     if (e.button > 0 || !this.item || !this.hasSheet(this.item)) return;
+    if (this.#opensOnTap(this.item)) {
+      this.#showTimer = setTimeout(() => {
+        this.#showTimer = null;
+        this.holding = true;
+      }, HOLD_SHOW_MS);
+    }
     this.#pressTimer = setTimeout(() => {
       this.#pressTimer = null;
       this.#longPressed = true;
+      this.#hideFill();
       this.#onLongPress();
-    }, LONG_PRESS_MS);
+    }, HOLD_MS);
   };
 
+  /** The fill goes away, and one that was about to start never does. */
+  #hideFill(): void {
+    if (this.#showTimer) clearTimeout(this.#showTimer);
+    this.#showTimer = null;
+    this.holding = false;
+  }
+
   #onPointerEnd = (): void => {
+    this.#hideFill();
     if (this.#pressTimer) {
       clearTimeout(this.#pressTimer);
       this.#pressTimer = null;
@@ -191,6 +229,12 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
       ev.preventDefault();
       return;
     }
+    const item = this.item;
+    if (item && this.#opensOnTap(item)) {
+      haptic('selection');
+      this.openSheet(item);
+      return;
+    }
     this.#toggle();
   };
 
@@ -198,7 +242,8 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
     const item = this.item;
     if (!item || !this.hasSheet(item)) return;
     haptic('medium');
-    this.openSheet(item);
+    if (this.#opensOnTap(item)) this.#toggle();
+    else this.openSheet(item);
   }
 
   /** A key press means the keyboard is in use: a later context menu does not come from a finger. */
@@ -211,6 +256,18 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
     e.preventDefault();
     const item = this.item;
     if (!item || !this.hasSheet(item) || this.#longPressed) return;
+    // Sheet on tap: a held finger or pen sends this event too, and it opens nothing. Android sends it at about
+    // 400 ms, before our timer, and may cancel the pointer right after: it is the hold, so it runs the command.
+    if (this.#touch && this.#opensOnTap(item)) {
+      if (this.#pressTimer) {
+        clearTimeout(this.#pressTimer);
+        this.#pressTimer = null;
+        this.#longPressed = true;
+        this.#hideFill();
+        this.#onLongPress();
+      }
+      return;
+    }
     // A finger held down may still end in a click; a right click or the keyboard never does.
     if (this.#touch) this.#longPressed = true;
     this.#onPointerEnd();
@@ -223,9 +280,10 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
     if (!item) return nothing;
     const v = this.#view(item);
     return html`<button
-      class="tile ${v.cls}"
+      class="tile ${v.cls} ${this.holding ? 'holding' : ''}"
       style=${v.color ? `--tile-color:${v.color.fill};--tile-ink:${v.color.ink}` : ''}
       aria-pressed=${v.on ? 'true' : 'false'}
+      aria-haspopup=${this.#opensOnTap(item) ? 'dialog' : nothing}
       @pointerdown=${this.#onPointerDown}
       @pointerup=${this.#onPointerEnd}
       @pointerleave=${this.#onPointerEnd}
@@ -347,5 +405,6 @@ export abstract class HubbToggleTile<T extends TileItem = TileItem> extends LitE
         animation: none;
       }
     }
+    ${holdFill}
   `;
 }

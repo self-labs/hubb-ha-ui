@@ -22,6 +22,7 @@ const SALA: Room = {
   actions: [],
   climate: [],
   covers: [],
+  flaps: [],
   media: [],
   access: [],
   scenes: [],

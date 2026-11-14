@@ -174,15 +174,23 @@ describe('the minors of M3 left for later (14/10)', () => {
     expect(one.shadowRoot!.querySelectorAll('.speed')).toHaveLength(0);
   });
 
-  it('turns a curtain that cannot stop back the other way when tapped while it moves', async () => {
+  it('turns a curtain that cannot stop back the other way when held while it moves', async () => {
+    // A hold runs the command since 14/11; the tap opens the sheet.
+    vi.useFakeTimers();
+    const hold = (el: Element) => {
+      const b = el.shadowRoot!.querySelector('button')!;
+      b.dispatchEvent(new Event('pointerdown'));
+      vi.advanceTimersByTime(600);
+      b.dispatchEvent(new Event('pointerup'));
+    };
     const cortina = (state: string, attributes: Record<string, unknown>) =>
       makeHass({ entities: [{ entity_id: 'cover.cortina', state, attributes: { supported_features: 1 | 2, ...attributes } }] });
     const closing = cortina('closing', { current_position: 60, supported_features: 1 | 2 | 4 });
-    ($(await mount<Mounted>('hubb-cover-tile', { hass: closing, item: { entityId: 'cover.cortina', name: 'Cortina' } }), 'button') as HTMLButtonElement).click();
+    hold(await mount<Mounted>('hubb-cover-tile', { hass: closing, item: { entityId: 'cover.cortina', name: 'Cortina' } }));
     expect(services(closing)).toEqual([['cover.open_cover', undefined]]);
     document.body.replaceChildren();
     const opening = cortina('opening', {});
-    ($(await mount<Mounted>('hubb-cover-tile', { hass: opening, item: { entityId: 'cover.cortina', name: 'Cortina' } }), 'button') as HTMLButtonElement).click();
+    hold(await mount<Mounted>('hubb-cover-tile', { hass: opening, item: { entityId: 'cover.cortina', name: 'Cortina' } }));
     expect(services(opening)).toEqual([['cover.close_cover', undefined]]);
   });
 

@@ -179,6 +179,12 @@ export class HubbSecurityScreen extends HubbScreen {
         display: grid;
         gap: 8px;
       }
+      /* A tablet or a computer: the alarm and the gates are about half a row each, side by side, and not a
+         slide that runs the whole column. */
+      :host([screen-layout='roomy']) .stack,
+      :host([screen-layout='wide']) .stack {
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      }
       /* What is open, as the cards of a room: a door, a window, the room it is in. */
       .openings {
         display: grid;

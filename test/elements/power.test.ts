@@ -108,3 +108,35 @@ describe('the consumption sheet on the room page', () => {
     expect((sheet.querySelector('hubb-power-panel') as unknown as { item: { power: string } }).item.power).toBe('sensor.tomada_w');
   });
 });
+
+// The consumption sheet opens on a tap now, so it carries the Ligar and Desligar the tile used to give
+// on a tap (Gustavo, 14/11).
+describe('the Ligar and Desligar button of the consumption sheet', () => {
+  afterEach(() => document.body.replaceChildren());
+  const button = (el: Element) => el.shadowRoot!.querySelector<HTMLButtonElement>('button.power')!;
+
+  it('says Desligar for an outlet that is on, turns it off, and says Desligando… until the answer', async () => {
+    const hass = h();
+    const el = await mount('hubb-power-panel', hass, ITEM);
+    expect(button(el).textContent!.trim()).toBe('Desligar');
+    button(el).click();
+    await el.updateComplete;
+    expect(hass.calls).toEqual([{ domain: 'switch', service: 'turn_off', data: undefined, target: { entity_id: 'switch.tomada' } }]);
+    expect(button(el).textContent!.trim()).toBe('Desligando…');
+  });
+
+  it('is not announced as a toggle, since its label already says what a press does', async () => {
+    const el = await mount('hubb-power-panel', h(), ITEM);
+    expect(button(el).hasAttribute('aria-pressed')).toBe(false);
+  });
+
+  it('says Ligar for an outlet that is off and turns it on', async () => {
+    const hass = makeHass({ entities: [{ entity_id: 'switch.tomada', state: 'off', attributes: { device_class: 'outlet' } }] });
+    const el = await mount('hubb-power-panel', hass, { entityId: 'switch.tomada', name: 'Tomada', power: null, energy: null });
+    expect(button(el).textContent!.trim()).toBe('Ligar');
+    button(el).click();
+    await el.updateComplete;
+    expect(hass.calls.map((c) => c.service)).toEqual(['turn_on']);
+    expect(button(el).textContent!.trim()).toBe('Ligando…');
+  });
+});

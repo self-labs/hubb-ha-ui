@@ -9,7 +9,7 @@ import { readTablets } from './tablet';
 import type { HubbConfig } from './types';
 
 /** The roles an entity can be given in `entities.<id>.role`. */
-export const ROLES = ['light', 'outlet', 'equipment', 'appliance', 'action', 'gate', 'scene', 'media', 'hidden'] as const;
+export const ROLES = ['light', 'outlet', 'equipment', 'appliance', 'action', 'gate', 'flap', 'scene', 'media', 'hidden'] as const;
 export type Role = (typeof ROLES)[number];
 
 /** How an item shows on its room page: a role, or a kind its type alone decides. */
@@ -36,6 +36,8 @@ export const ROLE_DOMAINS: Readonly<Record<Exclude<Role, 'hidden' | 'appliance'>
   action: ['button', 'input_button', 'script'],
   /** A pulse relay, a button or a script that opens the gate, or a cover that does not say it is one. */
   gate: ['switch', 'button', 'input_button', 'script', 'cover'],
+  /** The flap that hides a ceiling TV: a cover that opens, stops and closes, shown in a block of its own. */
+  flap: ['cover'],
   /** A scene or a script in Cenas, put there from the panel (the hubb_cena label still works). */
   scene: ['scene', 'script'],
   /** A player the panel leaves out by itself, such as an Echo, brought back as media. */

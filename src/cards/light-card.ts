@@ -69,7 +69,7 @@ export class HubbLightCard extends LitElement {
       name: config.name ?? displayName(hass, config.entity, null),
       dimmable: isDimmable(hass, config.entity),
     };
-    return html`<hubb-light-tile .hass=${hass} .item=${item}></hubb-light-tile>
+    return html`<hubb-light-tile .sheetOnTap=${true} .hass=${hass} .item=${item}></hubb-light-tile>
       <hubb-sheet ?open=${this.sheetOpen} heading=${item.name} @hubb-close=${() => (this.sheetOpen = false)}>
         ${this.sheetOpen
           ? html`<hubb-dimmer-panel .hass=${hass} .entityId=${item.entityId}></hubb-dimmer-panel>

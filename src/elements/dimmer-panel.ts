@@ -1,10 +1,13 @@
+import { mdiPower } from '@mdi/js';
 import { LitElement, css, html } from 'lit';
 import { lightCaps } from '../actions/color';
 import { haptic } from '../actions/haptic';
 import { brightnessPct, setLight } from '../actions/light';
+import { PowerToggle } from '../actions/power-toggle';
 import type { HomeAssistant } from '../ha/types';
-import { S } from '../strings';
+import { POWER_BUTTON, S } from '../strings';
 import { define } from './define';
+import { icon } from './icon';
 
 export const PRESETS = [25, 50, 75, 100] as const;
 const CONFIRM_MS = 3000;
@@ -35,6 +38,8 @@ export class HubbDimmerPanel extends LitElement {
   #pendingTimer: ReturnType<typeof setTimeout> | null = null;
   /** Keys move the column at once; the call leaves when they stop, so a held arrow sends one. */
   #keyTimer: ReturnType<typeof setTimeout> | null = null;
+  /** The Acender / Apagar button: what it asked for, until Home Assistant answers. */
+  #power = new PowerToggle(this);
 
   constructor() {
     super();
@@ -45,6 +50,7 @@ export class HubbDimmerPanel extends LitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.#power.dispose();
     if (this.#pendingTimer) clearTimeout(this.#pendingTimer);
     // The sheet closed right after a key: the value the resident chose still goes out.
     if (this.#keyTimer) this.#sendKeyed();
@@ -117,10 +123,24 @@ export class HubbDimmerPanel extends LitElement {
     this.#keyTimer = setTimeout(this.#sendKeyed, KEY_SEND_MS);
   };
 
+  #togglePower = (): void => {
+    const st = this.hass?.states[this.entityId];
+    if (!this.hass || !st || st.state === 'unavailable') return;
+    this.#power.press(this.entityId, st, (on) => setLight(this.hass!, this.entityId, on));
+  };
   render() {
     const pct = this.#current();
-    const caps = lightCaps(this.hass?.states[this.entityId]);
-    return html`<div
+    const st = this.hass?.states[this.entityId];
+    const caps = lightCaps(st);
+    const { on, pending, failed } = this.#power.view(this.entityId, st);
+    return html`<button
+        class="power ${on ? 'on' : ''} ${pending ? 'busy' : ''}"
+        ?disabled=${!st || st.state === 'unavailable'}
+        @click=${this.#togglePower}
+      >
+        ${icon(mdiPower)}${failed ? S.noResponse : pending ? (on ? S.turningOn : S.turningOff) : on ? POWER_BUTTON.lightOff : POWER_BUTTON.lightOn}
+      </button>
+      <div
         class="column ${caps.color || caps.temp ? 'compact' : ''}"
         role="slider"
         aria-label=${S.brightness}
@@ -146,6 +166,43 @@ export class HubbDimmerPanel extends LitElement {
   static styles = css`
     :host {
       display: block;
+    }
+    .power {
+      all: unset;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 20px;
+      border-radius: 22px;
+      background: var(--hubb-surface-2);
+      color: var(--hubb-text);
+      font-family: var(--hubb-font);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .power.on {
+      background: var(--hubb-amber);
+      color: var(--hubb-amber-ink);
+    }
+    .power.busy {
+      opacity: 0.7;
+    }
+    .power:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .power:focus-visible {
+      outline: 2px solid var(--hubb-focus);
+      outline-offset: 2px;
+    }
+    .power svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
     }
     .column {
       position: relative;

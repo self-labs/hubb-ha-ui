@@ -137,6 +137,14 @@ describe('showEntity', () => {
     expect(entitiesOf(saves.at(-1)!)).toEqual({ 'switch.portao': hidden });
   });
 
+  it('gives a Flap back as a Flap after Não mostrar, and not as a curtain', async () => {
+    const { h, saves } = withDashboard({ strategy: { type: 'custom:hubb', entities: { 'cover.flap': { role: 'flap', name: 'Flap' } } } });
+    await setEntity(h, 'hubb-ui', 'cover.flap', { role: 'hidden' });
+    expect(entitiesOf(saves.at(-1)!)).toEqual({ 'cover.flap': { role: 'hidden', name: 'Flap', shown_as: 'flap' } });
+    await showEntity(h, 'hubb-ui', 'cover.flap');
+    expect(entitiesOf(saves.at(-1)!)).toEqual({ 'cover.flap': { role: 'flap', name: 'Flap' } });
+  });
+
   it('remembers the role when Revisar hides, and not when there was none', async () => {
     const { h, saves } = withDashboard({ strategy: { type: 'custom:hubb', entities: { 'switch.bomba': { role: 'equipment' }, 'switch.x': { name: 'X' } } } });
     await setRoles(h, 'hubb-ui', { 'switch.bomba': 'hidden', 'switch.x': 'hidden' });

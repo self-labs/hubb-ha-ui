@@ -101,14 +101,16 @@ export class HubbMediaScreen extends HubbScreen {
             ? html`<button class="pause-all" @click=${() => this.#pauseAll(hass, playing.targets)}>${icon(mdiPause)}<span>${MEDIA.pauseAll}</span></button>`
             : nothing}
         </div>
-        ${rooms.map(
-          (room) => html`<section class="room">
-            <h2>${room.name}</h2>
-            <div class="list" @hubb-open-media=${(e: CustomEvent<{ entityId: string }>) => (this.mediaId = e.detail.entityId)}>
-              ${room.media.map((item) => html`<hubb-media-card .hass=${hass} .item=${item} .pairs=${shared?.mediaPairs ?? {}}></hubb-media-card>`)}
-            </div>
-          </section>`,
-        )}
+        <div class="rooms">
+          ${rooms.map(
+            (room) => html`<section class="room">
+              <h2>${room.name}</h2>
+              <div class="list" @hubb-open-media=${(e: CustomEvent<{ entityId: string }>) => (this.mediaId = e.detail.entityId)}>
+                ${room.media.map((item) => html`<hubb-media-card .hass=${hass} .item=${item} .pairs=${shared?.mediaPairs ?? {}}></hubb-media-card>`)}
+              </div>
+            </section>`,
+          )}
+        </div>
       </main>
       <hubb-sheet
         class="media"
@@ -190,6 +192,15 @@ export class HubbMediaScreen extends HubbScreen {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: 8px;
+      }
+      /* A tablet or a computer: the rooms sit side by side, a card about half a row, so the name and the
+         buttons stay together instead of at the two ends of the whole column. */
+      :host([screen-layout='roomy']) .rooms,
+      :host([screen-layout='wide']) .rooms {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 0 12px;
+        align-items: start;
       }
     `,
   ];

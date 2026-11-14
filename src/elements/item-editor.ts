@@ -272,10 +272,13 @@ export class HubbItemEditor extends LitElement {
       case 'humidity':
         return [item.kind, 'hidden'];
       case 'cover':
-        return ['cover', 'gate', 'hidden'];
+        return ['cover', 'flap', 'gate', 'hidden'];
     }
-    // A curtain made a gate by hand can go back; one whose class or name says gate cannot.
-    if (item.kind === 'gate' && item.entityId.startsWith('cover.')) return coverIsGate(hass, item.entityId) ? ['gate', 'hidden'] : ['cover', 'gate', 'hidden'];
+    // A curtain made a gate or a flap by hand can go back. A cover whose class or name says gate cannot: it
+    // would be a gate again, and it is never offered as a Flap, which opens on a hold, because the house
+    // only opens with the slide. A flap that is a gate by class (set by hand in the YAML) can still leave.
+    if (item.kind === 'flap') return coverIsGate(hass, item.entityId) ? ['flap', 'gate', 'hidden'] : ['cover', 'flap', 'gate', 'hidden'];
+    if (item.kind === 'gate' && item.entityId.startsWith('cover.')) return coverIsGate(hass, item.entityId) ? ['gate', 'hidden'] : ['cover', 'flap', 'gate', 'hidden'];
     const fitting = (['light', 'outlet', 'equipment', 'action', 'gate', 'scene'] as Role[]).filter((r) => roleFits(hass, r, item.entityId));
     return [...fitting, 'hidden'];
   }

@@ -18,6 +18,7 @@ const room = (areaId: string, floorId: string | null): Room => ({
   actions: [],
   climate: [],
   covers: [],
+  flaps: [],
   media: [],
   access: [],
   scenes: [],

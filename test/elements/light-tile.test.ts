@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '../../src/elements/light-tile';
+import { HOLD_SHOW_MS } from '../../src/elements/hold';
 import { HubbLightTile } from '../../src/elements/light-tile';
 import type { LightItem } from '../../src/model/types';
 import { makeHass, withState, type FakeHass } from '../helpers/fake-hass';
@@ -273,5 +274,149 @@ describe('hubb-light-tile', () => {
     el.hass = withState(hass, 'light.fita', 'off', { supported_color_modes: ['hs'], color_mode: 'hs', rgb_color: [255, 0, 0] });
     await el.updateComplete;
     expect(button(el).classList.contains('colored')).toBe(false);
+  });
+});
+
+// On the room page and the standalone card a tap opens the sheet and a hold runs the command, where the
+// light has a sheet (Gustavo, 14/11). Everywhere else the tile keeps toggling on a tap.
+describe('hubb-light-tile with the sheet on tap', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    document.body.replaceChildren();
+  });
+
+  const MESA: LightItem = { entityId: 'light.mesa', name: 'Mesa', dimmable: true };
+  const down = (pointerType: string) => Object.assign(new Event('pointerdown'), { pointerType });
+
+  async function mesa(state = 'on', item: LightItem = MESA) {
+    const hass = makeHass({ entities: [{ entity_id: item.entityId, state, attributes: { brightness: 153 } }] });
+    const el = await mount(hass, item);
+    el.sheetOnTap = true;
+    await el.updateComplete;
+    const asked: unknown[] = [];
+    const listen = (e: Event) => asked.push((e as CustomEvent).detail);
+    document.body.addEventListener('hubb-open-dimmer', listen);
+    return { hass, el, asked, stop: () => document.body.removeEventListener('hubb-open-dimmer', listen) };
+  }
+
+  it('opens the dimmer on a tap and sends nothing', async () => {
+    const { hass, el, asked } = await mesa();
+    button(el).click();
+    expect(asked).toEqual([{ entityId: 'light.mesa', name: 'Mesa' }]);
+    expect(hass.calls).toEqual([]);
+  });
+
+  it('runs the command on a hold, and the click that follows opens nothing', async () => {
+    const { hass, el, asked } = await mesa();
+    button(el).dispatchEvent(down('mouse') as Event);
+    vi.advanceTimersByTime(600);
+    button(el).dispatchEvent(new Event('pointerup'));
+    button(el).click();
+    expect(hass.calls.map((c) => c.service)).toEqual(['turn_off']);
+    expect(asked).toEqual([]);
+  });
+
+  it('does not fill the tile on a tap: the fill only shows when the press really lasts', async () => {
+    const { hass, el, asked } = await mesa();
+    button(el).dispatchEvent(down('touch') as Event);
+    vi.advanceTimersByTime(HOLD_SHOW_MS - 30);
+    await el.updateComplete;
+    expect(button(el).classList.contains('holding')).toBe(false);
+    button(el).dispatchEvent(new Event('pointerup'));
+    vi.advanceTimersByTime(HOLD_SHOW_MS + 600);
+    await el.updateComplete;
+    expect(button(el).classList.contains('holding')).toBe(false);
+    button(el).click();
+    expect(asked).toEqual([{ entityId: 'light.mesa', name: 'Mesa' }]);
+    expect(hass.calls).toEqual([]);
+  });
+
+  it('fills the tile while it is held, and stops filling when the hold ends', async () => {
+    const { el } = await mesa();
+    button(el).dispatchEvent(down('mouse') as Event);
+    vi.advanceTimersByTime(HOLD_SHOW_MS + 70);
+    await el.updateComplete;
+    expect(button(el).classList.contains('holding')).toBe(true);
+    vi.advanceTimersByTime(500);
+    await el.updateComplete;
+    expect(button(el).classList.contains('holding')).toBe(false);
+  });
+
+  it.each(['pointercancel', 'pointerleave', 'pointerup'])('sends nothing when the press ends early with %s (a finger that scrolls)', async (ending) => {
+    const { hass, el } = await mesa();
+    button(el).dispatchEvent(down('touch') as Event);
+    vi.advanceTimersByTime(200);
+    button(el).dispatchEvent(new Event(ending));
+    vi.advanceTimersByTime(600);
+    await el.updateComplete;
+    expect(hass.calls).toEqual([]);
+    expect(button(el).classList.contains('holding')).toBe(false);
+  });
+
+  it('does not open the sheet on the context menu that Android sends to a held finger', async () => {
+    const { hass, el, asked } = await mesa();
+    button(el).dispatchEvent(down('touch') as Event);
+    button(el).dispatchEvent(new Event('contextmenu', { cancelable: true }));
+    vi.advanceTimersByTime(600);
+    button(el).dispatchEvent(new Event('contextmenu', { cancelable: true }));
+    expect(asked).toEqual([]);
+    expect(hass.calls.map((c) => c.service)).toEqual(['turn_off']);
+  });
+
+  it('runs the hold when Android sends the context menu of a held finger and then cancels the pointer', async () => {
+    const { hass, el, asked } = await mesa();
+    button(el).dispatchEvent(down('touch'));
+    vi.advanceTimersByTime(400);
+    button(el).dispatchEvent(new Event('contextmenu', { cancelable: true }));
+    button(el).dispatchEvent(new Event('pointercancel'));
+    vi.advanceTimersByTime(600);
+    expect(hass.calls.map((c) => c.service)).toEqual(['turn_off']);
+    expect(asked).toEqual([]);
+  });
+
+  it('announces a dialog on a tile whose tap opens one, and only then', async () => {
+    const { el } = await mesa();
+    expect(button(el).getAttribute('aria-haspopup')).toBe('dialog');
+    document.body.replaceChildren();
+    const { el: relay } = await mesa('off', SOFA);
+    expect(button(relay).hasAttribute('aria-haspopup')).toBe(false);
+    document.body.replaceChildren();
+    const plain = await mount(makeHass({ entities: [{ entity_id: 'light.mesa', state: 'on', attributes: { brightness: 153 } }] }), MESA);
+    expect(button(plain).hasAttribute('aria-haspopup')).toBe(false);
+  });
+
+  it('does not come back filled after it left the page in the middle of a hold', async () => {
+    const { el } = await mesa();
+    button(el).dispatchEvent(down('mouse'));
+    vi.advanceTimersByTime(HOLD_SHOW_MS + 70);
+    await el.updateComplete;
+    expect(button(el).classList.contains('holding')).toBe(true);
+    el.remove();
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(button(el).classList.contains('holding')).toBe(false);
+  });
+
+  it('opens the sheet on the right click of a mouse', async () => {
+    const { hass, el, asked } = await mesa();
+    button(el).dispatchEvent(down('mouse') as Event);
+    button(el).dispatchEvent(new Event('contextmenu', { cancelable: true }));
+    expect(asked).toEqual([{ entityId: 'light.mesa', name: 'Mesa' }]);
+    expect(hass.calls).toEqual([]);
+  });
+
+  it('still toggles a light that cannot dim on a tap: there is no sheet to open', async () => {
+    const { hass, el, asked } = await mesa('off', SOFA);
+    button(el).click();
+    expect(hass.calls.map((c) => c.service)).toEqual(['turn_on']);
+    expect(asked).toEqual([]);
+  });
+
+  it('sends nothing and opens nothing on a tap of a light that does not answer', async () => {
+    const { hass, el, asked } = await mesa('unavailable');
+    button(el).click();
+    expect(hass.calls).toEqual([]);
+    expect(asked).toEqual([]);
   });
 });

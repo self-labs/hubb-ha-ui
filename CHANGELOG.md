@@ -8,7 +8,39 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ## [Unreleased]
 
+## [2026.11.5] - 2026-11-14
+
+### ✨ Added
+
+- **The Flap, for the flap that hides a ceiling TV.** A `cover` can be shown as Flap in Mostrar como
+  (Cortina, Flap, Portão): it gets its own **Flap** block after Cortinas, words in the masculine
+  (Aberto, Fechado), a TV icon and the same Abrir, Parar and Fechar sheet as a curtain. The role is
+  `entities.<id>.role: flap`; it is never guessed from the name.
+- **Acender, Apagar, Ligar and Desligar on the sheets.** The light sheet has an Acender/Apagar button
+  (before, only dragging the column to 0 turned the light off) and the consumption sheet of an outlet
+  or equipment has Ligar/Desligar, both showing "Apagando…" or "Ligando…" until Home Assistant answers.
+
 ### 🔧 Changed
+
+- **A tap opens the sheet and a hold runs the command** on the room page and the standalone light
+  card, for lights with a dimmer, outlets and equipment with a power sensor, curtains and flaps. The
+  tile fills while it is held (500 ms). Lights with no dimmer and outlets with no sensor keep toggling
+  on a tap, and so do the home's "Luzes acesas" sheet, the appliance options and the fan.
+- **The idle air conditioner has a drawn icon**, a split unit with three jets of air, instead of the
+  fan with the letters "A/C". While it runs the icon is still the one of its mode.
+- **The sheet of a curtain and of a flap is redrawn.** It opens on a picture of how open it is: curtains
+  that gather at the edges by the position, or a TV that comes down out of a slot in the ceiling. Abrir,
+  Parar and Fechar are big buttons with an icon, and the one just pressed turns amber and says "Parar
+  enviado" for four seconds, so Parar gives an answer even though a cover with an assumed state does not
+  change. The button of the direction the cover is moving in pulses; a call that fails shakes the button,
+  vibrates and says "Não deu certo. Tente de novo.". The position is a track that follows the finger and
+  sends one command when it lifts (arrow, Page, Home and End keys work), shown only for a cover that
+  declares the position feature. An infrared cover keeps the notice the air and the media sheets show.
+- **Mídia and Segurança use the width of a tablet or a computer.** The speaker cards no longer run the
+  whole column with the buttons at the far end: on a roomy or wide screen the rooms sit side by side. The
+  alarm and the Acesso cards of Segurança are about half a row each, two to a row, and on a room page
+  the gate, the lock and the speaker take half of the row too (the air conditioner and the appliances
+  keep the whole row). The phone keeps one column.
 
 - **The README installs through the Marketplace**, which replaced HACS in Home Assistant 2026.11:
   **Settings → Marketplace → Add from link** by hand, **Install** on the repository, and the steps of
@@ -16,6 +48,9 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 
 ### 🐛 Fixed
 
+- **A tap no longer flashes the hold bar.** The fill that shows a hold registering started on the first
+  touch, so a plain tap on a light, curtain or flap painted part of it before the sheet opened. It now
+  shows only after 180 ms of a press that goes on, and is still full when the command goes out at 500 ms.
 - **The DLNA and Radio Browser libraries show in Tocar algo on a dark theme.** Home Assistant hands
   each library the wide logo of its brand: the row cut DLNA's to "dl", in black letters nearly
   invisible on the dark sheet, and Radio Browser's black headphones vanished there too. A library now
@@ -865,7 +900,19 @@ Versions follow **CalVer `YYYY.M.R`** (year, month with no leading zero, revisio
 - Standalone `custom:hubb-light-card` for dashboards built by hand.
 - CI on every push, and a Release with `hubb-ha-ui.js` attached on every version tag.
 
-[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.4...HEAD
+## Legend
+
+| Type          | Meaning                                 |
+| ------------- | --------------------------------------- |
+| ✨ Added      | new features                            |
+| 🔧 Changed    | changes in existing functionality       |
+| ⚠️ Deprecated | features that will be removed soon      |
+| 🗑️ Removed    | features removed in this release        |
+| 🐛 Fixed      | bug fixes                               |
+| 🔐 Security   | vulnerabilities addressed and hardening |
+
+[Unreleased]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.5...HEAD
+[2026.11.5]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.4...v2026.11.5
 [2026.11.4]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.3...v2026.11.4
 [2026.11.3]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.2...v2026.11.3
 [2026.11.2]: https://github.com/self-labs/hubb-ha-ui/compare/v2026.11.1...v2026.11.2

@@ -166,6 +166,18 @@ operation.
 - The camera image is taken once per opening of the security tab (`connectedCallback`), signed then
   with `auth/sign_path` (a hidden view keeps an old `hass` whose token may have expired), never on a
   new `hass`: a refreshing image used up the free Cloudflare traffic of a client. Keep it that way.
+- **Tap opens, hold runs** (Gustavo, 14/11), on the room page and the standalone light card: a tap on a
+  light with a dimmer, an outlet or equipment with a power sensor, a curtain or a flap opens its sheet,
+  and a hold of `HOLD_MS` (500 ms, `src/elements/hold.ts`) runs the command while the tile fills
+  (`holdFill`). The fill only starts `HOLD_SHOW_MS` (180 ms) into the press, so a tap never flashes it
+  (Gustavo, 14/11); the tile starts it with its own timer and clears it on every way a press ends. It is opt-in on the toggle tiles: `sheetOnTap` is set by `room-screen` and `light-card`
+  only, so the home's "Luzes acesas" sheet, the appliance options and the fan keep toggling on a tap. A
+  light with no dimmer, an outlet with no sensor and an entity that does not answer have no sheet to
+  open and keep today's gesture. The `contextmenu` of a held finger or pen is the hold, never a right
+  click. A hold is a shortcut, never the only way: the light sheet has Acender/Apagar and the
+  consumption sheet Ligar/Desligar (`actions/power-toggle.ts` keeps their 3 s wait). Open sheets are
+  module state (`sheets.ts`): a test that opens one leaves the edit mode (`setEditing(true)` then
+  `false`) in `afterEach`, or the next page reopens it.
 - `hubb-sheet` closes on its backdrop only when the touch began there: on an iPhone the release of
   the long press that opened it sends a click to the backdrop. A test pins it.
 - Values of climate attributes that neither `CLIMATE.fanWords` nor Home Assistant can name never
@@ -236,7 +248,7 @@ operation.
 - The blocks of a room page and the list of Cenas are six-column grids: a card takes 2 (small), 3
   (medium) or all 6 (large) columns through a `size-*` class from `sizeOf` (`src/model/sizes.ts`).
   On a tablet (`roomy`, `wide`) they are twelve columns, 3, 6 or 12 (`gridSpans`, `src/theme/layout.ts`),
-  so a small card is a quarter of the row; a scene with no size is small there. Cards with buttons or a slide only take the whole row.
+  so a small card is a quarter of the row; a scene with no size is small there. Cards with buttons or a slide only take the whole row on a phone; on a tablet a gate, a lock and a speaker take half of it (`tablet-half`, from `#size` in `room-screen`, since the whole row put their name and their slide or buttons at the two ends; beside the air conditioner in `.pair.both` they fill their half), while the air conditioner and the appliances keep the whole row.
   On a phone, `defaultSize` (same file) also looks at the name: a card with no size chosen whose name is
   past `LONG_NAME` (22 characters, what two lines of a third of a row hold) is `medium`, and only that
   card; the others keep `small` and match its height. A row of mixed widths left a hole at its end, so
@@ -250,14 +262,23 @@ operation.
   `src/theme/layout.ts`) runs over two lines and the tile fills its cell (`height: 100%`). The span rules name the size class
   (`.grid > .size-small`): an edit tile resets its own styles with `all: unset`, which would undo a
   rule as weak as `.grid > *`.
+- The Mídia and Segurança tabs have no card sizes, so on a tablet (`roomy`, `wide`) they use the width
+  another way: Mídia puts the rooms side by side (`.rooms`, `repeat(auto-fill, minmax(340px, 1fr))`,
+  each room keeps its own cards), and the alarm and Acesso cards of Segurança (`.stack`) take about half a
+  row each. A card is never the whole column there: the name and its buttons would sit at the two ends.
+  The phone keeps one column (`test/wide-cards.test.ts`).
 - happy-dom miscounts the options Lit renders in a `<select>` (`selectedIndex` lands on the wrong
   one): tests read the `selected` attribute instead.
 - A select of a device starts with `unlisted(...)` (`src/elements/unlisted.ts`): with no value, or one
   that is none of its choices, the browser would show the first choice, and picking it sends nothing.
-- Block order on a room page is fixed (Acesso, Luzes, Clima, Cortinas, Mídia, Tomadas e
+- Block order on a room page is fixed (Acesso, Luzes, Clima, Cortinas, Flap, Mídia, Tomadas e
   equipamentos, Aparelhos, Ações, Sensores). One exception, wide only: a room with both an air
-  conditioner and a player draws Clima and Mídia side by side (`.pair.both`), so Cortinas comes after
-  them. The climate, cover, media and consumption sheets are one
+  conditioner and a player draws Clima and Mídia side by side (`.pair.both`), so Cortinas and Flap come
+  after them. The Flap is a `cover` with `role: flap` (the flap that hides a ceiling TV): its own
+  block (`room.flaps`), words in the masculine (`FLAP`), a TV icon, and the same tile and sheet as a
+  curtain through `kind: 'flap'`. It is never detected by name ("flap" is also the louver of an air
+  conditioner): the installer picks it in Mostrar como, which never offers it to a cover that is a gate by
+  class or name (a Flap opens on a hold, a gate only with the slide). The climate, cover, media and consumption sheets are one
   `hubb-sheet.device` opened by `hubb-open-climate`, `hubb-open-cover`, `hubb-open-media` and
   `hubb-open-power`.
 - A Spotify `media_player` is never a card (classify drops it): it shows through the speaker whose

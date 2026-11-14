@@ -97,6 +97,7 @@ describe('room card shading', () => {
     actions: [],
     climate: [],
     covers: [],
+    flaps: [],
     media: [],
     access: [],
     scenes: [],

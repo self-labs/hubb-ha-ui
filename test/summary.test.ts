@@ -107,6 +107,7 @@ const bareRoom = (over: Partial<Room>): Room => ({
   actions: [],
   climate: [],
   covers: [],
+  flaps: [],
   media: [],
   access: [],
   scenes: [],

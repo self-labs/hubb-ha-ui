@@ -194,6 +194,8 @@ export const ALARM = {
 
 /** The consumption of an outlet or equipment. */
 export const POWER = { title: 'Consumo', now: 'Agora', today: 'Hoje' } as const;
+/** The button of a sheet that switches its item: a light says Acender and Apagar, an outlet Ligar and Desligar. */
+export const POWER_BUTTON = { lightOn: 'Acender', lightOff: 'Apagar', switchOn: 'Ligar', switchOff: 'Desligar' } as const;
 
 /** The security tab. */
 export const SECURITY = {
@@ -432,6 +434,7 @@ export const ROLE_LABELS = {
   appliance: 'Aparelho',
   action: 'Ação',
   gate: 'Portão',
+  flap: 'Flap',
   scene: 'Cena',
   media: 'Mídia',
   hidden: 'Não mostrar',
@@ -666,18 +669,52 @@ export const CLIMATE = {
   } as Readonly<Record<string, string>>,
 } as const;
 
+/** The words of a cover tile and its sheet: the curtain says them in the feminine, the flap in the masculine. */
+export interface CoverWords {
+  title: string;
+  open: string;
+  closed: string;
+  opening: string;
+  closing: string;
+  openPct(n: number): string;
+  doOpen: string;
+  doStop: string;
+  doClose: string;
+  position: string;
+}
 /** Curtains, blinds and awnings: the "Cortinas" block. */
-export const COVER = {
+export const COVER: CoverWords = {
   title: 'Cortinas',
   open: 'Aberta',
   closed: 'Fechada',
   opening: 'Abrindo…',
   closing: 'Fechando…',
-  openPct: (n: number): string => `${n}% aberta`,
+  openPct: (n) => `${n}% aberta`,
   doOpen: 'Abrir',
   doStop: 'Parar',
   doClose: 'Fechar',
   position: 'Posição',
+};
+/** The flap that hides a ceiling TV: the "Flap" block, in the masculine. */
+export const FLAP: CoverWords = {
+  title: 'Flap',
+  open: 'Aberto',
+  closed: 'Fechado',
+  opening: 'Abrindo…',
+  closing: 'Fechando…',
+  openPct: (n) => `${n}% aberto`,
+  doOpen: 'Abrir',
+  doStop: 'Parar',
+  doClose: 'Fechar',
+  position: 'Posição',
+};
+
+/** What the sheet of a curtain or a flap says about a command it has just sent. */
+export const COVER_SHEET = {
+  /** "Parar enviado": the command went out, whatever the cover reports. */
+  sent: (command: string): string => `${command} enviado`,
+  positionSent: (pct: number): string => `Posição ${pct}% enviada`,
+  failed: 'Não deu certo. Tente de novo.',
 } as const;
 
 /** TVs and sound: the "Mídia" block. */

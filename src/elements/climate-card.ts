@@ -1,4 +1,4 @@
-import { mdiAirConditioner, mdiMinus, mdiPlus, mdiPower } from '@mdi/js';
+import { mdiMinus, mdiPlus, mdiPower } from '@mdi/js';
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { canPower, CLIMATE_FEATURE, climateLine, degrees, has, setClimatePower } from '../actions/climate';
 import { dropTarget, nudgeTarget, onTargetChange, onTargetNotTaken, pendingTarget, syncTarget } from '../actions/climate-target';
@@ -7,6 +7,7 @@ import type { HassEntityState, HomeAssistant } from '../ha/types';
 import { modeDoing, modeIcon, modeVars } from '../model/climate-mode';
 import type { ClimateItem } from '../model/types';
 import { CLIMATE, S } from '../strings';
+import { airConditionerIcon } from './air-conditioner-icon';
 import { define } from './define';
 import { icon } from './icon';
 
@@ -146,7 +147,7 @@ export class HubbClimateCard extends LitElement {
     this.#control = control;
     return html`<div class="card ${on ? 'on' : ''} ${down ? 'na' : ''} ${this.refused ? 'refused' : ''}" style=${modeVars(live ? st!.state : 'off')}>
       <button class="body" @click=${this.#open}>
-        <span class="icon">${icon(live ? modeIcon(st!.state) : mdiAirConditioner)}</span>
+        <span class="icon">${icon(live ? modeIcon(st!.state) : airConditionerIcon)}</span>
         <span class="text"><span class="name">${item.name}</span><span class="state">${line}</span></span>
         ${target === null && nowWords ? html`<span class="now">${nowWords}</span>` : nothing}
       </button>

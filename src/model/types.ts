@@ -196,6 +196,8 @@ export interface Room {
   actions: ActionItem[];
   climate: ClimateItem[];
   covers: CoverItem[];
+  /** The covers shown as Flap (`role: flap`): the flap of a ceiling TV, in its own block after Cortinas. */
+  flaps: CoverItem[];
   media: MediaItem[];
   access: AccessItem[];
   scenes: SceneItem[];

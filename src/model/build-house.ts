@@ -95,6 +95,7 @@ export function newRoom(hass: HomeAssistant, areaId: string, config: HubbConfig 
     actions: [],
     climate: [],
     covers: [],
+    flaps: [],
     media: [],
     access: [],
     scenes: [],
@@ -152,7 +153,7 @@ function climateExtras(hass: HomeAssistant, entityId: string, ctx: ClassifyConte
 /** A room shows when it has something to control; its scenes count (spec Cenas no cômodo, 07/11). */
 const hasContent = (r: Room): boolean =>
   r.lights.length + r.outlets.length + r.equipment.length + r.appliances.length + r.actions.length +
-    r.climate.length + r.covers.length + r.media.length + r.access.length + r.scenes.length >
+    r.climate.length + r.covers.length + r.flaps.length + r.media.length + r.access.length + r.scenes.length >
   0;
 
 /** The scenes of the home: the pinned ones in the order of Cenas, else the first ones; four at most. */
@@ -294,6 +295,8 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
       });
     } else if (placed.block === 'cover') {
       room.covers.push({ entityId, name });
+    } else if (placed.block === 'flap') {
+      room.flaps.push({ entityId, name });
     } else if (placed.block === 'media') {
       room.media.push({ entityId, name, ma: ctx.maPairs.get(entityId) ?? null });
     } else if (placed.block === 'gate' || placed.block === 'lock') {
@@ -356,6 +359,7 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     plainNames(room.equipment, room.name, S.equipmentWord, named);
     plainNames(room.climate, room.name, (c) => (c.kind === 'climate' ? S.climateWord : KIND_LABELS[c.kind]), named);
     plainNames(room.covers, room.name, KIND_LABELS.cover, named);
+    plainNames(room.flaps, room.name, KIND_LABELS.flap, named);
     plainNames(room.media, room.name, KIND_LABELS.media, named);
     plainNames(room.access, room.name, (a) => (a.kind === 'lock' ? KIND_LABELS.lock : KIND_LABELS.gate), named);
     room.lights.sort(byOrder);
@@ -365,6 +369,7 @@ export function buildHouse(hass: HomeAssistant, config: HubbConfig = {}): House 
     room.actions.sort(byOrder);
     room.climate.sort(byOrder);
     room.covers.sort(byOrder);
+    room.flaps.sort(byOrder);
     room.media.sort(byOrder);
     room.access.sort(byOrder);
     room.sensors.sort(byOrder);
@@ -450,6 +455,7 @@ export function normalizeRoom(room: Room): Room {
     actions: list(room.actions),
     climate: list(room.climate),
     covers: list(room.covers),
+    flaps: list(room.flaps),
     media: list(room.media),
     access: list(room.access),
     hidden: list(room.hidden),

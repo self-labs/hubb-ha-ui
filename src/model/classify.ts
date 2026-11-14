@@ -18,6 +18,7 @@ export type Block =
   | 'climate'
   | 'fan'
   | 'cover'
+  | 'flap'
   | 'media'
   | 'gate'
   | 'lock'
